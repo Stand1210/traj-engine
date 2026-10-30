@@ -1,0 +1,17 @@
+# 数据集必须逐字节可复现：spec_hash、SAMPLE.md 的 sha、README 里的 MiB 口径都依赖原始字节。
+# 本机全局 core.autocrlf=true 会在 checkout 时把 LF 改写成 CRLF，因此这里显式分类处理。
+
+# 数据文件按二进制对待：不做任何换行转换，也不让 git 对 37MB 的 jsonl 计算文本 diff。
+*.jsonl -text
+
+# 源码与文档统一 LF（Python 写出的就是 LF，规范化是 no-op，字节不变），保留可 diff。
+*.py   text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+*.txt  text eol=lf
+*.ps1  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+.gitattributes text eol=lf
+.gitignore     text eol=lf

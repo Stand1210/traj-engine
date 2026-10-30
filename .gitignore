@@ -1,0 +1,30 @@
+# Python 构建产物
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 本地临时脚本（本项目 house rule：调参/验证草稿一律 _ 前缀，用完即删，不入库）
+/_*.py
+/_*.txt
+/_*.json
+/_*.md
+!/__init__.py
+
+# 本地凭据 / 环境
+.env
+*.pem
+*.key
