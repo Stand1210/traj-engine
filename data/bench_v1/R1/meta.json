@@ -1,0 +1,196 @@
+{
+  "anomaly_rate_true": 0.0755,
+  "anomaly_type_counts": {
+    "error": 16,
+    "hallucinated_number": 54,
+    "illegal_step": 20,
+    "latency_spike": 43,
+    "loop": 29,
+    "missing_step": 33,
+    "token_bloat": 42,
+    "truncation": 40,
+    "unfinished": 25
+  },
+  "arg_valid_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 3959,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "cell_sizes": {
+    "i0|p1": 1524,
+    "i0|p2": 792,
+    "i0|p3": 503,
+    "i1|p1": 325,
+    "i1|p2": 219,
+    "i1|p3": 637
+  },
+  "citation_reachable_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 2169,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "contradiction_count": 46,
+  "cost": {
+    "max": 0.08275199999999999,
+    "min": 0.001443,
+    "n": 4000,
+    "p50": 0.011384624999999999,
+    "p90": 0.021031674999999996,
+    "p99": 0.03779646749999997
+  },
+  "cost_details_reconciled": true,
+  "defect_counts": {
+    "orphan_rebuilt": 62,
+    "ts_repaired": 81,
+    "usage_estimated": 120
+  },
+  "emb_dim": 384,
+  "emb_geometry": {
+    "arc_step": 0.75,
+    "bg_mu": -0.9,
+    "bg_scale": "exp(N(-0.9,0.45))",
+    "bg_sigma": 0.45,
+    "continuum": 0.12,
+    "dominant": 2.0,
+    "norm_sigma": 0.06,
+    "participation_ratio": 110.81,
+    "sig_dims": 16,
+    "sigma_e": 0.175,
+    "topic_amp": 10.0
+  },
+  "fabricated_citation_count": 55,
+  "feedback_count": 1065,
+  "field_loss_total": 998,
+  "gates": {
+    "ari_intent": 0.7,
+    "ari_pattern": 0.6,
+    "ece": 0.08,
+    "f1": 0.7,
+    "fpr": 0.05,
+    "no_drift": true,
+    "precision_at_50": 0.8,
+    "zero_residual": 1e-06
+  },
+  "generator_version": "bench-gen-v3.1.0",
+  "goal_drift_count": 44,
+  "golden_count": 1040,
+  "labels": 500,
+  "lang_counts": {
+    "en": 1736,
+    "zh": 2264
+  },
+  "latency": {
+    "max": 744.0720393657684,
+    "min": 0.18615341186523438,
+    "n": 4000,
+    "p50": 2.003118634223938,
+    "p90": 55.60768539905548,
+    "p99": 118.02735183238978
+  },
+  "loop_true_count": 29,
+  "mfr_true": {
+    "max": 0.3256,
+    "min": 0.0,
+    "n": 4000,
+    "p50": 0.0,
+    "p90": 0.0,
+    "p99": 0.16330299999999992
+  },
+  "n_cells_true": 6,
+  "n_spans": 20976,
+  "n_traces": 4000,
+  "plan_revision_count": 224,
+  "query_variety": 4000,
+  "recall_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 1040,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "regime_id": "R1",
+  "seed": 101,
+  "session_count": 881,
+  "session_turn_counts": {
+    "max": 7,
+    "min": 2,
+    "n": 4000,
+    "p50": 6.0,
+    "p90": 7.0,
+    "p99": 7.0
+  },
+  "spec": {
+    "anomaly_mix": {
+      "error": 0.12,
+      "hallucinated_number": 0.12,
+      "illegal_step": 0.06,
+      "latency_spike": 0.16,
+      "loop": 0.1,
+      "missing_step": 0.1,
+      "token_bloat": 0.14,
+      "truncation": 0.1,
+      "unfinished": 0.1
+    },
+    "anomaly_rate": 0.08,
+    "cell_sparsity": 0.0,
+    "defect_rate": 0.05,
+    "drift": null,
+    "hours": 72.0,
+    "id": "R1",
+    "label_count": 500,
+    "mix": [
+      [
+        0.7,
+        2.0,
+        0.35
+      ],
+      [
+        0.3,
+        60.0,
+        0.5
+      ]
+    ],
+    "n": 4000,
+    "n_intents": 2,
+    "n_patterns_per_intent": 3,
+    "ontology_id": "ontA",
+    "overlap": 0.25,
+    "seed": 101,
+    "title": "bimodal main path"
+  },
+  "spec_hash": "007a872125bac9bb",
+  "title": "bimodal main path",
+  "tokens": {
+    "max": 21968,
+    "min": 619,
+    "n": 4000,
+    "p50": 3134.0,
+    "p90": 5824.2,
+    "p99": 10179.279999999993
+  },
+  "v3_counts": {
+    "arg_invalid_spans": 171,
+    "cache_hit_spans": 6628,
+    "contradiction": 46,
+    "fabricated_citation": 55,
+    "goal_drift": 44,
+    "llm_spans": 8187,
+    "plan_revision": 224,
+    "verifier_fail": 97
+  },
+  "verifier_pass_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 4000,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  }
+}

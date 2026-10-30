@@ -1,0 +1,213 @@
+{
+  "anomaly_rate_true": 0.09333333333333334,
+  "anomaly_type_counts": {
+    "error": 9,
+    "hallucinated_number": 9,
+    "illegal_step": 14,
+    "latency_spike": 20,
+    "loop": 6,
+    "missing_step": 14,
+    "token_bloat": 15,
+    "truncation": 14,
+    "unfinished": 11
+  },
+  "arg_valid_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 1177,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "cell_sizes": {
+    "i0|p1": 496,
+    "i0|p2": 28,
+    "i0|p3": 9,
+    "i1|p1": 30,
+    "i1|p2": 4,
+    "i1|p3": 317,
+    "i2|p1": 3,
+    "i2|p2": 199,
+    "i2|p3": 15,
+    "i3|p1": 89,
+    "i3|p2": 6,
+    "i3|p3": 4
+  },
+  "citation_reachable_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 584,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "contradiction_count": 10,
+  "cost": {
+    "max": 0.06197550000000001,
+    "min": 0.0016182500000000003,
+    "n": 1200,
+    "p50": 0.011495374999999999,
+    "p90": 0.021963900000000005,
+    "p99": 0.03780644999999999
+  },
+  "cost_details_reconciled": true,
+  "defect_counts": {
+    "orphan_rebuilt": 18,
+    "ts_repaired": 32,
+    "usage_estimated": 36
+  },
+  "emb_dim": 384,
+  "emb_geometry": {
+    "arc_step": 0.75,
+    "bg_mu": -0.9,
+    "bg_scale": "exp(N(-0.9,0.45))",
+    "bg_sigma": 0.45,
+    "continuum": 0.12,
+    "dominant": 2.0,
+    "norm_sigma": 0.06,
+    "participation_ratio": 118.86,
+    "sig_dims": 16,
+    "sigma_e": 0.21,
+    "topic_amp": 10.0
+  },
+  "fabricated_citation_count": 17,
+  "feedback_count": 315,
+  "field_loss_total": 385,
+  "gates": {
+    "ari_intent": 0.6,
+    "ari_pattern": 0.5,
+    "ece": 0.12,
+    "f1": 0.5,
+    "fallback_min": 0.5,
+    "fpr": 0.1,
+    "no_drift": true,
+    "precision_at_50": 0.6,
+    "zero_residual": 1e-06
+  },
+  "generator_version": "bench-gen-v3.1.0",
+  "goal_drift_count": 26,
+  "golden_count": 276,
+  "labels": 150,
+  "lang_counts": {
+    "en": 557,
+    "zh": 643
+  },
+  "latency": {
+    "max": 770.4630725383759,
+    "min": 0.1397075653076172,
+    "n": 1200,
+    "p50": 5.667307138442993,
+    "p90": 58.20164954662333,
+    "p99": 277.60588682651513
+  },
+  "loop_true_count": 6,
+  "mfr_true": {
+    "max": 0.2449,
+    "min": 0.0,
+    "n": 1200,
+    "p50": 0.0,
+    "p90": 0.0,
+    "p99": 0.1875
+  },
+  "n_cells_true": 12,
+  "n_spans": 6212,
+  "n_traces": 1200,
+  "plan_revision_count": 75,
+  "query_variety": 1200,
+  "recall_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 276,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "regime_id": "R4",
+  "seed": 104,
+  "session_count": 270,
+  "session_turn_counts": {
+    "max": 7,
+    "min": 1,
+    "n": 1200,
+    "p50": 5.0,
+    "p90": 7.0,
+    "p99": 7.0
+  },
+  "spec": {
+    "anomaly_mix": {
+      "error": 0.12,
+      "hallucinated_number": 0.12,
+      "illegal_step": 0.06,
+      "latency_spike": 0.16,
+      "loop": 0.1,
+      "missing_step": 0.1,
+      "token_bloat": 0.14,
+      "truncation": 0.1,
+      "unfinished": 0.1
+    },
+    "anomaly_rate": 0.1,
+    "cell_sparsity": 0.9,
+    "defect_rate": 0.06,
+    "drift": null,
+    "hours": 48.0,
+    "id": "R4",
+    "label_count": 150,
+    "mix": [
+      [
+        0.45,
+        2.0,
+        0.4
+      ],
+      [
+        0.3,
+        12.0,
+        0.45
+      ],
+      [
+        0.17,
+        45.0,
+        0.45
+      ],
+      [
+        0.08,
+        150.0,
+        0.5
+      ]
+    ],
+    "n": 1200,
+    "n_intents": 4,
+    "n_patterns_per_intent": 3,
+    "ontology_id": "ontA",
+    "overlap": 0.3,
+    "seed": 104,
+    "title": "extremely sparse cells"
+  },
+  "spec_hash": "5188fdfc219089b9",
+  "title": "extremely sparse cells",
+  "tokens": {
+    "max": 17086,
+    "min": 465,
+    "n": 1200,
+    "p50": 3192.0,
+    "p90": 6071.4000000000015,
+    "p99": 10472.83
+  },
+  "v3_counts": {
+    "arg_invalid_spans": 59,
+    "cache_hit_spans": 1987,
+    "contradiction": 10,
+    "fabricated_citation": 17,
+    "goal_drift": 26,
+    "llm_spans": 2464,
+    "plan_revision": 75,
+    "verifier_fail": 33
+  },
+  "verifier_pass_true": {
+    "max": 1.0,
+    "min": 0.4,
+    "n": 1200,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  }
+}

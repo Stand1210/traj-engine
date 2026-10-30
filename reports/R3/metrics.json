@@ -1,0 +1,609 @@
+{
+  "all_pass": true,
+  "calibration": {
+    "auc_cal": 0.7097655146435634,
+    "available": true,
+    "ece_oof": 0.03296534317730606,
+    "ece_raw": 0.1079168711016323,
+    "kind": "platt",
+    "n_labels": 300,
+    "reliability": [
+      {
+        "acc": 0.08465608465608465,
+        "bin": 0,
+        "conf": 0.06914266868033517,
+        "n": 189
+      },
+      {
+        "acc": 0.07228915662650602,
+        "bin": 1,
+        "conf": 0.13084666841918066,
+        "n": 83
+      },
+      {
+        "acc": 0.2,
+        "bin": 2,
+        "conf": 0.21699589504218442,
+        "n": 10
+      },
+      {
+        "acc": 1.0,
+        "bin": 7,
+        "conf": 0.7435686572941297,
+        "n": 1
+      },
+      {
+        "acc": 0.0,
+        "bin": 8,
+        "conf": 0.822707063253791,
+        "n": 1
+      },
+      {
+        "acc": 1.0,
+        "bin": 9,
+        "conf": 0.9469877188373959,
+        "n": 16
+      }
+    ]
+  },
+  "cluster_info": {
+    "emb_jitter_sigma": 0.2422170988082813,
+    "eval_m": 400,
+    "instability_rate_measured": 0.23,
+    "k_intent_consensus": 6,
+    "k_pattern_consensus": 4,
+    "n_intent_clusters": 6,
+    "n_novelty_by_margin": 690,
+    "n_pattern_clusters": 4,
+    "n_salient_actions": 3,
+    "n_singleton_intent": 1,
+    "n_singleton_pattern": 0,
+    "n_unique_seq": 85,
+    "novelty_rate": 0.2866666666666667,
+    "pattern_cut_height": 0.4,
+    "pattern_height_curve": [
+      [
+        0.05,
+        null,
+        77,
+        false
+      ],
+      [
+        0.1,
+        null,
+        59,
+        false
+      ],
+      [
+        0.15,
+        null,
+        37,
+        false
+      ],
+      [
+        0.2,
+        null,
+        29,
+        false
+      ],
+      [
+        0.25,
+        null,
+        18,
+        false
+      ],
+      [
+        0.3,
+        null,
+        12,
+        false
+      ],
+      [
+        0.35,
+        null,
+        6,
+        false
+      ],
+      [
+        0.4,
+        0.6453,
+        4,
+        true
+      ],
+      [
+        0.45,
+        0.6453,
+        4,
+        true
+      ],
+      [
+        0.5,
+        0.6058,
+        3,
+        true
+      ],
+      [
+        0.55,
+        0.6058,
+        3,
+        true
+      ],
+      [
+        0.6,
+        0.6058,
+        3,
+        true
+      ],
+      [
+        0.65,
+        0.5998,
+        2,
+        true
+      ],
+      [
+        0.7,
+        0.5998,
+        2,
+        true
+      ],
+      [
+        0.75,
+        0.5998,
+        2,
+        true
+      ],
+      [
+        0.8,
+        0.5998,
+        2,
+        true
+      ],
+      [
+        0.85,
+        null,
+        1,
+        false
+      ]
+    ],
+    "pattern_silhouette": 0.6453,
+    "pooled_emb_var": 0.07840523106421661,
+    "post_margin_cut": 8.057532309658626,
+    "r_runs": 8,
+    "salient_actions": [
+      "retrieve_kb",
+      "schema_retrieval",
+      "sql_query"
+    ],
+    "threshold": 0.35
+  },
+  "clustering": {
+    "ari_cell": 0.8522387645731716,
+    "ari_cell_all": 0.6638071790662373,
+    "ari_intent": 0.7511756196415288,
+    "ari_intent_all": 0.4827427412423901,
+    "ari_intent_ceiling": 0.7520613412188039,
+    "ari_intent_ceiling_all": 0.6260528808517158,
+    "ari_intent_ceiling_pool": 0.7520613412188039,
+    "ari_pattern": 0.9866173539737775,
+    "ari_pattern_all": 0.9893390415147354,
+    "ari_pattern_ceiling": 0.9907316528846927,
+    "ari_pattern_ceiling_all": 0.9933821057211945,
+    "ari_pattern_ceiling_pool": 0.9907316528846927,
+    "coverage": 0.7133333333333334,
+    "n_cells": 10,
+    "n_intent_clusters": 6,
+    "n_novelty": 860,
+    "n_pattern_clusters": 4,
+    "n_true_cells": 6,
+    "n_true_intents": 2,
+    "n_true_patterns": 3,
+    "nmi_intent": 0.640799801917303,
+    "nmi_pattern": 0.9775020023444269,
+    "novelty_anomaly_rate": 0.09883720930232558,
+    "novelty_purity_intent": 0.6883720930232559,
+    "novelty_purity_pattern": 0.9988372093023256,
+    "novelty_rate": 0.2866666666666667,
+    "pool_anomaly_rate": 0.08644859813084112,
+    "purity_intent": 0.9336448598130841,
+    "purity_pattern": 0.9967289719626168
+  },
+  "code_hash": "e2e2a7670771ce5a",
+  "cold_start": false,
+  "data_quality": {
+    "conf_downgrade_rate": 1.0,
+    "defect_counts_true": {
+      "orphan_rebuilt": 58,
+      "ts_repaired": 78,
+      "usage_estimated": 112
+    },
+    "defect_recall": {
+      "orphan_rebuilt": 1.0,
+      "ts_repaired": 1.0,
+      "usage_estimated": 1.0
+    },
+    "n_flagged": 186
+  },
+  "detect_info": {
+    "bh_alpha": 0.2,
+    "fallback_share": 0.294,
+    "layer_weights": {
+      "L1": 0.24,
+      "L2": 0.2,
+      "L3": 0.24,
+      "L4": 0.22,
+      "L5": 0.1
+    },
+    "layers": [
+      "L1",
+      "L2",
+      "L3",
+      "L4",
+      "L5"
+    ],
+    "n": 3000,
+    "n_alert": 129,
+    "n_alert_rule": 112,
+    "n_alert_stat": 17,
+    "n_bound_patterns": 3,
+    "n_novelty": 860
+  },
+  "detection": {
+    "alerts_per_day": 43.0,
+    "all": {
+      "f1": 0.6265664160401002,
+      "fn": 145,
+      "fp": 4,
+      "fpr": 0.0014652014652014652,
+      "n_neg": 2730,
+      "n_pos": 270,
+      "precision": 0.9689922480620154,
+      "recall": 0.46296296296296297,
+      "tn": 2726,
+      "tp": 125
+    },
+    "auc_a_raw": 0.916391788207645,
+    "baseline_fallback_ratio": 0.4,
+    "below_rule_base_rate": 0.03648915187376726,
+    "below_rule_lift": 12.606486486486487,
+    "bh_alpha": 0.2,
+    "binding": {
+      "0": "p1",
+      "1": "p3",
+      "2": "p2"
+    },
+    "binding_detail": {
+      "0": {
+        "best": "p1",
+        "best_score": 1.0,
+        "bound": true,
+        "core": [
+          "sql_query"
+        ],
+        "margin": 0.5
+      },
+      "1": {
+        "best": "p3",
+        "best_score": 1.0,
+        "bound": true,
+        "core": [
+          "retrieve_kb"
+        ],
+        "margin": 1.0
+      },
+      "2": {
+        "best": "p2",
+        "best_score": 1.0,
+        "bound": true,
+        "core": [
+          "schema_retrieval",
+          "sql_query"
+        ],
+        "margin": 0.5
+      }
+    },
+    "budget_k": 15,
+    "cold_start": false,
+    "days": 3.0,
+    "fallback_share": 0.294,
+    "n_alert": 129,
+    "n_alert_rule": 112,
+    "n_alert_stat": 17,
+    "per_anomaly_type": {
+      "error": {
+        "alert": 18,
+        "n": 18,
+        "recall": 1.0,
+        "rule": 18,
+        "stat": 0
+      },
+      "hallucinated_number": {
+        "alert": 14,
+        "n": 16,
+        "recall": 0.875,
+        "rule": 14,
+        "stat": 0
+      },
+      "illegal_step": {
+        "alert": 9,
+        "n": 9,
+        "recall": 1.0,
+        "rule": 9,
+        "stat": 0
+      },
+      "latency_spike": {
+        "alert": 3,
+        "n": 34,
+        "recall": 0.08823529411764706,
+        "rule": 0,
+        "stat": 3
+      },
+      "loop": {
+        "alert": 10,
+        "n": 10,
+        "recall": 1.0,
+        "rule": 10,
+        "stat": 0
+      },
+      "missing_step": {
+        "alert": 13,
+        "n": 20,
+        "recall": 0.65,
+        "rule": 13,
+        "stat": 0
+      },
+      "normal": {
+        "alert": 4,
+        "n": 1955,
+        "recall": 0.0020460358056265983,
+        "rule": 1,
+        "stat": 3
+      },
+      "token_bloat": {
+        "alert": 11,
+        "n": 21,
+        "recall": 0.5238095238095238,
+        "rule": 0,
+        "stat": 11
+      },
+      "truncation": {
+        "alert": 19,
+        "n": 19,
+        "recall": 1.0,
+        "rule": 19,
+        "stat": 0
+      },
+      "unfinished": {
+        "alert": 28,
+        "n": 38,
+        "recall": 0.7368421052631579,
+        "rule": 28,
+        "stat": 0
+      }
+    },
+    "pool": {
+      "f1": 0.7961783439490446,
+      "fn": 60,
+      "fp": 4,
+      "fpr": 0.0020460358056265983,
+      "n_neg": 1955,
+      "n_pos": 185,
+      "precision": 0.9689922480620154,
+      "recall": 0.6756756756756757,
+      "tn": 1951,
+      "tp": 125
+    },
+    "pr_auc": 0.8094386627978181,
+    "precision_at_50": 1.0,
+    "precision_at_50_below_rule": 0.46,
+    "precision_at_budget": 1.0,
+    "recall_at_50": 0.2702702702702703,
+    "rule_findings_per_day": 37.333333333333336,
+    "span_localization": {
+      "fn": 70,
+      "fp": 30,
+      "n_with_truth": 92,
+      "precision": 0.6739130434782609,
+      "recall": 0.4696969696969697,
+      "tp": 62
+    },
+    "tier_mix": {
+      "0": 2011,
+      "1": 17,
+      "2": 112
+    }
+  },
+  "drift": {
+    "alpha": 0.01,
+    "detected": false,
+    "drift_spec": null,
+    "index": null,
+    "lambda": 18.83500000000003,
+    "lambda_source": "bootstrap",
+    "min_seg_len": 120,
+    "n_suspects": 0,
+    "reason": null,
+    "share_above_ref_median": null,
+    "sign_mean_tail": -0.0008333333333333334,
+    "statistic": -18.400000000000055,
+    "window": null,
+    "window_len": null,
+    "z_levels": {
+      "abstain": 0,
+      "cell": 2978,
+      "parent": 22
+    },
+    "z_mean_ref": 0.011929449980591929,
+    "z_mean_tail": 0.03296050959457257,
+    "z_median_tail": -0.00018222286904757994
+  },
+  "gates": {
+    "ari_intent": {
+      "got": "0.7512",
+      "ok": true,
+      "want": ">=0.550 (table 0.55, oracle ceiling 0.7521)"
+    },
+    "ari_pattern": {
+      "got": "0.9866",
+      "ok": true,
+      "want": ">=0.500 (table 0.50, oracle ceiling 0.9907)"
+    },
+    "ece": {
+      "got": "0.0330",
+      "ok": true,
+      "want": "<=0.10"
+    },
+    "f1": {
+      "got": "0.7962",
+      "ok": true,
+      "want": ">=0.60"
+    },
+    "fpr": {
+      "got": "0.0020",
+      "ok": true,
+      "want": "<=0.08"
+    },
+    "no_false_drift": {
+      "got": "detected=False stat=-18.40 lambda=18.84",
+      "ok": true,
+      "want": "detected=false"
+    },
+    "novelty_rate": {
+      "got": "0.287",
+      "ok": true,
+      "want": "[0.03,0.30]"
+    },
+    "operator_stream_precision": {
+      "got": "1.0000",
+      "ok": true,
+      "want": ">=0.80 @k=15/day=5"
+    },
+    "precision_at_50": {
+      "got": "1.0000",
+      "ok": true,
+      "want": ">=0.70"
+    },
+    "zero_residual": {
+      "got": "9.681e-14",
+      "ok": true,
+      "want": "<=1e-06"
+    }
+  },
+  "gen_meta": {
+    "anomaly_rate_true": 0.09,
+    "anomaly_type_counts": {
+      "error": 23,
+      "hallucinated_number": 29,
+      "illegal_step": 15,
+      "latency_spike": 48,
+      "loop": 14,
+      "missing_step": 28,
+      "token_bloat": 31,
+      "truncation": 33,
+      "unfinished": 49
+    },
+    "cost": {
+      "max": 0.0982115,
+      "min": 0.00057,
+      "n": 3000,
+      "p50": 0.011481249999999998,
+      "p90": 0.021668225,
+      "p99": 0.038797634999999886
+    },
+    "latency": {
+      "max": 262.34434628486633,
+      "min": 0.2819695472717285,
+      "n": 3000,
+      "p50": 6.842436671257019,
+      "p90": 25.230904364585864,
+      "p99": 65.06169197320915
+    },
+    "n_cells_true": 6,
+    "n_spans": 15579,
+    "n_traces": 3000,
+    "tokens": {
+      "max": 26746,
+      "min": 359,
+      "n": 3000,
+      "p50": 3180.5,
+      "p90": 5979.1,
+      "p99": 10719.499999999964
+    }
+  },
+  "n": 3000,
+  "n_pool": 2140,
+  "pipeline_version": "slice1-v0.1.0",
+  "regime_id": "R3",
+  "scoring": {
+    "gate_hits": {
+      "forbidden_action": 15,
+      "guard_violation": 9,
+      "loop_runaway": 11,
+      "novelty": 860,
+      "t0_result_broken": 45,
+      "t1_unfinished": 105,
+      "t2_untraceable_number": 14
+    },
+    "grade_abs": {
+      "A": 1288,
+      "B": 826,
+      "C": 70,
+      "D": 816
+    },
+    "grade_rel": {
+      "A": 754,
+      "B": 1050,
+      "C": 749,
+      "D": 447
+    },
+    "grade_separation": 38.616343332008604,
+    "kendall_vs_oracle": 0.6308209486711609,
+    "mean_S_anomaly": 51.06455517148111,
+    "mean_S_normal": 89.68089850348971,
+    "mean_conf": 0.7842644473202424,
+    "per_dim": {
+      "C": {
+        "mean_anomaly": 0.7566683030976684,
+        "mean_normal": 0.7641501364793338,
+        "pearson": 0.8648913072421321,
+        "spearman": 0.918752589362156
+      },
+      "L": {
+        "mean_anomaly": 0.74143344997036,
+        "mean_normal": 0.7773702051781427,
+        "pearson": 0.7811705360992588,
+        "spearman": 0.8327225408869404
+      },
+      "O": {
+        "mean_anomaly": 0.8800710424710432,
+        "mean_normal": 0.9917683595177222,
+        "pearson": 0.7475520287039967,
+        "spearman": 0.40709217731697067
+      },
+      "P": {
+        "mean_anomaly": 0.8955405405405403,
+        "mean_normal": 0.99839641943734,
+        "pearson": 0.9046571284354107,
+        "spearman": 0.7968713533209586
+      },
+      "R": {
+        "mean_anomaly": 0.943534963534963,
+        "mean_normal": 0.9706527828522663,
+        "pearson": 0.4821745147897697,
+        "spearman": 0.320178094927003
+      }
+    },
+    "score_auc": 0.8802115158636897,
+    "spearman_vs_oracle": 0.8101507816555016,
+    "zero_residual_max": 9.681144774731365e-14
+  },
+  "spec_hash": "2d9e23adcdd4eb4e",
+  "timings": {
+    "baseline": 0.17887449264526367,
+    "cluster": 108.3781247138977,
+    "detect": 0.7381026744842529,
+    "ingest_features": 2.870708703994751,
+    "score": 0.09332132339477539
+  },
+  "title": "heavy overlap + intent ambiguity",
+  "wall_s": 113.2814211845398
+}

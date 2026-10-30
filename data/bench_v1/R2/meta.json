@@ -1,0 +1,204 @@
+{
+  "anomaly_rate_true": 0.0745,
+  "anomaly_type_counts": {
+    "error": 22,
+    "hallucinated_number": 45,
+    "illegal_step": 22,
+    "latency_spike": 46,
+    "loop": 30,
+    "missing_step": 29,
+    "token_bloat": 40,
+    "truncation": 33,
+    "unfinished": 31
+  },
+  "arg_valid_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 3945,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "cell_sizes": {
+    "i0|p1": 1289,
+    "i0|p2": 459,
+    "i0|p3": 240,
+    "i1|p1": 263,
+    "i1|p2": 129,
+    "i1|p3": 839,
+    "i2|p1": 94,
+    "i2|p2": 516,
+    "i2|p3": 171
+  },
+  "citation_reachable_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 2358,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "contradiction_count": 49,
+  "cost": {
+    "max": 0.1220505,
+    "min": 0.0006979999999999999,
+    "n": 4000,
+    "p50": 0.01154925,
+    "p90": 0.021960850000000004,
+    "p99": 0.04166803999999984
+  },
+  "cost_details_reconciled": true,
+  "defect_counts": {
+    "orphan_rebuilt": 52,
+    "ts_repaired": 90,
+    "usage_estimated": 111
+  },
+  "emb_dim": 384,
+  "emb_geometry": {
+    "arc_step": 0.75,
+    "bg_mu": -0.9,
+    "bg_scale": "exp(N(-0.9,0.45))",
+    "bg_sigma": 0.45,
+    "continuum": 0.12,
+    "dominant": 2.0,
+    "norm_sigma": 0.06,
+    "participation_ratio": 131.68,
+    "sig_dims": 16,
+    "sigma_e": 0.21,
+    "topic_amp": 10.0
+  },
+  "fabricated_citation_count": 42,
+  "feedback_count": 944,
+  "field_loss_total": 1074,
+  "gates": {
+    "ari_intent": 0.65,
+    "ari_pattern": 0.55,
+    "ece": 0.08,
+    "f1": 0.65,
+    "fpr": 0.06,
+    "no_drift": true,
+    "precision_at_50": 0.75,
+    "zero_residual": 1e-06
+  },
+  "generator_version": "bench-gen-v3.1.0",
+  "goal_drift_count": 51,
+  "golden_count": 1068,
+  "labels": 500,
+  "lang_counts": {
+    "en": 1776,
+    "zh": 2224
+  },
+  "latency": {
+    "max": 548.9064564704895,
+    "min": 0.09401702880859375,
+    "n": 4000,
+    "p50": 3.048579692840576,
+    "p90": 67.1289088010788,
+    "p99": 152.98290567636457
+  },
+  "loop_true_count": 30,
+  "mfr_true": {
+    "max": 0.3023,
+    "min": 0.0,
+    "n": 4000,
+    "p50": 0.0,
+    "p90": 0.0,
+    "p99": 0.1667249999999994
+  },
+  "n_cells_true": 9,
+  "n_spans": 20933,
+  "n_traces": 4000,
+  "plan_revision_count": 249,
+  "query_variety": 4000,
+  "recall_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 1068,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "regime_id": "R2",
+  "seed": 102,
+  "session_count": 885,
+  "session_turn_counts": {
+    "max": 7,
+    "min": 1,
+    "n": 4000,
+    "p50": 5.0,
+    "p90": 7.0,
+    "p99": 7.0
+  },
+  "spec": {
+    "anomaly_mix": {
+      "error": 0.12,
+      "hallucinated_number": 0.12,
+      "illegal_step": 0.06,
+      "latency_spike": 0.16,
+      "loop": 0.1,
+      "missing_step": 0.1,
+      "token_bloat": 0.14,
+      "truncation": 0.1,
+      "unfinished": 0.1
+    },
+    "anomaly_rate": 0.08,
+    "cell_sparsity": 0.2,
+    "defect_rate": 0.05,
+    "drift": null,
+    "hours": 72.0,
+    "id": "R2",
+    "label_count": 500,
+    "mix": [
+      [
+        0.5,
+        1.5,
+        0.3
+      ],
+      [
+        0.3,
+        15.0,
+        0.4
+      ],
+      [
+        0.2,
+        90.0,
+        0.45
+      ]
+    ],
+    "n": 4000,
+    "n_intents": 3,
+    "n_patterns_per_intent": 3,
+    "ontology_id": "ontA",
+    "overlap": 0.3,
+    "seed": 102,
+    "title": "trimodal"
+  },
+  "spec_hash": "52470f48253b25a6",
+  "title": "trimodal",
+  "tokens": {
+    "max": 31887,
+    "min": 654,
+    "n": 4000,
+    "p50": 3174.5,
+    "p90": 6041.1,
+    "p99": 11401.639999999961
+  },
+  "v3_counts": {
+    "arg_invalid_spans": 155,
+    "cache_hit_spans": 6619,
+    "contradiction": 49,
+    "fabricated_citation": 42,
+    "goal_drift": 51,
+    "llm_spans": 8220,
+    "plan_revision": 249,
+    "verifier_fail": 78
+  },
+  "verifier_pass_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 4000,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  }
+}

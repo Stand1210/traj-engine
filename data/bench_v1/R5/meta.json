@@ -1,0 +1,197 @@
+{
+  "anomaly_rate_true": 0.10266666666666667,
+  "anomaly_type_counts": {
+    "error": 14,
+    "hallucinated_number": 31,
+    "illegal_step": 21,
+    "latency_spike": 60,
+    "loop": 25,
+    "missing_step": 30,
+    "token_bloat": 53,
+    "truncation": 38,
+    "unfinished": 36
+  },
+  "arg_valid_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 2710,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "cell_sizes": {
+    "i0|p1": 1336,
+    "i0|p2": 476,
+    "i0|p3": 305,
+    "i1|p1": 231,
+    "i1|p2": 122,
+    "i1|p3": 530
+  },
+  "citation_reachable_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 1439,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "contradiction_count": 46,
+  "cost": {
+    "max": 0.07768075000000002,
+    "min": 0.00032175000000000004,
+    "n": 3000,
+    "p50": 0.010751375,
+    "p90": 0.021195475000000002,
+    "p99": 0.041566384999999824
+  },
+  "cost_details_reconciled": true,
+  "defect_counts": {
+    "orphan_rebuilt": 425,
+    "ts_repaired": 525,
+    "usage_estimated": 843
+  },
+  "emb_dim": 384,
+  "emb_geometry": {
+    "arc_step": 0.75,
+    "bg_mu": -0.9,
+    "bg_scale": "exp(N(-0.9,0.45))",
+    "bg_sigma": 0.45,
+    "continuum": 0.12,
+    "dominant": 2.0,
+    "norm_sigma": 0.06,
+    "participation_ratio": 113.03,
+    "sig_dims": 16,
+    "sigma_e": 0.21,
+    "topic_amp": 10.0
+  },
+  "fabricated_citation_count": 48,
+  "feedback_count": 750,
+  "field_loss_total": 6843,
+  "gates": {
+    "ari_intent": 0.65,
+    "ari_pattern": 0.55,
+    "conf_downgrade": 1.0,
+    "ece": 0.1,
+    "f1": 0.6,
+    "fpr": 0.08,
+    "no_drift": true,
+    "precision_at_50": 0.7,
+    "zero_residual": 1e-06
+  },
+  "generator_version": "bench-gen-v3.1.0",
+  "goal_drift_count": 38,
+  "golden_count": 815,
+  "labels": 300,
+  "lang_counts": {
+    "en": 1308,
+    "zh": 1692
+  },
+  "latency": {
+    "max": 252.94272994995117,
+    "min": 0.13177800178527832,
+    "n": 3000,
+    "p50": 1.9881706237792969,
+    "p90": 60.01396377086639,
+    "p99": 137.0266849589345
+  },
+  "loop_true_count": 25,
+  "mfr_true": {
+    "max": 0.3488,
+    "min": 0.0,
+    "n": 3000,
+    "p50": 0.0233,
+    "p90": 0.1667,
+    "p99": 0.2787039999999999
+  },
+  "n_cells_true": 6,
+  "n_spans": 15483,
+  "n_traces": 3000,
+  "plan_revision_count": 203,
+  "query_variety": 3000,
+  "recall_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 815,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "regime_id": "R5",
+  "seed": 105,
+  "session_count": 672,
+  "session_turn_counts": {
+    "max": 7,
+    "min": 2,
+    "n": 3000,
+    "p50": 5.0,
+    "p90": 7.0,
+    "p99": 7.0
+  },
+  "spec": {
+    "anomaly_mix": {
+      "error": 0.12,
+      "hallucinated_number": 0.12,
+      "illegal_step": 0.06,
+      "latency_spike": 0.16,
+      "loop": 0.1,
+      "missing_step": 0.1,
+      "token_bloat": 0.14,
+      "truncation": 0.1,
+      "unfinished": 0.1
+    },
+    "anomaly_rate": 0.1,
+    "cell_sparsity": 0.1,
+    "defect_rate": 0.45,
+    "drift": null,
+    "hours": 72.0,
+    "id": "R5",
+    "label_count": 300,
+    "mix": [
+      [
+        0.7,
+        2.0,
+        0.35
+      ],
+      [
+        0.3,
+        60.0,
+        0.5
+      ]
+    ],
+    "n": 3000,
+    "n_intents": 2,
+    "n_patterns_per_intent": 3,
+    "ontology_id": "ontA",
+    "overlap": 0.3,
+    "seed": 105,
+    "title": "heavily corrupted telemetry"
+  },
+  "spec_hash": "10ff75f849deddbe",
+  "title": "heavily corrupted telemetry",
+  "tokens": {
+    "max": 19813,
+    "min": 359,
+    "n": 3000,
+    "p50": 2999.0,
+    "p90": 5773.1,
+    "p99": 10356.129999999974
+  },
+  "v3_counts": {
+    "arg_invalid_spans": 86,
+    "cache_hit_spans": 4933,
+    "contradiction": 46,
+    "fabricated_citation": 48,
+    "goal_drift": 38,
+    "llm_spans": 6163,
+    "plan_revision": 203,
+    "verifier_fail": 81
+  },
+  "verifier_pass_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 3000,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  }
+}

@@ -1,0 +1,199 @@
+{
+  "anomaly_rate_true": 0.09,
+  "anomaly_type_counts": {
+    "error": 23,
+    "hallucinated_number": 29,
+    "illegal_step": 15,
+    "latency_spike": 48,
+    "loop": 14,
+    "missing_step": 28,
+    "token_bloat": 31,
+    "truncation": 33,
+    "unfinished": 49
+  },
+  "arg_valid_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 2951,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "cell_sizes": {
+    "i0|p1": 884,
+    "i0|p2": 481,
+    "i0|p3": 297,
+    "i1|p1": 356,
+    "i1|p2": 265,
+    "i1|p3": 717
+  },
+  "citation_reachable_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 1769,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "contradiction_count": 29,
+  "cost": {
+    "max": 0.0982115,
+    "min": 0.00057,
+    "n": 3000,
+    "p50": 0.011481249999999998,
+    "p90": 0.021668225,
+    "p99": 0.038797634999999886
+  },
+  "cost_details_reconciled": true,
+  "defect_counts": {
+    "orphan_rebuilt": 58,
+    "ts_repaired": 78,
+    "usage_estimated": 112
+  },
+  "emb_dim": 384,
+  "emb_geometry": {
+    "arc_step": 0.75,
+    "bg_mu": -0.9,
+    "bg_scale": "exp(N(-0.9,0.45))",
+    "bg_sigma": 0.45,
+    "continuum": 0.5,
+    "dominant": 2.0,
+    "norm_sigma": 0.06,
+    "participation_ratio": 114.68,
+    "sig_dims": 16,
+    "sigma_e": 0.49,
+    "topic_amp": 10.0
+  },
+  "fabricated_citation_count": 42,
+  "feedback_count": 723,
+  "field_loss_total": 977,
+  "gates": {
+    "ari_intent": 0.55,
+    "ari_pattern": 0.5,
+    "ece": 0.1,
+    "f1": 0.6,
+    "fpr": 0.08,
+    "no_drift": true,
+    "novelty_max": 0.3,
+    "novelty_min": 0.03,
+    "precision_at_50": 0.7,
+    "zero_residual": 1e-06
+  },
+  "generator_version": "bench-gen-v3.1.0",
+  "goal_drift_count": 45,
+  "golden_count": 884,
+  "labels": 300,
+  "lang_counts": {
+    "en": 1328,
+    "zh": 1672
+  },
+  "latency": {
+    "max": 262.34434628486633,
+    "min": 0.2819695472717285,
+    "n": 3000,
+    "p50": 6.842436671257019,
+    "p90": 25.230904364585864,
+    "p99": 65.06169197320915
+  },
+  "loop_true_count": 14,
+  "mfr_true": {
+    "max": 0.3023,
+    "min": 0.0,
+    "n": 3000,
+    "p50": 0.0,
+    "p90": 0.0,
+    "p99": 0.16673499999999916
+  },
+  "n_cells_true": 6,
+  "n_spans": 15579,
+  "n_traces": 3000,
+  "plan_revision_count": 172,
+  "query_variety": 3000,
+  "recall_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 884,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "regime_id": "R3",
+  "seed": 103,
+  "session_count": 656,
+  "session_turn_counts": {
+    "max": 7,
+    "min": 2,
+    "n": 3000,
+    "p50": 5.0,
+    "p90": 7.0,
+    "p99": 7.0
+  },
+  "spec": {
+    "anomaly_mix": {
+      "error": 0.12,
+      "hallucinated_number": 0.12,
+      "illegal_step": 0.06,
+      "latency_spike": 0.16,
+      "loop": 0.1,
+      "missing_step": 0.1,
+      "token_bloat": 0.14,
+      "truncation": 0.1,
+      "unfinished": 0.1
+    },
+    "anomaly_rate": 0.1,
+    "cell_sparsity": 0.0,
+    "defect_rate": 0.06,
+    "drift": null,
+    "hours": 72.0,
+    "id": "R3",
+    "intent_ambiguity": 0.5,
+    "label_count": 300,
+    "mix": [
+      [
+        0.55,
+        6.0,
+        0.7
+      ],
+      [
+        0.45,
+        18.0,
+        0.7
+      ]
+    ],
+    "n": 3000,
+    "n_intents": 2,
+    "n_patterns_per_intent": 3,
+    "ontology_id": "ontA",
+    "overlap": 0.7,
+    "seed": 103,
+    "title": "heavy overlap + intent ambiguity"
+  },
+  "spec_hash": "2d9e23adcdd4eb4e",
+  "title": "heavy overlap + intent ambiguity",
+  "tokens": {
+    "max": 26746,
+    "min": 359,
+    "n": 3000,
+    "p50": 3180.5,
+    "p90": 5979.1,
+    "p99": 10719.499999999964
+  },
+  "v3_counts": {
+    "arg_invalid_spans": 88,
+    "cache_hit_spans": 4883,
+    "contradiction": 29,
+    "fabricated_citation": 42,
+    "goal_drift": 45,
+    "llm_spans": 6113,
+    "plan_revision": 172,
+    "verifier_fail": 59
+  },
+  "verifier_pass_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 3000,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  }
+}

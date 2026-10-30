@@ -1,0 +1,191 @@
+{
+  "anomaly_rate_true": 0.10166666666666667,
+  "anomaly_type_counts": {
+    "error": 3,
+    "hallucinated_number": 5,
+    "illegal_step": 7,
+    "latency_spike": 13,
+    "loop": 6,
+    "missing_step": 4,
+    "token_bloat": 8,
+    "truncation": 8,
+    "unfinished": 7
+  },
+  "arg_valid_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 588,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "cell_sizes": {
+    "i0|p1": 211,
+    "i0|p2": 115,
+    "i0|p3": 86,
+    "i1|p1": 55,
+    "i1|p2": 33,
+    "i1|p3": 100
+  },
+  "citation_reachable_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 338,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "contradiction_count": 7,
+  "cost": {
+    "max": 0.08454525000000002,
+    "min": 0.0021357500000000005,
+    "n": 600,
+    "p50": 0.0111885,
+    "p90": 0.022478525000000003,
+    "p99": 0.04392269749999999
+  },
+  "cost_details_reconciled": true,
+  "defect_counts": {
+    "orphan_rebuilt": 6,
+    "ts_repaired": 15,
+    "usage_estimated": 20
+  },
+  "emb_dim": 384,
+  "emb_geometry": {
+    "arc_step": 0.75,
+    "bg_mu": -0.9,
+    "bg_scale": "exp(N(-0.9,0.45))",
+    "bg_sigma": 0.45,
+    "continuum": 0.12,
+    "dominant": 2.0,
+    "norm_sigma": 0.06,
+    "participation_ratio": 116.79,
+    "sig_dims": 16,
+    "sigma_e": 0.21,
+    "topic_amp": 10.0
+  },
+  "fabricated_citation_count": 9,
+  "feedback_count": 166,
+  "field_loss_total": 195,
+  "gates": {
+    "cold_start": true,
+    "max_alerts": 0,
+    "zero_residual": 1e-06
+  },
+  "generator_version": "bench-gen-v3.1.0",
+  "goal_drift_count": 10,
+  "golden_count": 164,
+  "labels": 0,
+  "lang_counts": {
+    "en": 291,
+    "zh": 309
+  },
+  "latency": {
+    "max": 207.9898281097412,
+    "min": 0.19610142707824707,
+    "n": 600,
+    "p50": 2.0098354816436768,
+    "p90": 60.72904877662661,
+    "p99": 130.1758912539482
+  },
+  "loop_true_count": 6,
+  "mfr_true": {
+    "max": 0.2791,
+    "min": 0.0,
+    "n": 600,
+    "p50": 0.0,
+    "p90": 0.001640000000000373,
+    "p99": 0.1481
+  },
+  "n_cells_true": 6,
+  "n_spans": 3155,
+  "n_traces": 600,
+  "plan_revision_count": 30,
+  "query_variety": 600,
+  "recall_true": {
+    "max": 1.0,
+    "min": 0.6,
+    "n": 164,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "regime_id": "R6",
+  "seed": 106,
+  "session_count": 137,
+  "session_turn_counts": {
+    "max": 7,
+    "min": 2,
+    "n": 600,
+    "p50": 5.0,
+    "p90": 7.0,
+    "p99": 7.0
+  },
+  "spec": {
+    "anomaly_mix": {
+      "error": 0.12,
+      "hallucinated_number": 0.12,
+      "illegal_step": 0.06,
+      "latency_spike": 0.16,
+      "loop": 0.1,
+      "missing_step": 0.1,
+      "token_bloat": 0.14,
+      "truncation": 0.1,
+      "unfinished": 0.1
+    },
+    "anomaly_rate": 0.1,
+    "cell_sparsity": 0.0,
+    "defect_rate": 0.06,
+    "drift": null,
+    "hours": 2.0,
+    "id": "R6",
+    "label_count": 0,
+    "mix": [
+      [
+        0.7,
+        2.0,
+        0.35
+      ],
+      [
+        0.3,
+        60.0,
+        0.5
+      ]
+    ],
+    "n": 600,
+    "n_intents": 2,
+    "n_patterns_per_intent": 3,
+    "ontology_id": "ontA",
+    "overlap": 0.3,
+    "seed": 106,
+    "title": "cold start"
+  },
+  "spec_hash": "6df7cb38491a91dd",
+  "title": "cold start",
+  "tokens": {
+    "max": 22293,
+    "min": 735,
+    "n": 600,
+    "p50": 3156.0,
+    "p90": 5919.100000000001,
+    "p99": 12220.399999999996
+  },
+  "v3_counts": {
+    "arg_invalid_spans": 24,
+    "cache_hit_spans": 972,
+    "contradiction": 7,
+    "fabricated_citation": 9,
+    "goal_drift": 10,
+    "llm_spans": 1222,
+    "plan_revision": 30,
+    "verifier_fail": 18
+  },
+  "verifier_pass_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 600,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  }
+}

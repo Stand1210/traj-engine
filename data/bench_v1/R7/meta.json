@@ -1,0 +1,201 @@
+{
+  "anomaly_rate_true": 0.07775,
+  "anomaly_type_counts": {
+    "error": 25,
+    "hallucinated_number": 39,
+    "illegal_step": 14,
+    "latency_spike": 50,
+    "loop": 41,
+    "missing_step": 28,
+    "token_bloat": 58,
+    "truncation": 36,
+    "unfinished": 20
+  },
+  "arg_valid_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 3938,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "cell_sizes": {
+    "i0|p1": 1554,
+    "i0|p2": 753,
+    "i0|p3": 519,
+    "i1|p1": 308,
+    "i1|p2": 220,
+    "i1|p3": 646
+  },
+  "citation_reachable_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 2153,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "contradiction_count": 44,
+  "cost": {
+    "max": 0.20525325000000003,
+    "min": 0.00115125,
+    "n": 4000,
+    "p50": 0.011294124999999999,
+    "p90": 0.021459349999999995,
+    "p99": 0.042762962499999925
+  },
+  "cost_details_reconciled": true,
+  "defect_counts": {
+    "orphan_rebuilt": 67,
+    "ts_repaired": 85,
+    "usage_estimated": 152
+  },
+  "emb_dim": 384,
+  "emb_geometry": {
+    "arc_step": 0.75,
+    "bg_mu": -0.9,
+    "bg_scale": "exp(N(-0.9,0.45))",
+    "bg_sigma": 0.45,
+    "continuum": 0.12,
+    "dominant": 2.0,
+    "norm_sigma": 0.06,
+    "participation_ratio": 72.26,
+    "sig_dims": 16,
+    "sigma_e": 0.21,
+    "topic_amp": 10.0
+  },
+  "fabricated_citation_count": 41,
+  "feedback_count": 974,
+  "field_loss_total": 1213,
+  "gates": {
+    "ari_intent": 0.65,
+    "ari_pattern": 0.55,
+    "drift_detected": true,
+    "drift_lag_frac_max": 0.1,
+    "drift_lag_frac_min": -0.05,
+    "ece": 0.1,
+    "f1": 0.6,
+    "fpr": 0.08,
+    "precision_at_50": 0.7,
+    "zero_residual": 1e-06
+  },
+  "generator_version": "bench-gen-v3.1.0",
+  "goal_drift_count": 49,
+  "golden_count": 1094,
+  "labels": 300,
+  "lang_counts": {
+    "en": 1841,
+    "zh": 2159
+  },
+  "latency": {
+    "max": 1474.6204524040222,
+    "min": 0.07457995414733887,
+    "n": 4000,
+    "p50": 2.5530275106430054,
+    "p90": 77.03837537765503,
+    "p99": 194.2502141714089
+  },
+  "loop_true_count": 41,
+  "mfr_true": {
+    "max": 0.2857,
+    "min": 0.0,
+    "n": 4000,
+    "p50": 0.0,
+    "p90": 0.0,
+    "p99": 0.1667
+  },
+  "n_cells_true": 6,
+  "n_spans": 21004,
+  "n_traces": 4000,
+  "plan_revision_count": 240,
+  "query_variety": 4000,
+  "recall_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 1094,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "regime_id": "R7",
+  "seed": 107,
+  "session_count": 883,
+  "session_turn_counts": {
+    "max": 7,
+    "min": 2,
+    "n": 4000,
+    "p50": 5.0,
+    "p90": 7.0,
+    "p99": 7.0
+  },
+  "spec": {
+    "anomaly_mix": {
+      "error": 0.12,
+      "hallucinated_number": 0.12,
+      "illegal_step": 0.06,
+      "latency_spike": 0.16,
+      "loop": 0.1,
+      "missing_step": 0.1,
+      "token_bloat": 0.14,
+      "truncation": 0.1,
+      "unfinished": 0.1
+    },
+    "anomaly_rate": 0.08,
+    "cell_sparsity": 0.0,
+    "defect_rate": 0.06,
+    "drift": {
+      "at_frac": 0.5,
+      "magnitude": 1.6
+    },
+    "hours": 72.0,
+    "id": "R7",
+    "label_count": 300,
+    "mix": [
+      [
+        0.7,
+        2.0,
+        0.35
+      ],
+      [
+        0.3,
+        60.0,
+        0.5
+      ]
+    ],
+    "n": 4000,
+    "n_intents": 2,
+    "n_patterns_per_intent": 3,
+    "ontology_id": "ontA",
+    "overlap": 0.3,
+    "seed": 107,
+    "title": "mid-stream drift x1.6"
+  },
+  "spec_hash": "1bd79369786bde6f",
+  "title": "mid-stream drift x1.6",
+  "tokens": {
+    "max": 56738,
+    "min": 567,
+    "n": 4000,
+    "p50": 3126.5,
+    "p90": 5898.1,
+    "p99": 11487.619999999963
+  },
+  "v3_counts": {
+    "arg_invalid_spans": 123,
+    "cache_hit_spans": 6606,
+    "contradiction": 44,
+    "fabricated_citation": 41,
+    "goal_drift": 49,
+    "llm_spans": 8228,
+    "plan_revision": 240,
+    "verifier_fail": 73
+  },
+  "verifier_pass_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 4000,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  }
+}

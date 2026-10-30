@@ -1,0 +1,205 @@
+{
+  "anomaly_rate_true": 0.08033333333333334,
+  "anomaly_type_counts": {
+    "error": 20,
+    "hallucinated_number": 34,
+    "illegal_step": 18,
+    "latency_spike": 40,
+    "loop": 27,
+    "missing_step": 26,
+    "token_bloat": 29,
+    "truncation": 20,
+    "unfinished": 27
+  },
+  "arg_valid_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 2213,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "cell_sizes": {
+    "i0|b1": 949,
+    "i0|b2": 336,
+    "i0|b3": 163,
+    "i1|b1": 203,
+    "i1|b2": 107,
+    "i1|b3": 612,
+    "i2|b1": 68,
+    "i2|b2": 414,
+    "i2|b3": 148
+  },
+  "citation_reachable_true": {
+    "max": 1.0,
+    "min": 0.0,
+    "n": 885,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "contradiction_count": 25,
+  "cost": {
+    "max": 0.13895499999999997,
+    "min": 0.001374,
+    "n": 3000,
+    "p50": 0.016967,
+    "p90": 0.03335959999999999,
+    "p99": 0.059602469999999914
+  },
+  "cost_details_reconciled": true,
+  "defect_counts": {
+    "orphan_rebuilt": 55,
+    "ts_repaired": 76,
+    "usage_estimated": 123
+  },
+  "emb_dim": 384,
+  "emb_geometry": {
+    "arc_step": 0.75,
+    "bg_mu": -0.9,
+    "bg_scale": "exp(N(-0.9,0.45))",
+    "bg_sigma": 0.45,
+    "continuum": 0.12,
+    "dominant": 2.0,
+    "norm_sigma": 0.06,
+    "participation_ratio": 125.69,
+    "sig_dims": 16,
+    "sigma_e": 0.21,
+    "topic_amp": 10.0
+  },
+  "fabricated_citation_count": 37,
+  "feedback_count": 699,
+  "field_loss_total": 1008,
+  "gates": {
+    "ari_intent": 0.65,
+    "ari_pattern": 0.55,
+    "ece": 0.1,
+    "f1": 0.65,
+    "fpr": 0.06,
+    "no_drift": true,
+    "no_hardcoded_actions": true,
+    "precision_at_50": 0.75,
+    "zero_residual": 1e-06
+  },
+  "generator_version": "bench-gen-v3.1.0",
+  "goal_drift_count": 46,
+  "golden_count": 608,
+  "labels": 300,
+  "lang_counts": {
+    "en": 1814,
+    "zh": 1186
+  },
+  "latency": {
+    "max": 853.0323765277863,
+    "min": 0.030673980712890625,
+    "n": 3000,
+    "p50": 4.273508787155151,
+    "p90": 68.89585421085357,
+    "p99": 166.05117994070014
+  },
+  "loop_true_count": 27,
+  "mfr_true": {
+    "max": 0.3061,
+    "min": 0.0,
+    "n": 3000,
+    "p50": 0.0,
+    "p90": 0.0,
+    "p99": 0.1607599999999986
+  },
+  "n_cells_true": 9,
+  "n_spans": 15345,
+  "n_traces": 3000,
+  "plan_revision_count": 177,
+  "query_variety": 3000,
+  "recall_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 608,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  },
+  "regime_id": "R8",
+  "seed": 108,
+  "session_count": 658,
+  "session_turn_counts": {
+    "max": 7,
+    "min": 2,
+    "n": 3000,
+    "p50": 5.0,
+    "p90": 7.0,
+    "p99": 7.0
+  },
+  "spec": {
+    "anomaly_mix": {
+      "error": 0.12,
+      "hallucinated_number": 0.12,
+      "illegal_step": 0.06,
+      "latency_spike": 0.16,
+      "loop": 0.1,
+      "missing_step": 0.1,
+      "token_bloat": 0.14,
+      "truncation": 0.1,
+      "unfinished": 0.1
+    },
+    "anomaly_rate": 0.08,
+    "cell_sparsity": 0.2,
+    "defect_rate": 0.06,
+    "drift": null,
+    "hours": 72.0,
+    "id": "R8",
+    "label_count": 300,
+    "mix": [
+      [
+        0.5,
+        1.5,
+        0.3
+      ],
+      [
+        0.3,
+        15.0,
+        0.4
+      ],
+      [
+        0.2,
+        90.0,
+        0.45
+      ]
+    ],
+    "n": 3000,
+    "n_intents": 3,
+    "n_patterns_per_intent": 3,
+    "ontology_id": "ontB",
+    "overlap": 0.3,
+    "seed": 108,
+    "title": "foreign ontology"
+  },
+  "spec_hash": "469f903d257a4288",
+  "title": "foreign ontology",
+  "tokens": {
+    "max": 29588,
+    "min": 716,
+    "n": 3000,
+    "p50": 3516.5,
+    "p90": 6873.0,
+    "p99": 12140.949999999953
+  },
+  "v3_counts": {
+    "arg_invalid_spans": 72,
+    "cache_hit_spans": 6580,
+    "contradiction": 25,
+    "fabricated_citation": 37,
+    "goal_drift": 46,
+    "llm_spans": 7942,
+    "plan_revision": 177,
+    "verifier_fail": 45
+  },
+  "verifier_pass_true": {
+    "max": 1.0,
+    "min": 0.5,
+    "n": 3000,
+    "p50": 1.0,
+    "p90": 1.0,
+    "p99": 1.0
+  }
+}
