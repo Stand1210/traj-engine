@@ -1,6 +1,6 @@
 # 数据契约 v1（bench 生成器 与 kernel 算法 的共同规格）
 
-状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice1-v0.1.0` 实测冻结）**。
+状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice2-v0.2.0` 实测冻结）**。
 生成器输出与内核接口同时受其约束；变更需升版本号。
 
 - v1 → v1.1：`ClusterAssign` 增补 `near_intent/near_pattern/post_margin`；检测器输出增补
@@ -145,14 +145,19 @@ tokens_total_contract(附录 A #24)  =  tokens_prompt + tokens_completion
 ## 2. 特征宽表（全量 77 特征命名契约见方法论文档附录 A）
 
 **v1 冻结（21 个标量 + 2 个序列，定义与命名不再变更）**——`kernel/baseline.py:METRICS`
-的 11 个指标全部取自这一组，因此门槛表里的历史数字只对这组可比：
+的 12 个指标全部取自这一组，因此门槛表里的历史数字只对这组可比：
 
 `latency_total, n_spans, depth, branch_factor, n_llm, n_tool, n_guard, tokens_total,
 prompt_token_ratio, cost_total, retry_count, error_ratio, loop_count, guard_hits,
 answer_number_count, traceable_number_ratio, action_seq:[str], embedding:[float]`
 
-**v2 已发射、未接线**——`kernel/features.py::extract` 已产出，但**没有**进 `METRICS`、
-没有进打分。接线是需要单独测量的一轮工作（slice2）：
+**接线状态分三态，不要混。**「进 `METRICS`」= 参与条件基线与检测门槛；「进打分」=
+参与 `kernel/score.py` 某一个维度；「只发射」= `extract()` 产出但两者都不进。
+**冻结门槛的可比性只依赖第一态**，所以 slice2 把 `fact_precision` 接进打分时
+`METRICS` 一个都没动，历史门槛数字仍然可比。
+
+**v2 已发射**——`kernel/features.py::extract` 已产出。除下面单独标注的一项，
+均**没有**进 `METRICS`、没有进打分：
 
 - 结构（A.1）：`max_width, kind_ratio_llm, kind_ratio_tool, kind_ratio_retrieval,
   kind_ratio_guard, n_unique_tools, tool_repeat_rate, loop_group_count, loop_run_max,
@@ -163,6 +168,15 @@ answer_number_count, traceable_number_ratio, action_seq:[str], embedding:[float]
 - 成本（A.3）：`cost_per_span, tokens_per_span, model_count, model_mix_cost_index,
   prompt_version_count`
 - 结果符合度（A.5）：`key_fact_recall, fact_precision, unfaithful_fact_count, has_golden`
+  ——**`fact_precision` 自 slice2 起进打分**（O 维第二通道，权重 `W_O_PREC = 0.15`）。
+  准入依据是污染实测 **0.00**（在所有 `dim_dev["O"] == 1.0` 的缺陷类上都不动）；
+  可得性仅 25.9%（需 `golden_facts`），缺失时按通道**丢弃并重归一**，不填常数。
+  另三项经实测**否决**，理由与数字在 `kernel/score.py` docstring：
+  `key_fact_recall` 污染 65.6（`missing_step` 上掉到 0.659，那是 P 的缺陷）
+  且与结构完整性通道秩冗余；`unfaithful_fact_count` 污染 0.00 但 22800 条里
+  只有 102 条非零，接进去把约束性余量从 +0.0793 削到 +0.0595；
+  `has_golden` 对 `dim_dev["O"]` 的单独 spearman 只有 +0.0161。
+  **四项均仍不进 `METRICS`。**
 - 弱监督 / 数据质量 / 上下文：`implicit_feedback, has_feedback, missing_fields,
   missing_field_ratio_post, turn_index`
 
@@ -178,7 +192,11 @@ answer_number_count, traceable_number_ratio, action_seq:[str], embedding:[float]
 - 语义与行为（A.4，12 项）：`query_len, query_lang, query_complexity, goal_drift_slope,
   goal_drift_max, self_correction_count, plan_revision_count, tool_success_rate,
   tool_arg_valid_rate, path_convergence, effective_info_ratio, cost_per_step_of_progress`
-- 结果符合度（A.5，2 项）：`verifier_pass_rate, citation_reachability`
+- 结果符合度（A.5，2 项）：`verifier_pass_rate, citation_reachability`。两项在 slice2
+  已就 O 维**实测并否决**：污染分别为 24.5 / 27.3（`verifier_pass_rate` 在 `illegal_step`
+  上掉到 0.813，`citation_reachability` 在 `missing_step` / `token_bloat` 上掉到
+  0.932 / 0.936），都在读 P / C 的缺陷。接进 O 会把同一个缺陷记到两个维度上，
+  直接破坏 LMDI 零残差归因的承诺，因此仍只发射、仍可供检测使用，但**不在 O 投票**。
 - 会话上下文（A.4 #50/#51，2 项）：`n_turns_in_session, reformulation_signal`
 - 序列（1 项）：`action_kinds`（与 `action_seq` 平行的 Span kind 序列）
 

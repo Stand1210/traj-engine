@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9992395437262357
   },
-  "code_hash": "e2e2a7670771ce5a",
+  "code_hash": "6f246e5b1df5bb02",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -519,7 +519,7 @@
   },
   "n": 4000,
   "n_pool": 3945,
-  "pipeline_version": "slice1-v0.1.0",
+  "pipeline_version": "slice2-v0.2.0",
   "regime_id": "R1",
   "scoring": {
     "gate_hits": {
@@ -532,9 +532,9 @@
       "t2_untraceable_number": 26
     },
     "grade_abs": {
-      "A": 2395,
-      "B": 1205,
-      "C": 75,
+      "A": 2435,
+      "B": 1167,
+      "C": 73,
       "D": 325
     },
     "grade_rel": {
@@ -543,10 +543,10 @@
       "C": 1002,
       "D": 597
     },
-    "grade_separation": 41.95635032098962,
-    "kendall_vs_oracle": 0.5932293706904778,
-    "mean_S_anomaly": 47.71705459418127,
-    "mean_S_normal": 89.67340491517089,
+    "grade_separation": 42.431540631303825,
+    "kendall_vs_oracle": 0.6033662083752678,
+    "mean_S_anomaly": 47.454841405732374,
+    "mean_S_normal": 89.8863820370362,
     "mean_conf": 0.9671880252808015,
     "per_dim": {
       "C": {
@@ -562,10 +562,10 @@
         "spearman": 0.7462530668191057
       },
       "O": {
-        "mean_anomaly": 0.8322050606220353,
-        "mean_normal": 0.9925874873629299,
-        "pearson": 0.8621932760281379,
-        "spearman": 0.4849841976490873
+        "mean_anomaly": 0.8281402225432271,
+        "mean_normal": 0.9996364969504404,
+        "pearson": 0.9426788481317849,
+        "spearman": 0.9713204108595669
       },
       "P": {
         "mean_anomaly": 0.9208302583025836,
@@ -580,18 +580,18 @@
         "spearman": 0.2664740107698238
       }
     },
-    "score_auc": 0.8970043810399998,
-    "spearman_vs_oracle": 0.7850581295950545,
+    "score_auc": 0.893628710375291,
+    "spearman_vs_oracle": 0.7950937937677957,
     "zero_residual_max": 9.547918011776346e-14
   },
   "spec_hash": "007a872125bac9bb",
   "timings": {
-    "baseline": 0.38185882568359375,
-    "cluster": 105.62388753890991,
-    "detect": 1.0400872230529785,
-    "ingest_features": 4.421124696731567,
-    "score": 0.21894526481628418
+    "baseline": 0.4277472496032715,
+    "cluster": 124.61347556114197,
+    "detect": 1.0870001316070557,
+    "ingest_features": 3.736663341522217,
+    "score": 0.2759592533111572
   },
   "title": "bimodal main path",
-  "wall_s": 112.79235029220581
+  "wall_s": 131.4827389717102
 }

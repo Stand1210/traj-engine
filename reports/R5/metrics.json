@@ -201,7 +201,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9949647532729103
   },
-  "code_hash": "e2e2a7670771ce5a",
+  "code_hash": "6f246e5b1df5bb02",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -539,7 +539,7 @@
   },
   "n": 3000,
   "n_pool": 2979,
-  "pipeline_version": "slice1-v0.1.0",
+  "pipeline_version": "slice2-v0.2.0",
   "regime_id": "R5",
   "scoring": {
     "gate_hits": {
@@ -552,9 +552,9 @@
       "t2_untraceable_number": 18
     },
     "grade_abs": {
-      "A": 1818,
-      "B": 875,
-      "C": 66,
+      "A": 1867,
+      "B": 831,
+      "C": 61,
       "D": 241
     },
     "grade_rel": {
@@ -563,10 +563,10 @@
       "C": 747,
       "D": 449
     },
-    "grade_separation": 39.80542041181668,
-    "kendall_vs_oracle": 0.5940268719043948,
-    "mean_S_anomaly": 50.72640842607189,
-    "mean_S_normal": 90.53182883788857,
+    "grade_separation": 40.05676433168697,
+    "kendall_vs_oracle": 0.6073562224498383,
+    "mean_S_anomaly": 50.68242673110094,
+    "mean_S_normal": 90.73919106278791,
     "mean_conf": 0.877201491809937,
     "per_dim": {
       "C": {
@@ -582,10 +582,10 @@
         "spearman": 0.7357595579968255
       },
       "O": {
-        "mean_anomaly": 0.8796551509492692,
-        "mean_normal": 0.9928884969625695,
-        "pearson": 0.826094378014996,
-        "spearman": 0.4769376887378129
+        "mean_anomaly": 0.8829720251737062,
+        "mean_normal": 0.999503678762938,
+        "pearson": 0.913870418982647,
+        "spearman": 0.9291955998060762
       },
       "P": {
         "mean_anomaly": 0.9125326797385623,
@@ -600,18 +600,18 @@
         "spearman": 0.3003406123170506
       }
     },
-    "score_auc": 0.8952769036283924,
-    "spearman_vs_oracle": 0.7796852922075119,
+    "score_auc": 0.8919575811369566,
+    "spearman_vs_oracle": 0.7879110286816394,
     "zero_residual_max": 9.592326932761353e-14
   },
   "spec_hash": "10ff75f849deddbe",
   "timings": {
-    "baseline": 0.2981858253479004,
-    "cluster": 87.28127765655518,
-    "detect": 0.6446607112884521,
-    "ingest_features": 3.292665958404541,
-    "score": 0.06787252426147461
+    "baseline": 0.3366665840148926,
+    "cluster": 117.16668701171875,
+    "detect": 0.8086972236633301,
+    "ingest_features": 2.800205945968628,
+    "score": 0.12363314628601074
   },
   "title": "heavily corrupted telemetry",
-  "wall_s": 92.62007808685303
+  "wall_s": 122.58702421188354
 }

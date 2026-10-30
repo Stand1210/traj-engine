@@ -197,7 +197,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.990443686006826
   },
-  "code_hash": "e2e2a7670771ce5a",
+  "code_hash": "6f246e5b1df5bb02",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -479,7 +479,7 @@
       "want": ">=0.75"
     },
     "zero_residual": {
-      "got": "9.370e-14",
+      "got": "9.415e-14",
       "ok": true,
       "want": "<=1e-06"
     }
@@ -527,7 +527,7 @@
   },
   "n": 3000,
   "n_pool": 2930,
-  "pipeline_version": "slice1-v0.1.0",
+  "pipeline_version": "slice2-v0.2.0",
   "regime_id": "R8",
   "scoring": {
     "gate_hits": {
@@ -540,10 +540,10 @@
       "t2_untraceable_number": 14
     },
     "grade_abs": {
-      "A": 1690,
-      "B": 1001,
-      "C": 61,
-      "D": 248
+      "A": 1815,
+      "B": 884,
+      "C": 52,
+      "D": 249
     },
     "grade_rel": {
       "A": 754,
@@ -551,10 +551,10 @@
       "C": 751,
       "D": 445
     },
-    "grade_separation": 36.3144336663837,
-    "kendall_vs_oracle": 0.561728969367304,
-    "mean_S_anomaly": 53.37490915308738,
-    "mean_S_normal": 89.68934281947108,
+    "grade_separation": 36.99720454395671,
+    "kendall_vs_oracle": 0.5817516930261566,
+    "mean_S_anomaly": 53.38296408348566,
+    "mean_S_normal": 90.38016862744237,
     "mean_conf": 0.9473591414160972,
     "per_dim": {
       "C": {
@@ -570,10 +570,10 @@
         "spearman": 0.6831871382421844
       },
       "O": {
-        "mean_anomaly": 0.8873664245359171,
-        "mean_normal": 0.9766748859900247,
-        "pearson": 0.630993711783027,
-        "spearman": 0.28858976733263114
+        "mean_anomaly": 0.8778713496955021,
+        "mean_normal": 0.9992199114916264,
+        "pearson": 0.7491532299277519,
+        "spearman": 0.8876311238625307
       },
       "P": {
         "mean_anomaly": 0.88350988700565,
@@ -588,18 +588,18 @@
         "spearman": 0.3754239983845266
       }
     },
-    "score_auc": 0.8435891749399167,
-    "spearman_vs_oracle": 0.7550844028896013,
-    "zero_residual_max": 9.370282327836321e-14
+    "score_auc": 0.8354134423011589,
+    "spearman_vs_oracle": 0.7733231071519296,
+    "zero_residual_max": 9.414691248821327e-14
   },
   "spec_hash": "469f903d257a4288",
   "timings": {
-    "baseline": 0.21211910247802734,
-    "cluster": 68.0442419052124,
-    "detect": 0.7084519863128662,
-    "ingest_features": 3.7301180362701416,
-    "score": 0.08014249801635742
+    "baseline": 0.3106064796447754,
+    "cluster": 92.45887446403503,
+    "detect": 1.2328417301177979,
+    "ingest_features": 3.3448123931884766,
+    "score": 0.12820935249328613
   },
   "title": "foreign ontology",
-  "wall_s": 73.68557500839233
+  "wall_s": 99.19168734550476
 }

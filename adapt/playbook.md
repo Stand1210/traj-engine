@@ -167,6 +167,7 @@ R3 是活教材：门槛表写 `ari_intent ≥ 0.55`，而该 regime **全量数
 | `SIL_TOL` `SIL_ABS_TOL` `JITTER_SEQ` `JITTER_EMB_FRAC` | `kernel/cluster.py` | .15 / .02 / .02 / .03 | 切点选择容差与扰动尺度 | 一般不动 |
 | `TAIL_GOF_TOL` `TAIL_MIN_N` `TAIL_SWITCH_K` | `kernel/baseline.py` | .50 / 40 / 5 | 尾部模型自检容差与经验/参数切换点 | 按样本量 |
 | `KAPPA` `POOL_W` `SAMPLE_CAP` `SPAN_SAMPLE_CAP` `SPAN_MIN_N` | `kernel/baseline.py` | 30 / 400 / 400 / 150 / 8 | 池化 credibility 与采样上限 | 按格子稀疏度 |
+| `W_O_NUM` `W_O_PREC` `W_O_EXEC` `W_O_COMP` | `kernel/score.py` | .70 / .15 / .30 / .25 | O 维四通道相对权重（数字可溯源 / 事实精度 / 执行成功 / 结构完整） | 按业务对「答案有据 vs 执行无错 vs 交付完整」的偏好；缺失通道一律**丢弃并重归一**，禁止填常数 |
 | `CEIL_RATIO` | `bench/runner.py` | 0.90 | 门槛相对信息上界的封顶比例 | 只能更严不能更松 |
 | `MIN_LABELS_CALIB` `K_FOLDS` | `bench/runner.py` | 60 / 3 | 校准的最小标签数与折数 | 按标签预算 |
 
@@ -179,6 +180,11 @@ R3 是活教材：门槛表写 `ari_intent ≥ 0.55`，而该 regime **全量数
 - 五维权重 **O .40 / P .20 / L .15 / C .15 / R .10**
 - 维度**几何平均**聚合（单维塌陷必须重罚，算术平均会把它抹平）
 - `EPS = 0.02`
+- `GROUND_SAT = 2.0`（`kernel/score.py`）：它被 `TR_FLOOR` **钉死**，不是偏好。渐变通道的饱和点必须正好落在硬门槛的接管点上，即
+  `1 - GROUND_SAT * (1 - TR_FLOOR) = 0`，故 `GROUND_SAT = 1 / (1 - TR_FLOOR)`。调大到 2.5 会在 0.4–0.5 与 `t0_result_broken` **重叠**，
+  调小到 1.5 / 1.25 会**留空档**；实测类序约束性余量分别只剩 +0.0312 / +0.0044（2.0 是 +0.0793）。
+- **O 维的通道准入规则**：一个通道只有在所有 `dim_dev["O"] == 1.0` 的缺陷类上都不动，才准给 O 扣分。
+  准入以**污染实测**为准，不以直觉为准；违反它会把同一个缺陷记到两个维度上，破坏 LMDI 零残差归因。
 - **禁用 `point-adjust`** 评估口径（`meta.point_adjust_is_banned` 抛异常断言）
 - **禁用任何生成式判官**（LLM-as-a-Judge）
 

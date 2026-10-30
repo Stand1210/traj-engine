@@ -207,7 +207,7 @@
     "purity_intent": 0.9336448598130841,
     "purity_pattern": 0.9967289719626168
   },
-  "code_hash": "e2e2a7670771ce5a",
+  "code_hash": "6f246e5b1df5bb02",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -531,7 +531,7 @@
   },
   "n": 3000,
   "n_pool": 2140,
-  "pipeline_version": "slice1-v0.1.0",
+  "pipeline_version": "slice2-v0.2.0",
   "regime_id": "R3",
   "scoring": {
     "gate_hits": {
@@ -544,21 +544,21 @@
       "t2_untraceable_number": 14
     },
     "grade_abs": {
-      "A": 1288,
-      "B": 826,
-      "C": 70,
-      "D": 816
+      "A": 1318,
+      "B": 799,
+      "C": 68,
+      "D": 815
     },
     "grade_rel": {
-      "A": 754,
-      "B": 1050,
+      "A": 755,
+      "B": 1049,
       "C": 749,
       "D": 447
     },
-    "grade_separation": 38.616343332008604,
-    "kendall_vs_oracle": 0.6308209486711609,
-    "mean_S_anomaly": 51.06455517148111,
-    "mean_S_normal": 89.68089850348971,
+    "grade_separation": 38.75869142771229,
+    "kendall_vs_oracle": 0.6378730745062857,
+    "mean_S_anomaly": 51.14479225452318,
+    "mean_S_normal": 89.90348368223547,
     "mean_conf": 0.7842644473202424,
     "per_dim": {
       "C": {
@@ -574,10 +574,10 @@
         "spearman": 0.8327225408869404
       },
       "O": {
-        "mean_anomaly": 0.8800710424710432,
-        "mean_normal": 0.9917683595177222,
-        "pearson": 0.7475520287039967,
-        "spearman": 0.40709217731697067
+        "mean_anomaly": 0.8767227097227096,
+        "mean_normal": 0.9990949613046799,
+        "pearson": 0.8658352132177713,
+        "spearman": 0.9063325907042882
       },
       "P": {
         "mean_anomaly": 0.8955405405405403,
@@ -592,18 +592,18 @@
         "spearman": 0.320178094927003
       }
     },
-    "score_auc": 0.8802115158636897,
-    "spearman_vs_oracle": 0.8101507816555016,
+    "score_auc": 0.8712780811502039,
+    "spearman_vs_oracle": 0.8164404950564879,
     "zero_residual_max": 9.681144774731365e-14
   },
   "spec_hash": "2d9e23adcdd4eb4e",
   "timings": {
-    "baseline": 0.17887449264526367,
-    "cluster": 108.3781247138977,
-    "detect": 0.7381026744842529,
-    "ingest_features": 2.870708703994751,
-    "score": 0.09332132339477539
+    "baseline": 0.44461989402770996,
+    "cluster": 146.1436800956726,
+    "detect": 1.3139562606811523,
+    "ingest_features": 2.8799078464508057,
+    "score": 0.15883708000183105
   },
   "title": "heavy overlap + intent ambiguity",
-  "wall_s": 113.2814211845398
+  "wall_s": 152.35914993286133
 }

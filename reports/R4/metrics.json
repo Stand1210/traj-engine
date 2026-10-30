@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9970617042115573
   },
-  "code_hash": "e2e2a7670771ce5a",
+  "code_hash": "6f246e5b1df5bb02",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -524,7 +524,7 @@
   },
   "n": 1200,
   "n_pool": 1021,
-  "pipeline_version": "slice1-v0.1.0",
+  "pipeline_version": "slice2-v0.2.0",
   "regime_id": "R4",
   "scoring": {
     "gate_hits": {
@@ -537,21 +537,21 @@
       "t2_untraceable_number": 6
     },
     "grade_abs": {
-      "A": 629,
-      "B": 327,
-      "C": 25,
+      "A": 644,
+      "B": 311,
+      "C": 26,
       "D": 219
     },
     "grade_rel": {
-      "A": 307,
-      "B": 422,
+      "A": 308,
+      "B": 421,
       "C": 295,
       "D": 176
     },
-    "grade_separation": 38.8075438904668,
-    "kendall_vs_oracle": 0.5991566696188366,
-    "mean_S_anomaly": 51.12689009458309,
-    "mean_S_normal": 89.93443398504989,
+    "grade_separation": 38.98299896642866,
+    "kendall_vs_oracle": 0.6063064417138035,
+    "mean_S_anomaly": 51.147504435654405,
+    "mean_S_normal": 90.13050340208306,
     "mean_conf": 0.8544247407252928,
     "per_dim": {
       "C": {
@@ -567,10 +567,10 @@
         "spearman": 0.7447450005125545
       },
       "O": {
-        "mean_anomaly": 0.8821698412698414,
-        "mean_normal": 0.9927149506419092,
-        "pearson": 0.8150370060851719,
-        "spearman": 0.5089510435362548
+        "mean_anomaly": 0.8905100769600766,
+        "mean_normal": 0.9988949646844383,
+        "pearson": 0.8702892669699818,
+        "spearman": 0.9346822665917651
       },
       "P": {
         "mean_anomaly": 0.8947222222222223,
@@ -585,18 +585,18 @@
         "spearman": 0.3297552911903879
       }
     },
-    "score_auc": 0.8598341090822293,
-    "spearman_vs_oracle": 0.7810792467806817,
+    "score_auc": 0.8525062656641604,
+    "spearman_vs_oracle": 0.7879327218030646,
     "zero_residual_max": 9.50350909079134e-14
   },
   "spec_hash": "5188fdfc219089b9",
   "timings": {
-    "baseline": 0.16268634796142578,
-    "cluster": 71.65769696235657,
-    "detect": 0.36267590522766113,
-    "ingest_features": 1.095412254333496,
-    "score": 0.03079962730407715
+    "baseline": 0.13901233673095703,
+    "cluster": 80.90970420837402,
+    "detect": 0.38691067695617676,
+    "ingest_features": 1.0303359031677246,
+    "score": 0.03841686248779297
   },
   "title": "extremely sparse cells",
-  "wall_s": 73.68644118309021
+  "wall_s": 83.01176476478577
 }
