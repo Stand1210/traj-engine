@@ -181,14 +181,21 @@ v3 再列 `query_lang_true` / `session_turn_count_true` / `subgoal_count` / `pla
 不符才回退到结构化比对，并**把实测到的最大相对偏差打印出来**。偏差打印为 0.0 就说明该平台
 其实逐位可复现、容差根本没被用到——这是把「可移植性」变成每次 CI 都在量的东西，而不是假设。
 
-**上面这段现在是量出来的，不是推测**（`matrix.yml` run 40995616332：ubuntu-24.04 /
-Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子）：
+**上面这段现在是量出来的，不是推测**。`matrix.yml` 首跑 run 40995616332（ubuntu-24.04 /
+Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子）量到了偏差，也量出了
+校验器自己的两个 bug——ubuntu 腿当时是**判红**的，经过见「本轮修复」第 13 条。
+修好后 run 40998664364 复跑，两腿全绿，结论如下：
 
 - **数据集逐位相同**。同一台 runner 上 `reprocheck --numeric-tol 1e-12` 报
   `worst relative float deviation observed: 0.000e+00`，容差根本没被用到——glibc 的
   `exp` / `log` 与 MSVC CRT 对生成器喂给它们的每一个值都末位一致。
-- **流水线不是**：58 个叶子有差，分布在 5/8 个 regime，最大偏差 `4.441e-16`（= 2 ulp）。
-  但**这 58 个全是同一个字段 `a_cal`**（等渗校准后的异常概率），因果链已完全定位：
+- **流水线不是**：58 个叶子有差，分布在 5/8 个 regime。浮点叶子的最大偏差 `4.441e-16`
+  （= 2 ulp）；连同 `gates.zero_residual.got` 那个字符串叶子一起，整体报为 `4.500e-16`，
+  比 1e-12 的容差还小六个数量级。复跑的汇总是 `8/8 regimes PASS, 3/8 byte-identical
+  (3334 metric leaves compared, 4 differences absorbed by the tolerance)`——R1 / R2 / R6
+  连 `scores.jsonl` 的 sha256 都两侧相同，被吸收的 4 处全在 R8（2 个 metrics 叶子 +
+  2 行 `report.md`，都是那同一个零残差噪声地板）。
+  而这 58 个**全是同一个字段 `a_cal`**（等渗校准后的异常概率），因果链已完全定位：
   `math.erfc`（`kernel/baseline.py:543`，流水线独有；生成器用的是 `math.erf`，
   `bench/generate.py:553`）→ `stage` 里**未取整**的 `a_raw` → `IsotonicCalibrator._one`
   在结点之间做**线性插值**（`kernel/calib.py:93`）。落在结点上或落在区间外的 trace
@@ -198,6 +205,10 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   全部逐位相同，8/8 regime 仍然 `gates=ALL-PASS`。下一段担心的「1 ulp 翻掉一个浮点比较」
   **实测没有发生**：发射出去的 `a_raw` 取整到 5 位小数（`bench/runner.py:723`），
   而门槛带有 4 位小数宽。
+- **同机严格判据是全矩阵尺度的，不是抽样**。`windows-latest` 那一腿复跑报
+  `8/8 regimes PASS, 8/8 byte-identical (3334 metric leaves compared, 0 differences absorbed
+  by the tolerance)`：8 个 regime 从原始 trace 重新跑完整条流水线，产出与已提交基线
+  逐字节相同，容差一次都没被用到。在此之前这条只在 R4 一个 regime 上被单独证明过。
 - 顺带量到一条与 `.gitattributes` 有关的：`windows-latest` runner 的全局 `core.autocrlf`
   实测就是 `true`，而 `gates` 那一腿的严格逐字节 `reprocheck` 照样 8/8 通过、
   连 8 个 `SAMPLE.md` 都零告警。把 `*.jsonl` 标成 binary 这件事是在真 runner 上验证过的，
