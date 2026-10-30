@@ -33,6 +33,19 @@
     `metrics.json["spec_hash"]` ↔ `data/bench_v1/*/meta.json`（**跑分是否属于当前数据集**）、
     `metrics.json["code_hash"]` ↔ 活的 `runner.code_hash()`（**跑分是否由当前内核产出**，
     即改了 `kernel/` 却忘了重跑 runner——数据没动，`spec_hash` 那一跳看不见），任一不符即退出 1
+  - `reprocheck.py` — **数据集的字节身份证**：把生成器重跑一遍到临时目录，与已提交的 240 MB
+    逐文件 sha256 对账，外加 8 份 `SAMPLE.md` 的幂等重生成。`coverage.dataset_provenance()`
+    对账的是 `spec_hash`，而 `spec_hash` 哈希的是 regime **规格**、不是**发射出来的字节**——
+    删一条 trace、加一个 BOM、或把整份文件转成 CRLF，`spec_hash` 依旧合法、provenance 依旧 PASS。
+    本机全局 `core.autocrlf=true`，这不是假想。默认严格逐字节（实测 8 regime + 8 份 SAMPLE.md
+    全等，53.0s）；`--numeric-tol REL` 提供跨 libc 的结构化回退：sha 先试（相同就走快路径），
+    不符才逐字段比，并**打印实测到的最大相对偏差**，让新平台自己量出自己的可移植性
+  - `matrixcheck.py` — **流水线可复现性对账**：把 `runner --out` 的产物与已提交的 `reports/`
+    做三层比对——`scores.jsonl` 整文件 sha256（每条轨迹的算法输出，4000 条全等则聚合量不可能不等）、
+    `metrics.json` 逐叶子（每 regime 379–437 个叶子，排除 6 个机器相关项，全矩阵共比对 **3334** 个值）、
+    `report.md` 全文（屏蔽 2 行机器相关行）。门槛带是四位小数宽（F1 ≥ 0.70、ARI ≥ 0.55），
+    公布的数字也是四位小数——一个把指标挪动 1e-5 却仍落在带内的改动，能同时通过其余四条门禁，
+    并让 README、专利交底书、方法论文档里的每一个数字静默失效
 - `kernel/` — 业务无关算法内核
   - `ingest.py` — 规范化（孤儿 Span 重建、时间戳修复、usage 重算），纯函数，缺失置空而非置 0；
     缺失率在修复**之前**按 Span 类型的条件可得字段集测量
@@ -54,6 +67,13 @@
   每个 regime 另有 `SAMPLE.md`（人类可读样本手册，8 个样本，由 `bench.show --sample` 生成）；
   顶层 `COVERAGE.md` 为数据集充分性审计报告
 - `reports/<rid>/` — 每个 regime 的 `report.md` / `metrics.json` / `scores.jsonl`
+- `.github/workflows/` — 两档 CI。`gates.yml` 每次 push/PR 跑五道门禁（双 OS）；
+  `matrix.yml` 在改了 `kernel/ ontology/ bench/ contracts/ data/` 时、以及每周日跑全矩阵重算 +
+  逐叶子对账（双 OS）
+- `.gitattributes` — **不是可选项**：`*.jsonl -text` + 源码文档 `eol=lf`。本机全局
+  `core.autocrlf=true`，没有它一次 checkout 就会把 240 MB 数据全改写成 CRLF，
+  README 里公布的每个 sha 与 MiB 口径同时失效。实测：加了它之后，在本机 `git clone` 出来的
+  84 个文件与源目录 sha256 **零失配**
 
 ## 运行
 
@@ -63,6 +83,9 @@ python -m bench.invariants                                   # 12 条业务无�
 python -m bench.runner  --regimes R1,R2,R3,R4,R5,R6,R7,R8    # 全链路跑分 + 门槛 + 报告
 python -m bench.scorecard                                    # 用跑分结果重写本文件「当前跑分」五个区块
 python -m bench.coverage --md                                # 数据集够不够用：充分性审计（写 COVERAGE.md）
+python -m bench.reprocheck --sample                          # 数据集字节身份：重生成后逐文件 sha256 对账
+python -m bench.runner  --regimes R1,R2,R3,R4,R5,R6,R7,R8 --out /tmp/reports-ci  # 跑分到临时目录
+python -m bench.matrixcheck --candidate /tmp/reports-ci      # 流水线可复现性：与已提交 reports/ 三层对账
 ```
 
 三条验证命令全绿即视为可开工：`invariants` 12/12、`runner` 8/8 regime ALL-PASS、`coverage` 退出码 0。
@@ -80,6 +103,15 @@ R1 在连续两次独占跑分里分别测到 95.6s 与 100.7s，机器负载决
 照样报 IN SYNC。加上 `coverage` 的 `dataset_provenance`（数据 ↔ 活的生成器），链条是
 **生成器 → 数据 → 跑分 → README**，详见 `contracts/schemas.md §12.5.1`。
 任何调参后重跑 `runner`，都应顺手跑一次 `scorecard`（写盘）或 `scorecard --check`（只读断言）。
+
+第五条是**数据身份**：`python -m bench.reprocheck --sample`。前四条都相信盘上这份数据是生成器
+产出的，只有它去验证这件事——重跑 `bench.generate` 到临时目录，与已提交文件逐一对 sha256。
+`spec_hash` 那一跳看不见字节级损伤，因为它哈希的是规格不是产物。
+
+第六条是**流水线身份**：`python -m bench.matrixcheck --candidate <dir>`。前五条都不比较
+**两次运行**：门槛只要求 F1 ≥ 0.70，而 README 公布的是 0.8807。把 `runner` 跑进
+`--out /tmp/reports-ci` 再与已提交的 `reports/` 三层对账，才能证明公布的那些四位小数
+仍然是这套代码产出的。
 
 单个 regime：`python -m bench.runner --regimes R3`。可选覆盖：`--threshold`（共识阈值）、
 `--bh-alpha`（复核队列目标 FDR）、`--limit`、`--force-gen`。
@@ -125,6 +157,38 @@ v3 再列 `query_lang_true` / `session_turn_count_true` / `subgoal_count` / `pla
 
 `bench/show.py` 是只读检视器，不参与跑分，控制台输出为纯 ASCII（GBK 控制台安全），
 中文叙述只写进 `SAMPLE.md`。
+
+## 持续集成
+
+两档，都是 `windows-latest` + `ubuntu-latest` 双 OS、`fail-fast: false`、`permissions: contents read`、
+`defaults.run.shell: bash`（Windows 上走 Git Bash，YAML 才能两边通用）。**不装任何第三方依赖**——
+项目本来就是纯标准库，这也是双 OS 矩阵跑得起、且「确定性可复现」这句话可审计的原因。
+
+| | `.github/workflows/gates.yml` | `.github/workflows/matrix.yml` |
+|---|---|---|
+| 触发 | 每次 push / PR / 手动 | 改 `kernel/ ontology/ bench/ contracts/ data/`、每周日 03:17（北京时间）、手动 |
+| 时长 | 本机约 2 分钟 | 本机 750s，共享 runner 上按 90 分钟设超时 |
+| 内容 | 五道门禁：`invariants` → `reprocheck --sample` → `coverage --md` → `scorecard --check` → 重生成派生文档后 `git diff --exit-code` | `runner` 全矩阵跑进临时目录 → `matrixcheck` 三层对账 → `git diff --exit-code` → 上传产物（失败也传，便于离线 diff） |
+| 并发 | `cancel-in-progress: true`（快，重来便宜） | `false`（40 分钟的跑分值得跑完） |
+
+**两个 OS 跑的不是同一条断言，这是量出来的、不是偷懒**。已提交的基线产于 Windows/MSVC，
+所以 `windows-latest` 那一腿断言**逐字节相等**；`ubuntu-latest` 是另一套 libc，而 IEEE-754
+**不要求** `exp` / `log` / `erf` / `erfc` / `pow` 正确舍入，本仓库用了 `math.log` 17 次、
+`math.exp` 7 次、`math.erfc` 1 次、`**` 107 次——包括 `bench/generate.py:765` 的
+`lat = math.exp(math.log(med) + sig * z_l)`，而 `ts_start` / `ts_end` / `cost` 是**全精度发射**的
+（实测形如 `1767225604.0650926`），只有 `embedding`（5 位）、`ttft`（6 位）、`latency_true`（4 位）
+被粗化过。所以 Linux 那一腿用 `--numeric-tol 1e-12` / `--rel-tol 1e-12`：sha256 照样先试，
+不符才回退到结构化比对，并**把实测到的最大相对偏差打印出来**。偏差打印为 0.0 就说明该平台
+其实逐位可复现、容差根本没被用到——这是把「可移植性」变成每次 CI 都在量的东西，而不是假设。
+
+1e-12 相对容差比任何算法改动能造成的变化还小八个数量级（门槛带四位小数宽，真改动至少动 1e-4），
+所以它藏不住回归。但它也**不该被用来掩盖级联**：末位差有可能翻掉一个浮点**比较**，
+比如 novelty 分数差 1 ulp 就改变池成员，进而改变 `n_pool` 与它下游的每个聚合量——
+真发生时逐叶子 diff 会指名道姓地给出是从哪个指标开始分叉的，这正是要的结果。
+
+`PYTHONHASHSEED` **故意不固定**。默认是每进程随机种子，所以任何代码路径一旦开始依赖 str 的
+哈希顺序，CI 会当场红掉，而不是被 CI 环境悄悄冻成「确定性」。实测现状：`kernel/ bench/ ontology/`
+里没有裸 `hash()` 调用，每个 `set()` 都包在 `sorted()` 里，每处 `glob()` / `os.listdir()` 也都排序。
 
 ## 数据集规模（bench-gen-v3.1.0）
 
@@ -319,6 +383,40 @@ v3 再列 `query_lang_true` / `session_turn_count_true` / `subgoal_count` / `pla
    改它会让全部跑分失效却不影响任何行为。修它比删它贵：补齐到 v1.3.1 之后**仍然没有消费者**，
    而且没有东西能阻止它再次漂走（要防漂移就得再加一条审计）。删除。
    发现它的方式见第 8 条。
+
+10. **前五条门禁全绿，也不能证明盘上那 240 MB 是生成器产出的**。`spec_hash` 哈希的是 regime
+    规格，不是发射出来的字节：删一条 trace、加一个 BOM、整份转 CRLF，`spec_hash` 都依旧合法，
+    `coverage.dataset_provenance()` 依旧 PASS。本机全局 `core.autocrlf=true`，一次绕过
+    `.gitattributes` 的拷贝就足以让 README 里每个 sha 与 MiB 口径静默失真。
+    修法：新增 `bench/reprocheck.py`，重跑生成器到临时目录后逐文件 sha256 对账；
+    `SAMPLE.md` 因为 `bench.show.write_sample()` 的输出路径是硬编码的、无法重定向，
+    改用幂等性对账（前后各取一次 sha），**不符时写回它读到的原始字节、绝不写回自己的输出**——
+    一个会顺手「修好」被检文件的校验工具，毁掉的正是运维需要的证据。
+    实测：R6 三个文件 1.0s 内全等；8 regime + 8 份 `SAMPLE.md` 53.0s 全等。
+    负向测试 9 项：多一个尾换行、LF→CRLF、加 BOM、删最后一条 trace、改一个浮点、
+    改 `SAMPLE.md`、未知 regime（退出 2）、还原后复绿、全程工作树不留脏。
+
+11. **`matrixcheck` 的第一版少屏蔽了一行，是端到端跑分抓到的，不是读代码抓到的**。
+    初版只屏蔽 `report.md` 抬头里的墙钟，依据是一次对字面量 `timings` 的 grep——而这个词
+    在渲染出来的 Markdown 里**根本不出现**，因为那一行的标签是中文「计时」（`bench/runner.py:892`）。
+    基于拷贝的测试也抓不到：它拿一个文件跟它自己的副本比。只有一次真实的
+    `runner --regimes R4 --out <临时目录>`（95.5s）才在 report 第 114 行暴露出来。
+    现在两行都屏蔽，并且**比对屏蔽数量本身**——将来谁再加一行机器相关输出，
+    屏蔽数变了会直接判失败，而不是静默放过。修好后 R4 端到端复绿：
+    `scores.jsonl` sha 两侧同为 `9dc0fa2a1e157873`、420 个 metrics 叶子全等、
+    `report.md` 屏蔽 2 行后全等。**这是「流水线逐位可复现」第一次被机械证明**。
+
+12. **`--numeric-tol` 差点变成一个后门：CRLF 翻转在容差模式下比对通过**。
+    三重归一化叠加所致——`io.open(..., encoding="utf-8")` 走 universal-newline 翻译、
+    `str.splitlines()` 本身也按 `\r\n` 切、`json.loads()` 又把尾部 `\r` 当 JSON 空白接受。
+    也就是说，把 240 MB 整份从 LF 转成 CRLF（正是全局 `core.autocrlf=true` 对漏掉
+    `.gitattributes` 的 checkout 所做的事），结构化回退会报「完全一致」。
+    初版 docstring 还写着「CRLF 会让该行解析失败」，是错的。
+    修法：`compare_numeric()` 改成先读**二进制**、数 CR 字节，任一侧非零直接判失败——
+    数据集契约本来就是 LF-only（所有 writer 都传 `newline="\n"`，`.gitattributes` 把 `*.jsonl`
+    标为 binary 使任何 checkout 都无法改写它），所以 CR 是契约损伤，不是该被容差吸收的东西。
+    负向测试复跑：报出 `carriage return present (600 ...)`，23/23 全绿。
+
 **与 v2.2.0 的跑分不可直接比大小**：数据集本身换了（16 维各向同性 → 384 维各向异性、
 R3 重造、Span/Trace/GT/本体全面扩容），两个版本的 F1 / AUC / ARI 是**不同考卷上的分数**。
 可比且必须记住的只有一条：全矩阵墙钟 102s → **十分钟量级**（准确值见「当前跑分」标题行）。
@@ -441,4 +539,15 @@ R7 .830→.854、R8 .754→.801；R2 .815→.796、R5 .811→.786），AUC 8 个
   `reports` ↔ 数据集的 `spec_hash`（跑分是否属于当前数据）、`reports` ↔ 活内核的 `code_hash`
   （跑分是否由当前代码产出）。改了 `kernel/` 而没重跑 runner，也会被判 STALE
 - 每一次调参都要在代码注释里留下**测量证据**（改前的数字、为什么错、改后的数字），
-  包括负结果（例如 Thorndike 最大合并间隔规则在本基准每个 regime 上都退化成 k=2）
+   包括负结果（例如 Thorndike 最大合并间隔规则在本基准每个 regime 上都退化成 k=2）
+- **派生文档一律生成、不手写**：README 的五个跑分区块由 `bench.scorecard` 写，
+  `COVERAGE.md` 由 `bench.coverage --md` 写，`SAMPLE.md` 由 `bench.show --sample` 写。
+  三者实测都是**逐字节幂等**的，所以 CI 里重跑一遍再 `git diff --exit-code` 就能守住——
+  手改这些文件在下一次 push 就会被覆盖
+- **新增校验模块必须自带负向测试，且负向测试要跑真东西**。第 11、12 条两个 bug 都不是读代码
+  或跑拷贝比对发现的：一个只有真实的 `runner --out` 二次跑分能抓到，一个只有把数据真的转成
+  CRLF 才能抓到。断言写错也算收获——第 12 条那次电池测试 21/23，两个 FAIL 一个是模块真 bug、
+  一个是我的断言把「末行被截断」错当成「行数不同」，两边都要改
+- **跨平台的浮点断言必须区分「同一台机器」与「同一个契约」**。同机重跑要求逐位相等（实测三次
+  全矩阵 782/743/747s，除墙钟外 3334 个值全等）；跨 libc 只要求 1e-12 相对，
+  并**把实测偏差打印出来**，因为 `exp/log/erf/erfc/pow` 不保证正确舍入

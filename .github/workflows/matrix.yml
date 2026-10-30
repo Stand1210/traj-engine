@@ -1,0 +1,119 @@
+name: matrix
+
+# Slow tier: run the whole 8-regime pipeline from scratch into a scratch directory, then compare
+# it leaf by leaf against the committed run. ~750s on the dev box (three solo runs measured
+# 782s / 743s / 747s); budget considerably more on shared runners, hence the 90-minute timeout.
+#
+# Why this exists separately from gates.yml: gates.yml proves the *dataset* is what the generator
+# produces and the *documentation* agrees with the committed reports. Neither proves the committed
+# reports are what the pipeline still produces. A change that keeps every metric inside its gate
+# band while moving its value -- a silhouette tie broken the other way, a dict iteration order
+# leaking into consensus voting, a platform-dependent float path -- passes all five gates and
+# silently invalidates every figure published in README.md, the patent disclosure and the
+# methodology document. Gate bands are four decimals wide; the published figures are quoted to
+# four decimals.
+
+on:
+  workflow_dispatch:
+
+  # The schedule exists to catch drift we cannot cause ourselves: a new runner-image Python build,
+  # or the hosted environment changing underneath us. Off-minute to miss the top-of-hour rush.
+  # 19:17 UTC Sunday is 03:17 Monday in Asia/Shanghai.
+  schedule:
+    - cron: "17 19 * * 0"
+
+  push:
+    branches: [main]
+    paths:
+      - "kernel/**"
+      - "ontology/**"
+      - "bench/**"
+      - "contracts/**"
+      - "data/**"
+      - ".github/workflows/matrix.yml"
+  pull_request:
+    paths:
+      - "kernel/**"
+      - "ontology/**"
+      - "bench/**"
+      - "contracts/**"
+      - "data/**"
+
+permissions:
+  contents: read
+
+# A 40-minute run is worth finishing; do not cancel it because a second commit landed.
+concurrency:
+  group: matrix-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONIOENCODING: utf-8
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  matrix:
+    name: matrix (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The committed baseline was produced on Windows/MSVC, so this leg compares exactly.
+          - os: windows-latest
+            tol: ""
+          # Different libc: exp/log/erf/erfc/pow are not required by IEEE-754 to be correctly
+          # rounded, and this codebase leans on all of them. 1e-12 relative is eight orders of
+          # magnitude tighter than the smallest change an algorithmic edit can produce, so it
+          # cannot hide a regression -- but it does stop a last-bit libm difference from turning
+          # into a red build. The worst deviation actually observed is printed either way, so this
+          # leg measures the platform's reproducibility instead of assuming it.
+          - os: ubuntu-latest
+            tol: --rel-tol 1e-12
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Environment
+        run: |
+          python -VV
+          uname -srm
+          nproc
+
+      # --out keeps every artefact in the scratch dir: the committed reports/ is not touched, which
+      # the "untouched" step below then asserts.
+      - name: Run the full matrix into a scratch reports dir
+        run: |
+          python -m bench.runner \
+            --regimes R1,R2,R3,R4,R5,R6,R7,R8 \
+            --out "$RUNNER_TEMP/reports-ci"
+
+      # Three layers per regime: scores.jsonl by sha256 (the per-trace pipeline output -- if all
+      # 4,000 traces score identically the aggregates cannot differ), metrics.json leaf by leaf
+      # (379-437 leaves per regime, 6 machine-dependent excluded, 3,334 compared across the
+      # matrix), and report.md in full with its two machine-dependent lines masked.
+      - name: Reproducibility against the committed run
+        run: python -m bench.matrixcheck --candidate "$RUNNER_TEMP/reports-ci" ${{ matrix.tol }}
+
+      - name: The committed tree must be untouched by the run
+        run: |
+          git --no-pager diff --stat
+          git diff --exit-code
+
+      # Kept even on failure: a diffable copy of what the runner produced is the fastest way to
+      # explain a reproducibility failure to whoever has to fix it.
+      - name: Upload the CI run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-ci-${{ matrix.os }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/reports-ci
+          retention-days: 14
+          if-no-files-found: error
