@@ -52,13 +52,48 @@ Float comparison
 Exact equality by default, because the claim being tested is bit-reproducibility and a tolerance
 would quietly defeat it. The one special case is NaN, which is not equal to itself.
 
-`--rel-tol REL` relaxes *floats only* (ints, strings, bools and list ordering stay exact) and
-exists for one measured reason. The committed baseline was produced on Windows/MSVC. IEEE-754 does
-not require `exp`, `log`, `erf`, `erfc` or `pow` to be correctly rounded, and this codebase calls
-`math.log` 17 times, `math.exp` 7 times, `math.erfc` once and uses `**` 107 times -- including
+`--rel-tol REL` relaxes floats and *bare decimal-literal strings*, and exists for one measured
+reason. The committed baseline was produced on Windows/MSVC. IEEE-754 does not require `exp`,
+`log`, `erf`, `erfc` or `pow` to be correctly rounded, and this codebase calls `math.log` 17
+times, `math.exp` 7 times, `math.erfc` once and uses `**` 107 times -- including
 `bench/generate.py:765`'s `lat = math.exp(math.log(med) + sig * z_l)` and `kernel/baseline.py:543`'s
 erfc-based normal CDF. glibc and the MSVC CRT are different implementations, so a run on Linux may
-legitimately differ in the last bit.
+differ in the last bit.
+
+MEASURED, not assumed. Run 40995616332 of `.github/workflows/matrix.yml` re-ran the whole
+8-regime pipeline on ubuntu-24.04 (Python 3.11.17 / GCC 13.3.0) and diffed it against this
+Windows-produced baseline: 3334 metric leaves, of which 58 differ, in 5 of 8 regimes.
+
+  * The *dataset* is bit-identical. `bench.reprocheck --numeric-tol 1e-12` on the same runner
+    reported a worst deviation of `0.000e+00`, so glibc's exp/log agree with the MSVC CRT to the
+    last bit for every value `bench/generate.py` feeds them. The tolerance was never used.
+  * The *pipeline* is not, and the divergence is confined to one leaf: every one of the 58 is
+    `a_cal`, the isotonic-calibrated anomaly probability, worst deviation `4.441e-16` = 2 ulp.
+    The causal chain is fully identified -- `math.erfc` at `kernel/baseline.py:543` is the only
+    transcendental the pipeline calls that the generator does not (the generator uses `math.erf`,
+    `generate.py:553`), it perturbs the *unrounded* `a_raw` held in `stage`, and
+    `IsotonicCalibrator._one` at `kernel/calib.py:93` interpolates linearly between knots, so a
+    trace landing strictly between two knots inherits the wobble while one landing on a knot
+    returns it bit-exact. That is why only 4-18 traces per regime move.
+  * Nothing cascaded. F1 / P@50 / FPR / AUC / ARI, all five dimension scores, the grade bands and
+    every LMDI contribution are bit-identical, and all 8 regimes still report `gates=ALL-PASS`.
+    The 1-ulp comparison flip feared below did not occur, because the emitted `a_raw` is rounded
+    to 5 decimals (`bench/runner.py:723`) and every gate band is 4 decimals wide.
+
+Why strings are included. `metrics.json` stores each gate reading as a *pre-rendered* string --
+66 such leaves across the matrix, in 11 `gates.*.got` paths -- so the data and `report.md` cannot
+drift apart. Ten of the eleven render to 3-4 decimals, which a 2-ulp wobble cannot reach; the
+eleventh is `gates.zero_residual.got`, printed as `%.3e` of a quantity that *is* pure rounding
+error. Linux produced `'9.415e-14'` against the committed `'9.370e-14'` -- three significant
+digits of noise, an absolute difference of 4.5e-16 on a 0-100 score scale -- and a type-blind
+comparison failed the whole leg on it. Recognising a bare decimal literal (`NUMSTR_FULL`) fixes
+that without weakening anything: regime ids, PASS/FAIL verdicts and version strings do not parse,
+so they stay byte-exact, and a leaf that *changes type* from float to string still fails because
+`same_value` compares types first.
+
+No `--abs-tol` knob was added; that was considered and rejected. `within()` floors its
+denominator at 1.0, so for any leaf below magnitude 1 the relative test already *is* an absolute
+one. A second tolerance would only create a way for the two to disagree.
 
 Two consequences are worth stating plainly. First, `--rel-tol 1e-12` is still eight orders of
 magnitude tighter than the smallest change an algorithmic edit can produce: the gate bands are
@@ -110,6 +145,14 @@ WALL_REPL = u"\u5899\u949f <WALL>s"
 TIMINGS_MASK = re.compile(u"^- \u8ba1\u65f6 \\{.*\\}$", re.M)
 TIMINGS_REPL = u"- \u8ba1\u65f6 <TIMINGS>"
 
+# A *bare decimal literal* and nothing else. Admits '9.370e-14', '-0.5', '1.0000'.
+# Rejects '', ' 1.5', 'nan', 'inf', '0x10', '1_000', 'R1', 'PASS',
+# 'bench-gen-v3.1.0' -- i.e. every regime id, verdict and version string in metrics.json
+# stays byte-exact under any tolerance. NUMSTR_TOKEN is the same grammar unanchored, for
+# pulling the numbers back out of a rendered report.md line.
+NUMSTR_FULL = re.compile(r"^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$")
+NUMSTR_TOKEN = re.compile(r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?")
+
 CHUNK = 1 << 20
 
 
@@ -139,8 +182,44 @@ def is_machine(path):
     return path in MACHINE_LEAVES or path.startswith(MACHINE_PREFIXES)
 
 
+def numstr(v):
+    """The float a bare-decimal-literal string denotes, else None. See NUMSTR_FULL."""
+    if not isinstance(v, str) or not NUMSTR_FULL.match(v):
+        return None
+    return float(v)
+
+
+def within(a, b, rel_tol):
+    """The one tolerance test in this module: |a-b| <= rel_tol * max(1, |a|).
+
+    The 1.0 floor in the denominator is what makes a separate --abs-tol unnecessary.
+    For a leaf whose magnitude is below 1 the test is already absolute, so the
+    zero-residual noise floor (9.370e-14 vs 9.415e-14 -> 4.5e-16) is absorbed, while a
+    real move in the same field (>= 1e-4) is not.
+    """
+    return abs(a - b) <= rel_tol * max(1.0, abs(a))
+
+
+def numeric_pair(a, b, rel_tol):
+    """(comparable_as_floats, deviation). Strings qualify only when a tolerance is set,
+    so in exact mode this module behaves as it always did."""
+    if isinstance(a, float) and isinstance(b, float):
+        if math.isnan(a) and math.isnan(b):
+            return True, 0.0
+        return True, rel_dev(a, b)
+    if rel_tol > 0.0:
+        fa, fb = numstr(a), numstr(b)
+        if fa is not None and fb is not None:
+            return True, rel_dev(fa, fb)
+    return False, 0.0
+
+
 def same_value(a, b, rel_tol=0.0):
-    """Exact by default; rel_tol > 0 relaxes floats only. See the docstring for why."""
+    """Exact by default; rel_tol > 0 relaxes floats and decimal-float string literals.
+
+    Types are compared first on purpose: a leaf that changes from float to string is a
+    schema change, not rounding, and must fail even when the numbers agree.
+    """
     if type(a) is not type(b):
         return False
     if isinstance(a, float) and isinstance(b, float):
@@ -148,7 +227,11 @@ def same_value(a, b, rel_tol=0.0):
             return True
         if a == b:
             return True
-        return rel_tol > 0.0 and abs(a - b) <= rel_tol * max(1.0, abs(a))
+        return rel_tol > 0.0 and within(a, b, rel_tol)
+    if rel_tol > 0.0 and isinstance(a, str):
+        fa, fb = numstr(a), numstr(b)
+        if fa is not None and fb is not None:
+            return within(fa, fb, rel_tol)
     return a == b
 
 
@@ -288,25 +371,46 @@ def compare_metrics(rid, cand_dir, comm_dir, max_diffs, rel_tol=0.0):
     keys = sorted(set(fa) | set(fb))
     diffs = []
     worst = 0.0
+    n_tol = 0
     for k in keys:
         if is_machine(k):
             continue
+        isn, dev = numeric_pair(fa.get(k), fb.get(k), rel_tol) if (k in fa and k in fb) else (False, 0.0)
         if k not in fa:
             diffs.append("%s: only in candidate (%r)" % (k, fb[k]))
         elif k not in fb:
             diffs.append("%s: only in committed (%r)" % (k, fa[k]))
         elif not same_value(fa[k], fb[k], rel_tol):
-            if isinstance(fa[k], float) and isinstance(fb[k], float):
-                worst = max(worst, rel_dev(fa[k], fb[k]))
+            if isn:
+                worst = max(worst, dev)
             diffs.append("%s: committed=%r candidate=%r" % (k, fa[k], fb[k]))
-        elif isinstance(fa[k], float) and fa[k] != fb[k]:
+        elif isn and dev > 0.0:
             # inside tolerance, but record it: this is the measured portability signal
-            worst = max(worst, rel_dev(fa[k], fb[k]))
+            worst = max(worst, dev)
+            n_tol += 1
     return {"ok": not diffs, "diffs": diffs[:max_diffs], "n": len(keys) - excluded,
-            "excluded": excluded, "note": "", "worst_rel": worst, "n_diff": len(diffs)}
+            "excluded": excluded, "worst_rel": worst, "n_diff": len(diffs), "n_tol": n_tol,
+            "note": ("" if n_tol == 0 else
+                     "%d metric leaf/leaves differ, all inside the tolerance" % n_tol)}
 
 
-def compare_report(rid, cand_dir, comm_dir):
+def line_same_modulo_numbers(x, y, rel_tol):
+    """True iff two report.md lines differ only in their numeric tokens.
+
+    Two clauses, and the first is what keeps this from being a hole. Strip every numeric
+    token and the residue must still be byte-identical, so '- F1 0.838' vs '- F2 0.838'
+    fails: the numbers agree, the words do not. Only then are the tokens paired up in
+    order and held to the same `within()` test used for float leaves.
+    """
+    tx, ty = NUMSTR_TOKEN.findall(x), NUMSTR_TOKEN.findall(y)
+    if len(tx) != len(ty):
+        return False
+    if NUMSTR_TOKEN.sub("\x00", x) != NUMSTR_TOKEN.sub("\x00", y):
+        return False
+    return all(within(float(a), float(b), rel_tol) for a, b in zip(tx, ty))
+
+
+def compare_report(rid, cand_dir, comm_dir, rel_tol=0.0):
     a = os.path.join(comm_dir, rid, "report.md")
     b = os.path.join(cand_dir, rid, "report.md")
     for p, tag in ((a, "committed"), (b, "candidate")):
@@ -321,17 +425,29 @@ def compare_report(rid, cand_dir, comm_dir):
                                      "(a machine-dependent line was added or removed)"
                 % (na, nb), "line": None, "masked": na}
     if ma == mb:
-        return {"ok": True, "note": "", "line": None, "masked": na}
+        return {"ok": True, "note": "", "line": None, "masked": na, "tolerated": 0}
     la, lb = ma.splitlines(), mb.splitlines()
+    if len(la) != len(lb):
+        return {"ok": False, "note": "report.md differs after masking wall clock + timings",
+                "line": "line count: committed=%d candidate=%d" % (len(la), len(lb)),
+                "masked": na, "tolerated": 0}
     first = None
-    for i in range(max(len(la), len(lb))):
-        x = la[i] if i < len(la) else "<absent>"
-        y = lb[i] if i < len(lb) else "<absent>"
-        if x != y:
-            first = "line %d: committed=%r candidate=%r" % (i + 1, x[:90], y[:90])
-            break
+    ntol = 0
+    for i in range(len(la)):
+        x, y = la[i], lb[i]
+        if x == y:
+            continue
+        if rel_tol > 0.0 and line_same_modulo_numbers(x, y, rel_tol):
+            ntol += 1
+            continue
+        first = "line %d: committed=%r candidate=%r" % (i + 1, x[:90], y[:90])
+        break
+    if first is None:
+        return {"ok": True, "masked": na, "tolerated": ntol, "line": None,
+                "note": "%d report.md line(s) differ only in their numeric tokens"
+                        % ntol}
     return {"ok": False, "note": "report.md differs after masking wall clock + timings",
-            "line": first, "masked": na}
+            "line": first, "masked": na, "tolerated": ntol}
 
 
 def main(argv=None):
@@ -373,7 +489,10 @@ def main(argv=None):
 
     allok = True
     checked = 0
+    npass = 0
+    nident = 0
     nleaves = 0
+    ntol_all = 0
     worst_all = 0.0
     skipped = []
     for rid in ids:
@@ -388,18 +507,30 @@ def main(argv=None):
             continue
         sc = compare_scores(rid, args.candidate, args.committed, args.rel_tol)
         me = compare_metrics(rid, args.candidate, args.committed, args.max_diffs, args.rel_tol)
-        rp = compare_report(rid, args.candidate, args.committed)
+        rp = compare_report(rid, args.candidate, args.committed, args.rel_tol)
         ok = sc["ok"] and me["ok"] and rp["ok"]
         allok = allok and ok
         checked += 1
+        npass += 1 if ok else 0
         nleaves += me.get("n", 0)
+        ntol = me.get("n_tol", 0) + rp.get("tolerated", 0)
+        ntol_all += ntol
+        # byte-identical is a strictly stronger claim than PASS-under-tolerance, and the
+        # two are reported separately: "0/8 identical" used to be printed whenever any
+        # single regime failed, which sent the reader hunting for a total collapse when
+        # the truth was 7/8 passing and 3/8 bit-for-bit.
+        if ok and ntol == 0 and sc.get("sha_committed") == sc.get("sha_candidate"):
+            nident += 1
         worst_all = max(worst_all, sc.get("worst_rel", 0.0), me.get("worst_rel", 0.0))
         print("  [%s] %-3s scores.jsonl %s B sha=%s|%s | metrics %d leaves (%d excluded) | "
               "report.md %s (%d lines masked)"
               % ("PASS" if ok else "FAIL", rid, sc.get("bytes", "-"),
                  sc.get("sha_committed", "-"), sc.get("sha_candidate", "-"),
                  me.get("n", 0), me.get("excluded", 0),
-                 "identical" if rp["ok"] else "DIFFERS", rp.get("masked", 0)))
+                 ("DIFFERS" if not rp["ok"] else
+                  "identical" if rp.get("tolerated", 0) == 0 else
+                  "same modulo %.0e" % args.rel_tol),
+                 rp.get("masked", 0)))
         for note in (sc.get("note"), me.get("note"), rp.get("note"), rp.get("line")):
             if note:
                 print("         <- %s" % note)
@@ -410,8 +541,9 @@ def main(argv=None):
                   % (me["n_diff"], args.max_diffs))
 
     print("")
-    print("matrixcheck: %d/%d regimes identical (%d metric leaves compared)%s"
-          % (checked if allok else 0, len(ids), nleaves,
+    print("matrixcheck: %d/%d regimes PASS, %d/%d byte-identical "
+          "(%d metric leaves compared, %d differences absorbed by the tolerance)%s"
+          % (npass, checked, nident, checked, nleaves, ntol_all,
              ("; skipped %s" % ", ".join(skipped)) if skipped else ""))
     if args.rel_tol > 0.0:
         print("  worst relative float deviation observed: %.3e (tolerance %.0e)"
@@ -419,6 +551,9 @@ def main(argv=None):
         if worst_all == 0.0:
             print("  -> zero deviation: this platform reproduces the run bit-for-bit, "
                   "the tolerance was never used.")
+        elif allok:
+            print("  -> non-zero but inside tolerance: last-bit libm differences only. "
+                  "No leaf moved by more than the tolerance, so no published figure moved.")
     if not allok:
         print("  the pipeline is NOT reproducible against the committed run.")
         print("  investigate before republishing any figure from reports/ or README.md.")
