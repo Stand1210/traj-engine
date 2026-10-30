@@ -41,12 +41,24 @@ the kernel plus generator use `math.log` 17 times, `math.exp` 7 times, `math.erf
 107 times. glibc and the MSVC CRT are different implementations, so a last-bit difference on
 another platform would legitimately change the emitted bytes while every rounded field stayed put.
 
+MEASURED, and for the dataset it did not happen. On ubuntu-24.04 (Python 3.11.17 / GCC 13.3.0) all
+8 regimes and all 8 SAMPLE.md reproduced byte-identically and the run reported a worst relative
+deviation of `0.000e+00`: glibc's exp/log agree with the MSVC CRT to the last bit for every value
+this generator feeds them, so the tolerance was never used. The fallback stays as insurance rather
+than because it is needed, and it is *not* dead weight one level up -- the pipeline does diverge on
+that same runner (58 `a_cal` leaves at 2 ulp, traced to the `math.erfc` in `kernel/baseline.py:543`
+that the generator never calls); `bench.matrixcheck` documents that chain in full. What the zero
+here buys is a tripwire: a generator edit that starts exercising a transcendental the dataset did
+not previously touch would move this measurement off 0.000e+00, which is exactly why the number is
+printed instead of assumed.
+
 `--numeric-tol REL` therefore adds a structural fallback: sha256 is still tried first (so a
 platform that does reproduce bit-for-bit pays nothing and says so), and only on a byte mismatch
 are both sides parsed and compared leaf by leaf -- line counts exactly, keys and non-float values
 exactly, floats within `REL` relative. It prints the worst deviation actually observed, so the
-first run on a new platform *measures* the portability instead of assuming it. Tampering is still caught in
-this mode, and each kind is caught by a different mechanism rather than by one lucky side effect:
+first run on a new platform *measures* the portability instead of assuming it. Tampering is still
+caught in this mode, and each kind is caught by a different mechanism rather than by one lucky
+side effect:
 a deleted record changes the line count; a CRLF flip is rejected outright on a raw CR byte count
 *before* any parsing, because text-mode universal-newline translation plus `str.splitlines()` plus
 `json.loads()` tolerating a trailing `\r` would otherwise normalise a whole-file LF -> CRLF
