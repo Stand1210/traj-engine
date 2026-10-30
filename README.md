@@ -218,6 +218,17 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   实测就是 `true`，而 `gates` 那一腿的严格逐字节 `reprocheck` 照样 8/8 通过、
   连 8 个 `SAMPLE.md` 都零告警。把 `*.jsonl` 标成 binary 这件事是在真 runner 上验证过的，
   不是纸面推演。
+- **slice2 是第一次在「流水线被改过」的前提下跑这套对账**，commit `5ec0e71`，
+  `gates` run 41024716299 / `matrix` run 41024716466，四条 job 全绿。这一跑同时验证了
+  容差机制在**真改动**下不会失灵：`windows-latest` 腿仍是
+  `8/8 regimes PASS, 8/8 byte-identical (3334 leaves, 0 differences absorbed)`；
+  `ubuntu-latest` 腿 `8/8 PASS, 3/8 byte-identical (3334 leaves, 0 differences absorbed)`，
+  `worst relative float deviation observed: 2.776e-17`——比上一轮的 `4.500e-16` 又小一个数量级，
+  且这次**字符串叶子一处都没被吸收**（上轮 R8 那 4 处零残差噪声地板恰好两侧渲染一致）。
+  `gates` 两腿的 `reprocheck --sample` 都是 `8/8 regimes reproduced | warnings=0 incl. SAMPLE.md`，
+  ubuntu 腿照旧 `0.000e+00`；派生文档守卫两腿都报
+  `README.md, COVERAGE.md and SAMPLE.md are byte-identical after regeneration`——
+  即本轮重生成的 8 份 `SAMPLE.md` 与 CI 独立重算的结果逐字节一致。
 
 1e-12 相对容差比任何算法改动能造成的变化还小八个数量级（门槛带四位小数宽，真改动至少动 1e-4），
 所以它藏不住回归。但它也**不该被用来掩盖级联**：末位差有可能翻掉一个浮点**比较**，
