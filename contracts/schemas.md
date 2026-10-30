@@ -1,6 +1,6 @@
 # 数据契约 v1（bench 生成器 与 kernel 算法 的共同规格）
 
-状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice2-v0.2.0` 实测冻结）**。
+状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice3-v0.3.0` 实测冻结）**。
 生成器输出与内核接口同时受其约束；变更需升版本号。
 
 - v1 → v1.1：`ClusterAssign` 增补 `near_intent/near_pattern/post_margin`；检测器输出增补
@@ -156,6 +156,14 @@ answer_number_count, traceable_number_ratio, action_seq:[str], embedding:[float]
 **冻结门槛的可比性只依赖第一态**，所以 slice2 把 `fact_precision` 接进打分时
 `METRICS` 一个都没动，历史门槛数字仍然可比。
 
+**slice3 同理，而且更彻底：它一个新特征都没接。** R 维的三个通道是 `error_ratio`
+（v1 冻结项，本来就在 `METRICS` 里）与 `unrecovered_errors` / `loop_rule`
+（**检测器输出 `detect.struct`，不是特征宽表的量**）。所以 v2 的 40 余项与 v3 的 34 项
+在 slice3 之后**仍然一个都没进打分**，`METRICS` 仍然一个都没动。反过来，两个 v1 冻结项
+`retry_count` / `guard_hits` **自 slice3 起不再进打分**（污染实测 0.34 / 0.28，
+且 `guard_hits` 与 `guard_violation` 硬门禁重复计价），但它们**仍在 `METRICS` 里**、
+仍参与条件基线与检测门槛——三态彼此独立，退出一态不等于退出另一态。
+
 **v2 已发射**——`kernel/features.py::extract` 已产出。除下面单独标注的一项，
 均**没有**进 `METRICS`、没有进打分：
 
@@ -182,7 +190,13 @@ answer_number_count, traceable_number_ratio, action_seq:[str], embedding:[float]
 
 **v3 已发射、未接线（34 项）**——`bench-gen-v3.0.0` 起数据才携带其原料，
 `kernel/features.py::extract` 已产出，但与 v2 同规则：**没有**进 `METRICS`、没有进打分，
-以免冻结门槛失去可比性。接线是 slice3 的工作。
+以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接，见本节开头）。
+其中 `self_correction_count` 与 `path_convergence` 已就 R 维**实测并否决**——两者污染都是
+0.00，但与已选三通道秩冗余：`self_correction_count` 作第四项罚分会把 err_recov 排到 loop
+之下（0.6915 < 0.8125，类序余量 −0.1210），作恢复加分则均值 spearman 到小数点后 5 位不变
+（+0.998693）而余量从 +0.1121 削到 +0.0793；`path_convergence` 只在 loop 类上 66% 非零、
+均值 0.1339，信息被 `loop_rule` 完全覆盖。数字与否决理由在 `kernel/score.py` docstring 与
+README 的 slice3 一节。
 
 - 成本分解（A.3，15 项）：`tokens_total_contract, cache_read_tokens, cache_write_tokens,
   cache_hit_ratio, system_prompt_ratio, token_efficiency, cost_concentration_gini,

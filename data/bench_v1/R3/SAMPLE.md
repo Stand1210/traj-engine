@@ -123,7 +123,7 @@ TRACE R3-00002   [intent0: 先取 NE-9FB0-21 在 1h 内的当前告警清单，�
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=222  cache_write_true=373  system_prompt_ratio_true=0.0995  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=19.8138  G=0.25  grade_abs=D  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp2
     dims    : O=1.000  P=0.895  L=0.681  C=0.362  R=1.000
@@ -201,7 +201,7 @@ TRACE R3-00017   [intent1: analyse the KPI drops on NE-6377-40 and state the deg
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=166  cache_write_true=408  system_prompt_ratio_true=0.4159  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=97.8659  G=1.00  grade_abs=A  grade_rel=A  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=1.000  L=0.915  C=0.947  R=1.000
@@ -279,7 +279,7 @@ TRACE R3-00952   [intent1: 定位网元 NE-FB6B-29 的劣化根因]
     citation_reachable_true=0.5000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=1
     cache_read_true=0  cache_write_true=550  system_prompt_ratio_true=0.2509  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=23.3470  G=0.48  grade_abs=D  grade_rel=D  tier=0  novelty=True
     alert=False (rule=False stat=False)  cold_start=False  cell=None
     dims    : O=0.564  P=1.000  L=0.000  C=0.400  R=1.000
@@ -391,7 +391,7 @@ TRACE R3-00314   [intent0: 给出 NE-CEAF-13 的当前告警清单，并说明�
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=596  cache_write_true=0  system_prompt_ratio_true=0.1021  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=12.5751  G=0.28  grade_abs=D  grade_rel=D  tier=0  novelty=True
     alert=False (rule=False stat=False)  cold_start=False  cell=None
     dims    : O=1.000  P=0.800  L=0.000  C=0.000  R=0.700
@@ -474,7 +474,7 @@ TRACE R3-00087   [intent1: the degradation root cause on NE-0FF1-20 is unclear, 
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=570  cache_write_true=0  system_prompt_ratio_true=0.0769  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=55.9366  G=0.80  grade_abs=D  grade_rel=B  tier=0  novelty=True
     alert=False (rule=False stat=False)  cold_start=False  cell=None
     dims    : O=1.000  P=1.000  L=1.000  C=0.000  R=1.000
@@ -552,7 +552,7 @@ TRACE R3-00179   [intent0: I need the current alarm list for NE-2054-30; if any 
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=355  cache_write_true=148  system_prompt_ratio_true=0.3469  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=4.8004  G=0.06  grade_abs=D  grade_rel=D  tier=0  novelty=True
     alert=False (rule=False stat=False)  cold_start=False  cell=None
     dims    : O=1.000  P=0.445  L=1.000  C=1.000  R=1.000
@@ -636,7 +636,7 @@ TRACE R3-00401   [intent0: show the current alarm list of NE-63E6-24]
     citation_reachable_true=0.6667  contradiction_true=0.2000  contradicted_count=1  fabricated_citation_count=1
     cache_read_true=483  cache_write_true=0  system_prompt_ratio_true=0.1375  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=8.3783  G=0.20  grade_abs=D  grade_rel=D  tier=0  novelty=True
     alert=False (rule=False stat=False)  cold_start=False  cell=None
     dims    : O=0.729  P=1.000  L=0.000  C=0.000  R=1.000
@@ -704,7 +704,7 @@ TRACE R3-00030   [intent0: NE-8F88-14 在 15m 内的当前告警清单是什么]
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=305  cache_write_true=0  system_prompt_ratio_true=0.2209  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=93.0236  G=1.00  grade_abs=A  grade_rel=B  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=1.000  P=0.900  L=0.768  C=0.969  R=1.000
@@ -793,12 +793,12 @@ TRACE R3-00063   [intent0: pull the current alarm list for NE-ACBB-45 and sort i
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=505  cache_write_true=145  system_prompt_ratio_true=0.0821  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
-    S=52.8057  G=1.00  grade_abs=D  grade_rel=D  tier=0  novelty=False
+  PIPELINE OUTPUT (slice3-v0.3.0)
+    S=54.7231  G=1.00  grade_abs=D  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
-    dims    : O=1.000  P=1.000  L=0.898  C=0.000  R=0.700
-    contrib : O=+0.000  P=+0.000  L=-1.188  C=-43.370  R=-2.636   sum=-47.1943
-    zero-residual: S-100G=-47.1943  |diff|=1.00e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=1.000  L=0.898  C=0.000  R=1.000
+    contrib : O=+0.000  P=+0.000  L=-1.208  C=-44.069  R=+0.000   sum=-45.2769
+    zero-residual: S-100G=-45.2769  |diff|=2.80e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.3201  a_cal=0.1924  conf=0.9853  anchor=anchor-R3-2d9e23adcdd4eb4e
     evidence (3 items, drill-down order):
@@ -869,7 +869,7 @@ TRACE R3-00073   [intent1: 定位网元 NE-1050-45 的劣化根因]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=0  cache_write_true=363  system_prompt_ratio_true=0.1460  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=20.3696  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp2
     dims    : O=0.821  P=0.620  L=0.992  C=0.823  R=1.000
@@ -951,12 +951,12 @@ TRACE R3-00085   [intent0: NE-8255-26 在 1h 内的当前告警清单是什么]
     citation_reachable_true=1.0000  contradiction_true=0.2500  contradicted_count=1  fabricated_citation_count=0
     cache_read_true=511  cache_write_true=0  system_prompt_ratio_true=0.1556  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
-    S=84.5987  G=1.00  grade_abs=B  grade_rel=C  tier=2  novelty=False
+  PIPELINE OUTPUT (slice3-v0.3.0)
+    S=82.9508  G=1.00  grade_abs=B  grade_rel=C  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp2
-    dims    : O=0.867  P=1.000  L=0.816  C=0.696  R=0.778
-    contrib : O=-5.271  P=+0.000  L=-2.813  C=-5.004  R=-2.314   sum=-15.4013
-    zero-residual: S-100G=-15.4013  |diff|=3.60e-05  OK  (rounded JSONL rows;
+    dims    : O=0.867  P=1.000  L=0.816  C=0.696  R=0.639
+    contrib : O=-5.221  P=+0.000  L=-2.786  C=-4.956  R=-4.086   sum=-17.0492
+    zero-residual: S-100G=-17.0492  |diff|=1.90e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9132  a_cal=0.9510  conf=0.9758  anchor=anchor-R3-2d9e23adcdd4eb4e
     evidence (3 items, drill-down order):
@@ -1023,7 +1023,7 @@ TRACE R3-00006   [intent0: show the current alarm list of NE-3DC2-54]
     citation_reachable_true=n/a  contradiction_true=0.3333  contradicted_count=1  fabricated_citation_count=0
     cache_read_true=368  cache_write_true=162  system_prompt_ratio_true=0.2370  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=17.1976  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.440  P=1.000  L=0.975  C=0.756  R=1.000
@@ -1100,7 +1100,7 @@ TRACE R3-00056   [intent0: NE-76B9-29 的当前告警清单里还有哪些活动
     citation_reachable_true=0.5000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=2
     cache_read_true=358  cache_write_true=0  system_prompt_ratio_true=0.1699  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=16.3744  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp1
     dims    : O=0.440  P=1.000  L=0.718  C=0.804  R=1.000
@@ -1173,7 +1173,7 @@ TRACE R3-00006   [intent0: show the current alarm list of NE-3DC2-54]
     citation_reachable_true=n/a  contradiction_true=0.3333  contradicted_count=1  fabricated_citation_count=0
     cache_read_true=368  cache_write_true=162  system_prompt_ratio_true=0.2370  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=17.1976  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.440  P=1.000  L=0.975  C=0.756  R=1.000

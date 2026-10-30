@@ -164,7 +164,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9983079526226735
   },
-  "code_hash": "6f246e5b1df5bb02",
+  "code_hash": "f651db1a9f2380b0",
   "cold_start": true,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -449,7 +449,7 @@
   },
   "n": 600,
   "n_pool": 591,
-  "pipeline_version": "slice2-v0.2.0",
+  "pipeline_version": "slice3-v0.3.0",
   "regime_id": "R6",
   "scoring": {
     "gate_hits": {
@@ -462,8 +462,8 @@
       "t2_untraceable_number": 3
     },
     "grade_abs": {
-      "A": 366,
-      "B": 169,
+      "A": 376,
+      "B": 159,
       "C": 11,
       "D": 54
     },
@@ -473,10 +473,10 @@
       "C": 152,
       "D": 86
     },
-    "grade_separation": 42.489345962366095,
-    "kendall_vs_oracle": 0.6197669450236146,
-    "mean_S_anomaly": 48.084048997295305,
-    "mean_S_normal": 90.5733949596614,
+    "grade_separation": 42.74581144734141,
+    "kendall_vs_oracle": 0.6336022577679223,
+    "mean_S_anomaly": 48.091553046760524,
+    "mean_S_normal": 90.83736449410193,
     "mean_conf": 0.9129649311379302,
     "per_dim": {
       "C": {
@@ -504,24 +504,24 @@
         "spearman": 0.8893483020590511
       },
       "R": {
-        "mean_anomaly": 0.9388888888888892,
-        "mean_normal": 0.9718372867249284,
-        "pearson": 0.4542509522413601,
-        "spearman": 0.3220548770635574
+        "mean_anomaly": 0.9576023391812865,
+        "mean_normal": 0.9995422388680816,
+        "pearson": 0.9638342501849415,
+        "spearman": 0.9999909838024008
       }
     },
-    "score_auc": 0.8809383008082002,
-    "spearman_vs_oracle": 0.7981860401717884,
+    "score_auc": 0.8850450095275643,
+    "spearman_vs_oracle": 0.8110266722952644,
     "zero_residual_max": 9.059419880941277e-14
   },
   "spec_hash": "6df7cb38491a91dd",
   "timings": {
-    "baseline": 0.08149266242980957,
-    "cluster": 111.21921586990356,
-    "detect": 0.17384624481201172,
-    "ingest_features": 0.8172867298126221,
-    "score": 0.03117513656616211
+    "baseline": 0.129319429397583,
+    "cluster": 108.43814444541931,
+    "detect": 0.2968168258666992,
+    "ingest_features": 0.5211741924285889,
+    "score": 0.038698434829711914
   },
   "title": "cold start",
-  "wall_s": 112.50986313819885
+  "wall_s": 109.56011199951172
 }

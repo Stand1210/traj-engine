@@ -207,7 +207,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9972278225806451
   },
-  "code_hash": "6f246e5b1df5bb02",
+  "code_hash": "f651db1a9f2380b0",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -492,7 +492,7 @@
       "want": ">=0.70"
     },
     "zero_residual": {
-      "got": "9.592e-14",
+      "got": "9.437e-14",
       "ok": true,
       "want": "<=1e-06"
     }
@@ -540,7 +540,7 @@
   },
   "n": 4000,
   "n_pool": 3968,
-  "pipeline_version": "slice2-v0.2.0",
+  "pipeline_version": "slice3-v0.3.0",
   "regime_id": "R7",
   "scoring": {
     "gate_hits": {
@@ -554,10 +554,10 @@
       "t2_untraceable_number": 15
     },
     "grade_abs": {
-      "A": 2442,
-      "B": 1027,
+      "A": 2519,
+      "B": 951,
       "C": 35,
-      "D": 496
+      "D": 495
     },
     "grade_rel": {
       "A": 1004,
@@ -565,10 +565,10 @@
       "C": 1000,
       "D": 598
     },
-    "grade_separation": 37.327332978390025,
-    "kendall_vs_oracle": 0.5362422176818034,
-    "mean_S_anomaly": 50.362909174974355,
-    "mean_S_normal": 87.69024215336438,
+    "grade_separation": 37.63736968970661,
+    "kendall_vs_oracle": 0.5492509784189638,
+    "mean_S_anomaly": 50.34184057435336,
+    "mean_S_normal": 87.97921026405997,
     "mean_conf": 0.9679686589714188,
     "per_dim": {
       "C": {
@@ -596,24 +596,24 @@
         "spearman": 0.6877072066208139
       },
       "R": {
-        "mean_anomaly": 0.933947089947089,
-        "mean_normal": 0.9682920496442748,
-        "pearson": 0.5179351300936739,
-        "spearman": 0.36827875943314287
+        "mean_anomaly": 0.9383068783068785,
+        "mean_normal": 0.9989088383444975,
+        "pearson": 0.9480138311416939,
+        "spearman": 0.9999878661857892
       }
     },
-    "score_auc": 0.8481302253725918,
-    "spearman_vs_oracle": 0.7344657199744192,
-    "zero_residual_max": 9.592326932761353e-14
+    "score_auc": 0.8522260087241004,
+    "spearman_vs_oracle": 0.746941132254787,
+    "zero_residual_max": 9.43689570931383e-14
   },
   "spec_hash": "1bd79369786bde6f",
   "timings": {
-    "baseline": 0.38905787467956543,
-    "cluster": 102.6636073589325,
-    "detect": 1.5539286136627197,
-    "ingest_features": 4.6648478507995605,
-    "score": 0.23314332962036133
+    "baseline": 0.5172450542449951,
+    "cluster": 91.54986667633057,
+    "detect": 1.3665192127227783,
+    "ingest_features": 4.14273738861084,
+    "score": 0.1306750774383545
   },
   "title": "mid-stream drift x1.6",
-  "wall_s": 111.2772011756897
+  "wall_s": 99.16201305389404
 }

@@ -98,6 +98,85 @@ while shrinking the margin the entire ordering rests on is a net loss; it stays 
 feature and does not vote in O. `verifier_pass_rate` and `citation_reachability` fail earlier,
 on contamination.
 
+Robustness dimension (slice3): three exact-zero channels replace two proxies
+----------------------------------------------------------------------------
+slice2 left R the worst dimension by a wide margin. Realized mean Spearman against the
+generator's own `dim_dev["R"]` was +0.3260 (worst regime +0.2665), while R's best single
+ingredient, `error_ratio`, reaches +0.7504 alone -- the composite ranked below its own parts,
+the same pathology slice2 removed from O. Three structural defects, in descending damage:
+
+  1. `retry_count` (weight 0.30, anchored, constant-filled to 1.0 when no anchor exists).
+     Retrying is ordinary traffic, not a robustness defect: it is nonzero on 16% of *clean*
+     traces, mean 0.1714 there against 0.2045 / 1.1404 / 0.9908 on the error / loop /
+     error-recovered classes. That is an effect size of d = 1.596 of spread *inside* the group
+     carrying 98.2% of the traffic whose R truth is a flat 1.0, i.e. pure dilution.
+  2. `guard_hits` (weight 0.30). Contaminated, trace-weighted deviation 0.28 against the defect
+     classes whose R truth is 1.0, worst `illegal_step` at 64.0, because the generator inserts a
+     `guard_block` span for that class. It also double-booked the `guard_violation` veto below,
+     so a single guard hit was charged twice in one score.
+  3. Constant-filling a missing channel -- exactly the slice1 O defect, still present here.
+
+R truth has four levels and is 1.0 on 22,381 of 22,800 traces (98.2%), so R's Spearman is almost
+entirely "can the 419 low-truth traces be separated cleanly". Any channel that varies inside the
+ok group is noise by construction, which makes *exactness* the selection criterion rather than
+effect size.
+
+Admission rule, as in O: a channel may charge R only if it stays put on every defect class whose
+R truth is 1.0 (illegal_step, latency_spike, missing_step, token_bloat, truncation,
+hallucinated_number, unfinished). Contamination is the trace-weighted |mean(ch | class) -
+mean(ch | normal)| summed over those seven:
+
+    error_ratio 0.00   unrecovered_errors 0.00   loop_rule 0.00   self_correction_count 0.00
+    retry_count 0.34   guard_hits 0.28   n_guard 0.57   n_spans 3.44
+
+`error_ratio`, `len(unrecovered_errors)` and `loop_rule` are not merely low-contamination, they
+are *exactly zero* on all 22,381 ok traces (nonzero count 0). A clean trace therefore gets
+s_r = 1.0 exactly and adds nothing to within-group tie noise. Four more channels pass admission
+but are rank-redundant with these three and were dropped: `self_correction_count` (0.9817 on
+error-recovered, 0 elsewhere), `loop_run_max` / `loop_count` (3.13 / 3.01 on loop, 0 elsewhere),
+`path_convergence` (66% nonzero on loop). `warn_level_ratio`, `plan_revision_count`,
+`kind_ratio_guard` and `guard_time_ratio` carry no signal at all (effect size <= 0.27, solo
+Spearman ~ 0).
+
+Selection: a 153-cell simplex at step 0.05 over the three weights, scored by mean Spearman
+against `dim_dev["R"]` subject to zero class-order inversions, then by widest minimum adjacent
+margin. Mean Spearman is a plateau here too (range 6e-5 over all 153 cells), so the grid selects
+the *ordering*, not the rank fidelity. Chosen 0.20 / 0.50 / 0.30.
+
+Result, offline over all 22,800 traces: mean Spearman +0.3260 -> +0.9987, worst regime +0.2665 ->
++0.9896, zero inversions, minimum adjacent margin +0.1121. Class means error 0.6154 < loop
+0.7750 < error-recovered 0.8879 < ok 1.0000 against truth 0.35 < 0.55 < 0.60 < 1.00.
+
+Recovery needs no term of its own. The generator writes R truth 0.60 for an error that was
+recovered and 0.35 for one that was not, and the two error channels already diverge exactly
+there: `error_ratio` counts the errored step either way, `unrecovered_errors` only counts what
+survived. Recovery is therefore encoded as the *gap* between x_fail and x_unrec, which is
+detect.l4_contract's own semantics ("a recovered error is a blemish, not an incident"). Adding
+`self_correction_count` -- the obvious explicit recovery term -- was measured both ways and
+rejected both ways: as a fourth penalty it inverts error-recovered below loop (0.6915 vs 0.8125,
+margin -0.1210); as a credit it leaves mean Spearman at +0.998693, identical to five decimals,
+while shrinking the margin the whole ordering rests on, +0.1121 -> +0.0793.
+
+Every admitted channel is load-bearing. Dropping `unrecovered_errors` inverts error above loop
+(0.7347 vs 0.5500); dropping `loop_rule` scores the loop class 1.0000 and falls to +0.7504;
+`unrecovered_errors` alone gives +0.5719 with two inversions. The rejected additions are
+quantitatively catastrophic rather than merely unhelpful: `retry_count` at weight 0.25 drags mean
+Spearman to +0.3506, `guard_hits` at 0.25 to +0.9107, and the slice2 form reproduces offline at
++0.3274 against the +0.3260 it realized, so the harness is faithful.
+
+Two deliberate non-changes. `ERR_SAT` is *shared* with O instead of getting its own `ERR_SAT_R`:
+a separate 0.25 reaches margin +0.1231, but mean Spearman is identical to five decimals
+(+0.998691 vs +0.998693, the shared value marginally higher) and the zero-inversion feasible
+region is narrower, 42 of 153 cells against 47. One physical quantity -- the fraction of steps
+that errored -- gets one saturation point; two knobs would silently couple O and R in the adapt
+playbook. And `error_ratio` voting in both O and R does not break zero-residual attribution,
+because the *generator* double-books it: the error-injection branch sets `dim["O"]` and
+`dim["R"]` for the same injected error. The admission rule forbids a channel whose target
+dimension's truth does not move; `error_ratio` has contamination 0.00 against both O's and R's
+truth-1.0 class sets, so it is admissible in both.
+
+L was measured and left alone; see the slice3 note in README for the oracle ceiling table.
+
 Zero-residual attribution (LMDI)
     S_base = 100*G            L = (S - S_base) / (ln S - ln S_base)
     contrib_d = L * (u_d w_d / sum u w) * ln(s_d)
@@ -117,7 +196,6 @@ GATES = {"guard_violation": 0.15, "t0_result_broken": 0.25, "t1_unfinished": 0.2
          "t2_untraceable_number": 0.60, "novelty": 0.80}
 GRADE_ABS = (("A", 90.0), ("B", 75.0), ("C", 60.0))
 ERR_SAT = 0.30
-GUARD_SAT = 2.0
 LOOP_SAT = 3.0
 TR_FLOOR = 0.5
 # Saturating gain on the *untraceable* fraction of the answer's numbers. 2.0 exhausts the
@@ -130,7 +208,16 @@ W_O_NUM = 0.70      # traceable_number_ratio, saturated by GROUND_SAT   contamin
 W_O_PREC = 0.15     # fact_precision (needs golden_facts, 25.9% of traffic)  contamination 0.0
 W_O_EXEC = 0.30     # 1 - error_ratio / ERR_SAT                            contamination 3.2
 W_O_COMP = 0.25     # structural completeness, 1 - confirmed unfinished
-MODEL_VERSION = "kernel-v0.2.0"
+# Saturating gain on the count of errored steps the agent never retried successfully. LOCKED at
+# 2.0 because it mirrors detect.l4_contract's own err_dev = min(1.0, len(unrecovered) / 2.0);
+# diverging here would decouple the scorer from the detector's definition of the same quantity.
+UNREC_SAT = 2.0
+# Robustness channels, same drop-and-renormalise rule as O. `retry_count` and `guard_hits` were
+# dropped in slice3 on measurement and GUARD_SAT was deleted with them: see the docstring.
+W_R_FAIL = 0.20     # 1 - error_ratio / ERR_SAT (shared with O)             contamination 0.00
+W_R_UNREC = 0.50    # 1 - len(unrecovered_errors) / UNREC_SAT               contamination 0.00
+W_R_LOOP = 0.30     # 1 - loop_rule                                         contamination 0.00
+MODEL_VERSION = "kernel-v0.3.0"
 
 
 def _clamp01(x):
@@ -223,13 +310,22 @@ def score_one(feats, assign, det, art, ontology, cold_start=False, drift_suspect
     if flags.get("usage_estimated"):
         u["C"] *= 0.60
 
-    s_retry, _ = _anch(art, cell, "retry_count", feats.get("retry_count"))
-    if s_retry is None:
-        s_retry = 1.0
-    guard = feats.get("guard_hits") or 0
-    guard_r = _clamp01(guard / GUARD_SAT)
-    s_r = 0.40 * (1.0 - err_r) + 0.30 * s_retry + 0.30 * (1.0 - guard_r)
-    s_r = _clamp01(s_r)
+    guard = feats.get("guard_hits") or 0      # read for the guard_violation veto, not for s_r
+    unrec = struct.get("unrecovered_errors") if struct else None
+    lr = struct.get("loop_rule") if struct else None
+    x_unrec = None if unrec is None else 1.0 - _clamp01(len(unrec) / UNREC_SAT)
+    x_loop = None if lr is None else 1.0 - _clamp01(lr)
+    r_num = r_den = 0.0
+    for wgt, val in ((W_R_FAIL, 1.0 - err_r), (W_R_UNREC, x_unrec), (W_R_LOOP, x_loop)):
+        if val is None:
+            continue
+        r_num += wgt * val
+        r_den += wgt
+    s_r = _clamp01((r_num / r_den) if r_den else 1.0)
+    if x_unrec is None:
+        u["R"] *= 0.75
+    if x_loop is None:
+        u["R"] *= 0.85
 
     if mfr > 0.20:
         for d in u:

@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9970617042115573
   },
-  "code_hash": "6f246e5b1df5bb02",
+  "code_hash": "f651db1a9f2380b0",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -476,7 +476,7 @@
       "want": ">=0.60"
     },
     "zero_residual": {
-      "got": "9.504e-14",
+      "got": "9.415e-14",
       "ok": true,
       "want": "<=1e-06"
     }
@@ -524,7 +524,7 @@
   },
   "n": 1200,
   "n_pool": 1021,
-  "pipeline_version": "slice2-v0.2.0",
+  "pipeline_version": "slice3-v0.3.0",
   "regime_id": "R4",
   "scoring": {
     "gate_hits": {
@@ -537,21 +537,21 @@
       "t2_untraceable_number": 6
     },
     "grade_abs": {
-      "A": 644,
-      "B": 311,
-      "C": 26,
-      "D": 219
+      "A": 660,
+      "B": 297,
+      "C": 25,
+      "D": 218
     },
     "grade_rel": {
-      "A": 308,
-      "B": 421,
+      "A": 309,
+      "B": 420,
       "C": 295,
       "D": 176
     },
-    "grade_separation": 38.98299896642866,
-    "kendall_vs_oracle": 0.6063064417138035,
-    "mean_S_anomaly": 51.147504435654405,
-    "mean_S_normal": 90.13050340208306,
+    "grade_separation": 39.22115373237549,
+    "kendall_vs_oracle": 0.6289693747749997,
+    "mean_S_anomaly": 51.1744582572069,
+    "mean_S_normal": 90.39561198958239,
     "mean_conf": 0.8544247407252928,
     "per_dim": {
       "C": {
@@ -579,24 +579,24 @@
         "spearman": 0.7422238497255147
       },
       "R": {
-        "mean_anomaly": 0.9271252204585538,
-        "mean_normal": 0.9719622184713511,
-        "pearson": 0.5069426046552862,
-        "spearman": 0.3297552911903879
+        "mean_anomaly": 0.9502292768959433,
+        "mean_normal": 0.9993538267437301,
+        "pearson": 0.9676788035757675,
+        "spearman": 0.9999920781807428
       }
     },
-    "score_auc": 0.8525062656641604,
-    "spearman_vs_oracle": 0.7879327218030646,
-    "zero_residual_max": 9.50350909079134e-14
+    "score_auc": 0.8532462107650077,
+    "spearman_vs_oracle": 0.8057321401176466,
+    "zero_residual_max": 9.414691248821327e-14
   },
   "spec_hash": "5188fdfc219089b9",
   "timings": {
-    "baseline": 0.13901233673095703,
-    "cluster": 80.90970420837402,
-    "detect": 0.38691067695617676,
-    "ingest_features": 1.0303359031677246,
-    "score": 0.03841686248779297
+    "baseline": 0.15831685066223145,
+    "cluster": 81.08324408531189,
+    "detect": 0.31480979919433594,
+    "ingest_features": 1.1367089748382568,
+    "score": 0.03273963928222656
   },
   "title": "extremely sparse cells",
-  "wall_s": 83.01176476478577
+  "wall_s": 83.09948897361755
 }

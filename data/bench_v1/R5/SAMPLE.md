@@ -121,7 +121,7 @@ TRACE R5-00000   [intent0: 查询网元 NE-3170-30 的当前告警清单]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=203  cache_write_true=312  system_prompt_ratio_true=0.1448  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=88.8321  G=1.00  grade_abs=B  grade_rel=C  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp0
     dims    : O=1.000  P=1.000  L=0.661  C=0.687  R=1.000
@@ -198,7 +198,7 @@ TRACE R5-00023   [intent0: list every entry in the current alarm list of network
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=208  cache_write_true=317  system_prompt_ratio_true=0.2431  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=91.4073  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=1.000  L=0.604  C=0.804  R=1.000
@@ -276,7 +276,7 @@ TRACE R5-00356   [intent0: 我需要 NE-B394-19 的当前告警清单，若存�
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=510  cache_write_true=0  system_prompt_ratio_true=0.4282  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=17.2051  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=0.446  P=1.000  L=0.886  C=0.889  R=1.000
@@ -374,12 +374,12 @@ TRACE R5-00198   [intent0: which alarms are still active in the current alarm li
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=315  cache_write_true=439  system_prompt_ratio_true=0.1678  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
-    S=26.0203  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice3-v0.3.0)
+    S=26.2865  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp0
-    dims    : O=1.000  P=0.800  L=0.408  C=0.580  R=0.700
-    contrib : O=+0.000  P=-1.352  L=-4.074  C=-2.474  R=-1.080   sum=-8.9797
-    zero-residual: S-100G=-8.9797  |diff|=3.00e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.800  L=0.408  C=0.580  R=0.775
+    contrib : O=+0.000  P=-1.358  L=-4.094  C=-2.486  R=-0.776   sum=-8.7135
+    zero-residual: S-100G=-8.7135  |diff|=3.70e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9415  a_cal=0.9772  conf=0.9725  anchor=anchor-R5-10ff75f849deddbe
     gates: {"loop_runaway": 0.35}
@@ -457,7 +457,7 @@ TRACE R5-00027   [intent0: NE-1DB0-54 的当前告警清单里还有哪些活动
     citation_reachable_true=1.0000  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=144  cache_write_true=0  system_prompt_ratio_true=0.0284  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=80.0485  G=1.00  grade_abs=B  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=1.000  L=0.576  C=0.453  R=1.000
@@ -543,12 +543,12 @@ TRACE R5-00017   [intent1: I need the degradation root cause on NE-BA47-39; incl
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=577  cache_write_true=0  system_prompt_ratio_true=0.2209  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
-    S=3.7702  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice3-v0.3.0)
+    S=3.8320  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp1
-    dims    : O=1.000  P=0.550  L=0.987  C=0.770  R=0.850
-    contrib : O=+0.000  P=-0.493  L=-0.008  C=-0.162  R=-0.067   sum=-0.7298
-    zero-residual: S-100G=-0.7298  |diff|=2.30e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.550  L=0.987  C=0.770  R=1.000
+    contrib : O=+0.000  P=-0.497  L=-0.008  C=-0.163  R=+0.000   sum=-0.6680
+    zero-residual: S-100G=-0.6680  |diff|=2.00e-06  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9469  a_cal=0.9782  conf=0.9485  anchor=anchor-R5-10ff75f849deddbe
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
@@ -622,7 +622,7 @@ TRACE R5-00357   [intent1: 分析 NE-B955-02 的指标下降并给出劣化根�
     citation_reachable_true=0.5000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=2
     cache_read_true=305  cache_write_true=217  system_prompt_ratio_true=0.1201  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=18.7932  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.640  P=1.000  L=0.622  C=0.790  R=1.000
@@ -694,7 +694,7 @@ TRACE R5-00086   [intent0: give me the current alarm list on NE-1B6B-43, then ex
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=142  cache_write_true=0  system_prompt_ratio_true=0.2308  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=88.5489  G=1.00  grade_abs=B  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp4
     dims    : O=1.000  P=1.000  L=0.500  C=0.888  R=1.000
@@ -783,12 +783,12 @@ TRACE R5-00007   [intent0: 我需要 NE-8BD0-42 的当前告警清单，若存�
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=525  cache_write_true=232  system_prompt_ratio_true=0.4272  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
-    S=83.9494  G=1.00  grade_abs=B  grade_rel=C  tier=0  novelty=False
+  PIPELINE OUTPUT (slice3-v0.3.0)
+    S=85.4134  G=1.00  grade_abs=B  grade_rel=C  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp0
-    dims    : O=1.000  P=1.000  L=0.403  C=0.875  R=0.850
-    contrib : O=+0.000  P=+0.000  L=-13.291  C=-1.173  R=-1.586   sum=-16.0506
-    zero-residual: S-100G=-16.0506  |diff|=4.20e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=1.000  L=0.403  C=0.875  R=1.000
+    contrib : O=+0.000  P=+0.000  L=-13.403  C=-1.183  R=+0.000   sum=-14.5866
+    zero-residual: S-100G=-14.5866  |diff|=2.00e-06  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.2436  a_cal=0.1303  conf=0.8133  anchor=anchor-R5-10ff75f849deddbe
     evidence (3 items, drill-down order):
@@ -868,12 +868,12 @@ TRACE R5-00029   [intent1: I need the degradation root cause on NE-B510-44; incl
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=511  cache_write_true=0  system_prompt_ratio_true=0.3568  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
-    S=0.9315  G=0.01  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice3-v0.3.0)
+    S=0.9467  G=0.01  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp1
-    dims    : O=1.000  P=0.445  L=1.000  C=0.932  R=0.850
-    contrib : O=+0.000  P=-0.166  L=+0.000  C=-0.011  R=-0.017   sum=-0.1935
-    zero-residual: S-100G=-0.1935  |diff|=2.70e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.445  L=1.000  C=0.932  R=1.000
+    contrib : O=+0.000  P=-0.167  L=+0.000  C=-0.011  R=+0.000   sum=-0.1783
+    zero-residual: S-100G=-0.1783  |diff|=3.40e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9463  a_cal=0.9781  conf=0.9565  anchor=anchor-R5-10ff75f849deddbe
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15, "t1_unfinished": 0.25}
@@ -946,7 +946,7 @@ TRACE R5-00006   [intent1: explain the degradation root cause of the 15m degrada
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=201  cache_write_true=315  system_prompt_ratio_true=0.2412  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=44.9257  G=0.60  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.552  P=1.000  L=0.923  C=0.781  R=1.000
@@ -1024,7 +1024,7 @@ TRACE R5-00006   [intent1: explain the degradation root cause of the 15m degrada
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=201  cache_write_true=315  system_prompt_ratio_true=0.2412  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
+  PIPELINE OUTPUT (slice3-v0.3.0)
     S=44.9257  G=0.60  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.552  P=1.000  L=0.923  C=0.781  R=1.000
@@ -1111,12 +1111,12 @@ TRACE R5-00192   [intent0: 我需要 NE-FCF2-33 的当前告警清单，若存�
     citation_reachable_true=0.5000  contradiction_true=0.2000  contradicted_count=1  fabricated_citation_count=1
     cache_read_true=156  cache_write_true=298  system_prompt_ratio_true=0.2758  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
-    S=19.9446  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice3-v0.3.0)
+    S=20.2924  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp2
-    dims    : O=0.720  P=1.000  L=0.686  C=0.914  R=0.850
-    contrib : O=-3.128  P=+0.000  L=-1.348  C=-0.192  R=-0.387   sum=-5.0554
-    zero-residual: S-100G=-5.0554  |diff|=4.00e-06  OK  (rounded JSONL rows;
+    dims    : O=0.720  P=1.000  L=0.686  C=0.914  R=1.000
+    contrib : O=-3.154  P=+0.000  L=-1.359  C=-0.194  R=+0.000   sum=-4.7076
+    zero-residual: S-100G=-4.7076  |diff|=2.00e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9076  a_cal=0.9702  conf=0.8205  anchor=anchor-R5-10ff75f849deddbe
     gates: {"t0_result_broken": 0.25}
@@ -1193,12 +1193,12 @@ TRACE R5-00078   [intent0: 查询网元 NE-7666-57 的当前告警清单]
     citation_reachable_true=n/a  contradiction_true=0.5000  contradicted_count=1  fabricated_citation_count=0
     cache_read_true=632  cache_write_true=0  system_prompt_ratio_true=0.0885  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice2-v0.2.0)
-    S=10.7488  G=0.15  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice3-v0.3.0)
+    S=10.7677  G=0.15  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
-    dims    : O=0.867  P=1.000  L=1.000  C=0.217  R=0.628
-    contrib : O=-0.730  P=+0.000  L=+0.000  C=-2.927  R=-0.594   sum=-4.2512
-    zero-residual: S-100G=-4.2512  |diff|=3.10e-05  OK  (rounded JSONL rows;
+    dims    : O=0.867  P=1.000  L=1.000  C=0.217  R=0.639
+    contrib : O=-0.731  P=+0.000  L=+0.000  C=-2.929  R=-0.572   sum=-4.2323
+    zero-residual: S-100G=-4.2323  |diff|=6.00e-06  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9719  a_cal=0.9821  conf=0.9647  anchor=anchor-R5-10ff75f849deddbe
     gates: {"guard_violation": 0.15}
