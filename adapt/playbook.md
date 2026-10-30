@@ -82,10 +82,21 @@ R3 是活教材：门槛表写 `ari_intent ≥ 0.55`，而该 regime **全量数
 | `optional_steps` | 允许缺席的步骤 | 缺失步骤判定不误伤 |
 | `unit_price` | prompt/completion/tool_call 单价 | 成本维度 C |
 | `validators` | 只允许 `regex` / `json` / `number_traceable` 三类**确定性**校验器 | 结果符合度维度 O |
-| `slo_anchors` | 可选，业务方直接给四档锚点 | 留空则用数据分位数锚点 |
+| `slo_anchors` | 可选，业务方直接给四档锚点 | 留空则用数据分位数锚点。**只对走锚点的维度有效**：slice3 之后全内核只剩三个锚点通道 `latency_total`（L）/ `cost_total`、`tokens_total`（C），给 R 写 SLO 会静默失效，见下方第二条红线 |
 
 > **红线：`validators` 里不得出现任何生成式判官。** 评分必须相同输入位级一致、可复现、可作审计
 > 证据。判别式模型（校准用的等渗/逻辑回归）不在此列。
+
+> **红线：`slo_anchors` 里给 `R` 写档位会静默失效（slice3 引入）。** `kernel/baseline.py:DIM_METRIC`
+> 仍把 R 映射到 `retry_count`，`_apply_slo` 也照样把业务给的档位收紧进制品；但四档锚点在整个内核里
+> **只剩一个消费者**——`kernel/score.py::_anch`，而它 slice3 之后只被 `latency_total` /
+> `cost_total` / `tokens_total` 三处调用。所以写下来的 R 档 SLO 会进制品、却没有任何下游读它。
+> O / P / R 三维都是**规则通道**而不是锚点通道，要收紧它们只能调 §2.1 的权重与饱和点，
+> 或改本体的 `validators` / `forbidden_actions` / `required_steps`。
+> **本轮没有直接删掉这个映射**：删了会让业务侧的 R SLO 从「静默失效」变成「静默丢弃」，更糟；
+> 正确修法是让 `baseline.build` 在收到 R 档 SLO 时**显式报错**，那是一次契约变更，要单独升版走一遍。
+> 在 bench_v1 上这条分支**不可达**（ontA / ontB 的 `slo_anchors` 都是 `{}`），
+> 所以它没有污染任何已公布的数字——这是一个适配期陷阱，不是一个跑分回归。
 
 版本：`ontology_version`。
 

@@ -230,6 +230,19 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   ubuntu 腿照旧 `0.000e+00`；派生文档守卫两腿都报
   `README.md, COVERAGE.md and SAMPLE.md are byte-identical after regeneration`——
   即本轮重生成的 8 份 `SAMPLE.md` 与 CI 独立重算的结果逐字节一致。
+- **slice3 是第二次在「流水线被改过」的前提下跑这套对账**，commit `18005ef`，
+  `gates` run 41036262104 / `matrix` run 41036262008，四条 job 全绿。
+  `windows-latest` 腿 `8/8 regimes PASS, 8/8 byte-identical (3334 leaves, 0 differences absorbed)`；
+  `ubuntu-latest` 腿 `8/8 PASS, 3/8 byte-identical (3334 leaves, 0 differences absorbed)`，
+  `worst relative float deviation observed: 2.776e-17`——与 slice2 那一轮**逐位相同**，
+  且仍是 R1 / R2 / R6 三条 `scores.jsonl` 的 sha256 两侧全等。这不是巧合：slice3 只改 R 块，
+  而那条 1 ulp 的因果链（`math.erfc` → 未取整的 `a_raw` → 等渗插值）一个环节都没碰到，
+  所以跨 libc 的偏差地板原地不动。**这条恰好是对「改动面被正确隔离」的独立证据**：
+  如果 slice3 意外碰到了校准或基线，这个数字会变。
+  `gates` 两腿的 `reprocheck --sample` 都是 `8/8 regimes reproduced | warnings=0 incl. SAMPLE.md`
+  （windows `mode=strict` 25.3s、ubuntu `mode=numeric-tol 1e-12` 24.8s 且照旧 `0.000e+00`）；
+  两腿 `invariants 12/12`、`coverage -> DATASET READY`、`scorecard IN SYNC`、
+  派生文档守卫均报 `README.md, COVERAGE.md and SAMPLE.md are byte-identical after regeneration`。
 
 1e-12 相对容差比任何算法改动能造成的变化还小八个数量级（门槛带四位小数宽，真改动至少动 1e-4），
 所以它藏不住回归。但它也**不该被用来掩盖级联**：末位差有可能翻掉一个浮点**比较**，
@@ -945,6 +958,14 @@ L 是 `s_l = 锚点分(latency_total)` 单通道，slice2 后均值 +0.7359。�
   证据表在上方 slice3 一节。**要继续提 L 只能改生成器真值或解锁 `METRICS`，两者都超出算法侧范围。**
   另一个未解决项：O 维四通道里 `fact_precision` 只有 25.9% 可得性，剩下 74.1% 的流量靠
   丢弃重归一过活；要提可得性只能等业务侧补 `golden_facts`，算法侧无解。
+- **本体 `slo_anchors` 里给 R 写档位，slice3 之后会静默失效**。`kernel/baseline.py:DIM_METRIC`
+  仍把 R 映射到 `retry_count`，`_apply_slo` 也照样收紧进制品；但四档锚点在全内核**只剩一个消费者**
+  （`kernel/score.py::_anch`），而它 slice3 之后只被 `latency_total` / `cost_total` /
+  `tokens_total` 三处调用。O / P / R 三维都是**规则通道**不是锚点通道。**没有直接删掉这个映射**：
+  删了会让业务侧的 R SLO 从「静默失效」变成「静默丢弃」，更糟；正确修法是让 `baseline.build`
+  收到 R 档 SLO 时**显式报错**，那是一次契约变更，要单独升版走一遍。在 bench_v1 上这条分支
+  **不可达**（两套本体的 `slo_anchors` 都是 `{}`），所以它没有污染任何已公布的数字——
+  这是适配期陷阱，不是跑分回归。红线与处方已写进 `adapt/playbook.md` Step 3。
 - **合成数据只验工程与分布 regime 通用性**。语义文本是本体模板不是自由散文；句向量虽已是
   384 维各向异性、带话题连续谱，但它由生成器**按 latent 意图直接发射，没有经过真实编码器**，
   所以本基准的 ARI 上界仍不可外推到真实业务。
