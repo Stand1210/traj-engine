@@ -246,6 +246,31 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   （windows `mode=strict` 25.3s、ubuntu `mode=numeric-tol 1e-12` 24.8s 且照旧 `0.000e+00`）；
   两腿 `invariants 12/12`、`coverage -> DATASET READY`、`scorecard IN SYNC`、
   派生文档守卫均报 `README.md, COVERAGE.md and SAMPLE.md are byte-identical after regeneration`。
+- **slice4 是第三次在「流水线被改过」的前提下跑这套对账**，commit `affa691`，
+  `gates` run 41165302756 / `matrix` run 41165302742，四条 job 全绿。
+  `windows-latest` 腿 `8/8 regimes PASS, 8/8 byte-identical (3334 leaves, 0 differences absorbed)`；
+  `ubuntu-latest` 腿 `8/8 PASS, 3/8 byte-identical (3334 leaves, 0 differences absorbed)`，
+  `worst relative float deviation observed: 2.776e-17`——与 slice2、slice3 两轮**逐位相同**：
+  byte-identical 的仍是 R1 / R2 / R6（三条 `scores.jsonl` 的 sha 两侧全等：
+  `68cc450fd4fcb6b6` / `44aa900fb280de0f` / `78cb185f92f35718`）；有差的仍是 58 处、
+  仍分布在 5/8 个 regime（本轮实测 R3 18 / R4 4 / R5 6 / R7 15 / R8 15），
+  每个 regime 报出的最差叶子都是 `a_cal`（如 R3 line 273：
+  `0.11664003870292391 vs 0.11664003870292389`）。
+  这一条对 slice4 的意义比对 slice3 更强：slice4 换的是 P 块，而 P 的五个通道
+  全部只读 detect 已经发射的结构量，`math.erfc → 未取整的 a_raw → 等渗插值`
+  那条 1 ulp 因果链一个环节都没碰到，所以跨 libc 的偏差地板**必须**原地不动；
+  它一旦变了，就等于改动面漏出了打分块。换句话说，这是本地那条
+  「3382 个叶子里只有 99 个变、且全在 `/scoring`，`detection / clustering / baseline /
+  drift / data_quality / calibration` 零变化」的隔离证据在真 runner 上的独立复算。
+  `gates` 两腿：`invariants 12/12`；`reprocheck --sample` windows `mode=strict` 15.9s、
+  ubuntu `mode=numeric-tol 1e-12` 18.7s 且照旧 `0.000e+00`（该平台逐位复现数据集）；
+  两腿都 `8/8 regimes reproduced | warnings=0 incl. SAMPLE.md`、`coverage -> DATASET READY`
+  （blockers 0 / fidelity failures 0 / stale regimes 0）、`scorecard IN SYNC`、
+  派生文档守卫均报 `README.md, COVERAGE.md and SAMPLE.md are byte-identical after regeneration`。
+  `matrix` 两腿的 8 个 regime 全部 `gates=ALL-PASS`，且 pool / F1 / P@50 / FPR / AUC / ARI /
+  零残差在两个 OS 上逐位一致（R1 `pool=3945/4000 F1=0.881 P@50=1.000 FPR=0.000
+  AUC=0.966 ARI_i=1.000 ARI_p=0.998 zerores=9.5e-14`、R6 `pool=591/600 F1=0.000 P@50=0.820`），
+  随后 `git diff --exit-code` 两腿干净退出，产物各自归档。
 
 1e-12 相对容差比任何算法改动能造成的变化还小八个数量级（门槛带四位小数宽，真改动至少动 1e-4），
 所以它藏不住回归。但它也**不该被用来掩盖级联**：末位差有可能翻掉一个浮点**比较**，
