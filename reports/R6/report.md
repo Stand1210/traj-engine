@@ -1,6 +1,6 @@
 # 基准跑分报告 R6 - cold start
 
-- 流水线版本 `slice4-v0.4.0`｜数据集 `6df7cb38491a91dd`｜代码 `c7e53c3d81d94dcc`｜n=600（可归簇 591，覆盖率 0.985）｜冷启动 True｜墙钟 101.5s
+- 流水线版本 `slice5-v0.5.0`｜数据集 `6df7cb38491a91dd`｜代码 `0064f089a6b550d7`｜n=600（可归簇 591，覆盖率 0.985）｜冷启动 True｜墙钟 97.4s
 - 生成器真值：真实格子数 6｜异常率 0.1017｜异常类型 {"error": 3, "hallucinated_number": 5, "illegal_step": 7, "latency_spike": 13, "loop": 6, "missing_step": 4, "token_bloat": 8, "truncation": 8, "unfinished": 7}
 - 端到端时延分布 p50/p90/p99 = 2.01 / 60.73 / 130.18
 
@@ -61,8 +61,8 @@
 ## 3 打分（5 维 x 4 锚点 x 硬门禁 x LMDI 零残差）
 
 - 零残差最大偏差 `9.059e-14`（恒等式 sum(contrib) == S - 100G）
-- 分数区分度：AUC(-S vs 异常)=0.8873｜正常均分 90.84｜异常均分 48.17｜分离度 42.66
-- 与生成器 oracle 维度分的相关：Spearman=0.8113｜Kendall tau-b=0.6341
+- 分数区分度：AUC(-S vs 异常)=0.8756｜正常均分 91.10｜异常均分 51.79｜分离度 39.31
+- 与生成器 oracle 维度分的相关：Spearman=0.8146｜Kendall tau-b=0.6345
 
 | 维度 | Spearman(vs oracle) | 正常均值 | 异常均值 |
 |---|---|---|---|
@@ -72,9 +72,9 @@
 | C | 0.9084 | 0.768 | 0.719 |
 | R | 1.0000 | 1.000 | 0.958 |
 
-- 绝对档位分布 {"A": 375, "B": 160, "D": 54, "C": 11}
+- 绝对档位分布 {"A": 378, "B": 162, "D": 49, "C": 11}
 - 相对档位分布 {"B": 208, "A": 154, "C": 152, "D": 86}
-- 门禁触发次数 {"t1_unfinished": 15, "novelty": 9, "t0_result_broken": 9, "forbidden_action": 7, "guard_violation": 5, "loop_runaway": 3, "t2_untraceable_number": 3}
+- 门禁触发次数 {"novelty": 9, "t0_result_broken": 9, "forbidden_action": 7, "t1_unfinished": 7, "guard_violation": 5, "loop_runaway": 3, "t2_untraceable_number": 3}
 
 ## 4 校准（交叉拟合，出折外 ECE）
 
@@ -96,5 +96,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 0.47, "cluster": 100.65, "baseline": 0.06, "detect": 0.18, "score": 0.02}
+- 计时 {"ingest_features": 0.67, "cluster": 96.31, "baseline": 0.06, "detect": 0.14, "score": 0.02}
 

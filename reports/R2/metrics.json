@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9972271237711117
   },
-  "code_hash": "c7e53c3d81d94dcc",
+  "code_hash": "0064f089a6b550d7",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -519,7 +519,7 @@
   },
   "n": 4000,
   "n_pool": 3967,
-  "pipeline_version": "slice4-v0.4.0",
+  "pipeline_version": "slice5-v0.5.0",
   "regime_id": "R2",
   "scoring": {
     "gate_hits": {
@@ -528,14 +528,14 @@
       "loop_runaway": 22,
       "novelty": 33,
       "t0_result_broken": 45,
-      "t1_unfinished": 103,
+      "t1_unfinished": 34,
       "t2_untraceable_number": 27
     },
     "grade_abs": {
-      "A": 2504,
-      "B": 1092,
+      "A": 2554,
+      "B": 1104,
       "C": 72,
-      "D": 332
+      "D": 270
     },
     "grade_rel": {
       "A": 1006,
@@ -543,10 +543,10 @@
       "C": 1002,
       "D": 595
     },
-    "grade_separation": 40.0440874740038,
-    "kendall_vs_oracle": 0.6119717516754444,
-    "mean_S_anomaly": 49.81576489067487,
-    "mean_S_normal": 89.85985236467867,
+    "grade_separation": 40.60300298282723,
+    "kendall_vs_oracle": 0.6266746431845527,
+    "mean_S_anomaly": 50.40892292852775,
+    "mean_S_normal": 91.01192591135498,
     "mean_conf": 0.9654503923321006,
     "per_dim": {
       "C": {
@@ -562,16 +562,16 @@
         "spearman": 0.721594873147942
       },
       "O": {
-        "mean_anomaly": 0.860755625085165,
+        "mean_anomaly": 0.8587943660052618,
         "mean_normal": 0.9988626814362109,
-        "pearson": 0.8712707522154162,
-        "spearman": 0.9454381087820187
+        "pearson": 0.8769621654018337,
+        "spearman": 0.9560986871726741
       },
       "P": {
-        "mean_anomaly": 0.9173352165725045,
+        "mean_anomaly": 0.9153013182674197,
         "mean_normal": 1.0,
-        "pearson": 0.9681115738529332,
-        "spearman": 0.9999593795547768
+        "pearson": 0.9753892075057733,
+        "spearman": 0.9999651986316667
       },
       "R": {
         "mean_anomaly": 0.9478827011030398,
@@ -580,18 +580,18 @@
         "spearman": 0.9999937683540725
       }
     },
-    "score_auc": 0.8909872235146412,
-    "spearman_vs_oracle": 0.794534913148687,
+    "score_auc": 0.9005871275063698,
+    "spearman_vs_oracle": 0.8155442345321405,
     "zero_residual_max": 9.681144774731365e-14
   },
   "spec_hash": "52470f48253b25a6",
   "timings": {
-    "baseline": 0.418377161026001,
-    "cluster": 86.7202615737915,
-    "detect": 1.1693344116210938,
-    "ingest_features": 4.772596836090088,
-    "score": 0.1259291172027588
+    "baseline": 0.36261892318725586,
+    "cluster": 83.77170729637146,
+    "detect": 1.1259956359863281,
+    "ingest_features": 4.27590274810791,
+    "score": 0.13816380500793457
   },
   "title": "trimodal",
-  "wall_s": 94.43267273902893
+  "wall_s": 91.09459018707275
 }

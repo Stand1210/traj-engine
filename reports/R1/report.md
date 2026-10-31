@@ -1,6 +1,6 @@
 # 基准跑分报告 R1 - bimodal main path
 
-- 流水线版本 `slice4-v0.4.0`｜数据集 `007a872125bac9bb`｜代码 `c7e53c3d81d94dcc`｜n=4000（可归簇 3945，覆盖率 0.986）｜冷启动 False｜墙钟 111.3s
+- 流水线版本 `slice5-v0.5.0`｜数据集 `007a872125bac9bb`｜代码 `0064f089a6b550d7`｜n=4000（可归簇 3945，覆盖率 0.986）｜冷启动 False｜墙钟 99.2s
 - 生成器真值：真实格子数 6｜异常率 0.0755｜异常类型 {"error": 16, "hallucinated_number": 54, "illegal_step": 20, "latency_spike": 43, "loop": 29, "missing_step": 33, "token_bloat": 42, "truncation": 40, "unfinished": 25}
 - 端到端时延分布 p50/p90/p99 = 2.00 / 55.61 / 118.03
 
@@ -61,20 +61,20 @@
 ## 3 打分（5 维 x 4 锚点 x 硬门禁 x LMDI 零残差）
 
 - 零残差最大偏差 `9.548e-14`（恒等式 sum(contrib) == S - 100G）
-- 分数区分度：AUC(-S vs 异常)=0.8981｜正常均分 90.18｜异常均分 47.56｜分离度 42.62
-- 与生成器 oracle 维度分的相关：Spearman=0.8104｜Kendall tau-b=0.6195
+- 分数区分度：AUC(-S vs 异常)=0.9034｜正常均分 91.22｜异常均分 48.96｜分离度 42.25
+- 与生成器 oracle 维度分的相关：Spearman=0.8271｜Kendall tau-b=0.6332
 
 | 维度 | Spearman(vs oracle) | 正常均值 | 异常均值 |
 |---|---|---|---|
-| O | 0.9713 | 1.000 | 0.828 |
-| P | 0.9873 | 1.000 | 0.940 |
+| O | 0.9753 | 1.000 | 0.827 |
+| P | 0.9873 | 1.000 | 0.939 |
 | L | 0.7463 | 0.769 | 0.679 |
 | C | 0.9295 | 0.771 | 0.690 |
 | R | 1.0000 | 1.000 | 0.956 |
 
-- 绝对档位分布 {"A": 2502, "B": 1105, "D": 325, "C": 68}
+- 绝对档位分布 {"A": 2549, "B": 1114, "D": 267, "C": 70}
 - 相对档位分布 {"B": 1399, "A": 1002, "C": 1002, "D": 597}
-- 门禁触发次数 {"t1_unfinished": 93, "t0_result_broken": 63, "novelty": 55, "t2_untraceable_number": 26, "forbidden_action": 20, "loop_runaway": 16, "guard_violation": 11}
+- 门禁触发次数 {"t0_result_broken": 63, "novelty": 55, "t1_unfinished": 28, "t2_untraceable_number": 26, "forbidden_action": 20, "loop_runaway": 16, "guard_violation": 11}
 
 ## 4 校准（交叉拟合，出折外 ECE）
 
@@ -110,5 +110,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 4.08, "cluster": 104.33, "baseline": 0.43, "detect": 1.05, "score": 0.26}
+- 计时 {"ingest_features": 3.15, "cluster": 93.33, "baseline": 0.37, "detect": 0.95, "score": 0.22}
 

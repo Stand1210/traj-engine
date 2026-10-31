@@ -207,7 +207,8 @@ scored exactly 1.0 and a "false charge" is a truth-1.0 trace scored below 1.0:
     5 channels, soft 0.35 kept, no gate               29          326
     5 channels, soft 0.35 kept, gated                 29          289
     5 channels, hard unfinished only, no gate         49           37
-    5 channels, hard unfinished + gates  (SHIPPED)    49            0
+    5 channels, hard unfinished + gates  (slice4)     49            0
+    + slice5 detect-side `absent` fix    (SHIPPED)    29            0
 
 Read the last two rows as a column: the attribution gate removes all 37 remaining false charges
 and moves the miss count by exactly zero. Read the middle two as a row: dropping the soft branch
@@ -293,45 +294,87 @@ Variants rejected on measurement, at the shipped weights:
     business whose drift is a continuous cosine distance would otherwise charge P for numerical
     noise; no saturation divisor is added because the feature is already a maximum.
 
-Deferred, and measured rather than argued. The 343 soft-branch traces are charged *twice*, and
-the second charge dwarfs the first: `if unfinished > 0` fires the categorical `t1_unfinished`
-veto at 0.25, so all 343 land in grade D with median S 22.93 against a dataset median of 91.79,
-and 313 of them carry no other gate at all. detect.l4_contract's own `hard` predicate uses
-`unfinished >= 1.0`, so the gate trigger looks plainly inconsistent with the detector's
-definition of a categorical breach -- a graded suspicion fed into an all-or-nothing veto.
-Aligning it was implemented and run on R4. It is a net loss and was reverted:
-`t1_unfinished` 37 -> 10 hits, 15 normal traces lifted of which 12 correctly leave grade D
-(mean S 21.53 -> 86.12), but `score_auc` 0.85693 -> 0.83700, `grade_separation` 39.188 -> 35.969
-and `mean_S_anomaly` 51.215 -> 55.357, bought against only +0.0096 / +0.0072 on the two oracle
-rank correlations. `per_dim` and every detection leaf are bit-identical either way, so the loss
-is real rather than a measurement artifact.
+Resolved in slice5, by two changes that only work as one. The 343 soft-branch traces were
+charged *twice*, and the second charge dwarfed the first: `if unfinished > 0` fired the
+categorical `t1_unfinished` veto at 0.25, so all of them landed in grade D with median S 22.93
+against a dataset median of 91.79, and 313 carried no other gate at all. detect.l4_contract's own
+`hard` predicate uses `unfinished >= 1.0`, so the gate trigger was plainly inconsistent with the
+detector's definition of a categorical breach -- a graded suspicion fed into an all-or-nothing veto.
 
-Why it loses is the useful part: the veto was accidentally compensating for a detector gap.
-`l4_contract` reaches `unfinished = 1.0` only when the trace aborted/errored or came up short
-against the *required set*; the generator's injection pops the trailing span, so on a cell whose
-terminal action is not itself a member of `required`, the popped trace still covers every
-required action and detect can only report the 0.35 soft value. Two of R4's 11 `unfinished`
-traces are in exactly that state and they are two of the four wrong promotions (S 24.56 -> 98.22,
-D -> A; the other two are a token_bloat and a latency_spike). The correct fix is therefore
-detection-side -- treat "the declared terminal action never appears in the sequence at all" as
-confirmed non-completion -- and it has to land before or together with the gate change, not after
-it. Removing the veto alone trades 12 correct rescues for 4 wrong promotions. Both changes move
-`G`, hence S, grade_abs, score_auc and gate_hits, i.e. a different measurement surface from this
-slice, and the detector fix also moves F1 / precision / the alert stream.
+Narrowing the trigger on its own was implemented and run on R4 during slice4. It is a net loss and
+was reverted: `t1_unfinished` 37 -> 10 hits, 15 normal traces lifted of which 12 correctly leave
+grade D (mean S 21.53 -> 86.12), but `score_auc` 0.85693 -> 0.83700, `grade_separation`
+39.188 -> 35.969 and `mean_S_anomaly` 51.215 -> 55.357, bought against only +0.0096 / +0.0072 on
+the two oracle rank correlations. `per_dim` and every detection leaf are bit-identical either way,
+so the loss was real rather than a measurement artifact.
 
-That same boundary is also the whole of P's residual miss count, which is why the two belong in
-one later slice rather than two. All 20 traces that dropping the soft branch turned into misses
-are `unfinished`-class traces sitting at `struct.unfinished == 0.35`, and the gate fires on none
-of them -- measured both ways: restoring the soft branch recovers 20 of 20, removing the gate
-recovers 0 of 20. Root cause, from the code rather than from a fit: `l4_contract` reaches
-`unfinished = 1.0` only through `aborted` or `short`, and `short` is measured against
-`required`, while `term` is *learned* per cell by `baseline.build` as the dominant final action.
-When that learned terminal is not itself a member of `required` -- and an `optional_steps` entry
-such as `verify` / `api_call` / `peer_review` can be exactly that -- a popped terminal leaves
-every required step present, so detect can only report 0.35 and nothing downstream can tell it
-apart from an ordinary unusual ending. Teaching the detector that "the declared terminal action
-never appears in the sequence at all" is confirmed non-completion would let P charge those 20
-through the hard channel *and* let the veto be narrowed to `>= 1.0` without losing them.
+Why it lost is what made slice5: the veto was accidentally compensating for a detector gap.
+`l4_contract` reached `unfinished = 1.0` only when the trace aborted/errored or came up short
+against the *required set*, while `term` is *learned* per cell by `baseline._profile` as the
+dominant final action. When that learned terminal is not itself a member of `required` -- and an
+`optional_steps` entry such as `verify` / `api_call` / `peer_review` can be exactly that -- a
+popped terminal leaves every required step present, so detect could only report 0.35 and nothing
+downstream could tell it apart from an ordinary unusual ending. Narrowing the veto without closing
+that gap just let the genuine non-completions escape along with the suspicions. Two of R4's 11
+`unfinished` traces were in exactly that state and they were two of the four wrong promotions
+(S 24.56 -> 98.22, D -> A; the other two a token_bloat and a latency_spike).
+
+So slice5 lands the detector fix first and the gate narrowing with it, in one commit.
+detect.l4_contract now escalates on a third predicate, `absent = term not in present`: a cell only
+earns a learned terminal at >= TERMINAL_PREVALENCE support, so a terminal appearing *nowhere* in
+the sequence is confirmed non-completion and belongs with `aborted` and `short`, while an
+attested-but-unusual ending stays graded. Measured over all 22,800 bench_v1 traces, `absent`
+escalates exactly 38, and those 38 are exactly the 38 `unfinished`-class traces sitting at 0.35 --
+intersection 38/38, flip-only 0, unf-only 0, zero false positives -- all carrying truth dimP=0.20
+and dimO=0.55 while the slice4 scorer was giving them dims.P mean 0.9484 (max 1.0000) and dims.O
+exactly 1.0000. The 361 that stay at 0.35 have absent=False without exception (295 normal,
+35 illegal_step, 15 latency_spike, 10 loop, 4 hallucinated_number, 2 token_bloat). The rejected
+alternative is measured in detect.py: escalating on *zero terminal support* instead -- the observed
+final action never terminating any baseline trace in the cell -- is a different signal and does not
+work, because "attested but unusual ending" and "closing step never performed" are different
+questions and only the second is a breach.
+
+Both halves then pay, on different surfaces:
+
+  detection  `unfinished >= 1.0` fires on 146 -> 184 pool traces while its truth-1.0 firing count
+             stays at exactly 11 (6 `normal` with error_ratio > 0, 5 `truncation`), so the
+             attribution-gate ledger above is unchanged and still removes 11 -> 0. Of the 38, 27
+             were not otherwise hard, so the alert stream gains 27 alerts of which 27/27 are true
+             anomalies: pool F1 0.7184 -> 0.7296, precision 0.8631 -> 0.8635, recall
+             0.6170 -> 0.6327, FPR unchanged at 0.000768, auc_a_raw 0.9319 -> 0.9396, pr_auc
+             0.8394 -> 0.8524, and no regime moves down (R3 F1 0.7962 -> 0.8333, R5
+             0.7556 -> 0.7802, R7 0.8226 -> 0.8340, R4 0.7867 -> 0.8026, R1/R2/R6/R8 unchanged).
+  scoring    P misses 49 -> 29 at false charges still exactly 0, and O misses 102 -> 64, also at
+             0 false charges. The 20 recovered P misses are precisely the ones slice4's
+             de-contamination had to leave behind; the 38 recovered O misses are the whole
+             `unfinished` class. per_dim.P.spearman +0.961115 -> +0.977482 (worst regime
+             +0.903748 -> +0.945051), per_dim.P.pearson +0.946277 -> +0.975907,
+             per_dim.O.spearman +0.933179 -> +0.956381, per_dim.O.pearson +0.874728 -> +0.887000.
+             L, C and R are bit-identical, and so is mean_S_normal under the detector fix alone.
+
+The gate narrowing is what turns that into a rank gain rather than only a magnitude gain:
+`t1_unfinished` 578 -> 217 hits, grade_abs A 13,685 -> 13,911 and D 2,729 -> 2,435, and against
+the oracle spearman_vs_oracle +0.798645 -> +0.813194, kendall_vs_oracle +0.615147 -> +0.625498,
+score_auc 0.875834 -> 0.878849 -- those three measured A -> B, i.e. with the detector fix already
+in on both sides, so they are the gate's own contribution. 269 normal traces whose *only* gate was
+`t1_unfinished` stop being vetoed to grade D on a signal whose precision for the `unfinished` class
+was 38/399 = 9.5%.
+
+The cost is stated rather than hidden: `grade_separation` 39.904704 -> 39.359789 and
+`mean_S_anomaly` 50.224994 -> 51.627154, because 21 non-normal traces (14 latency_spike, 4 loop,
+2 token_bloat, 1 hallucinated_number) also stop carrying a veto that never described them. They
+stay charged where they actually belong -- L and C for the latency and token classes, their own
+`loop_runaway` / `t0_result_broken` gates for the rest -- and all three rank statistics move the
+other way, which is the reading that matters: `grade_separation` is a difference of two means and
+is dominated by tails, while score_auc and the two oracle correlations are rank statistics. A veto
+asserting "the task did not finish" firing on a trace that finished and was merely slow is a
+category error, and this is the slice that stops charging it.
+
+Deliberately not re-run: the five-channel weight search of the section above. `x_unf` now fires on
+184 pool traces instead of 146, so the plateau could in principle have moved, and it was left
+alone on purpose -- re-tuning in the same commit as a root-cause fix would make the two
+unattributable. That the shipped (0.30, 0.20, 0.15, 0.25, 0.10) improves P's rank fidelity from
++0.961115 to +0.977482 with no re-tuning at all is itself the robustness evidence.
 
 Robustness dimension (slice3): three exact-zero channels replace two proxies
 ----------------------------------------------------------------------------
@@ -466,7 +509,7 @@ W_P_DRIFT = 0.10    # goal_drift_max > DRIFT_FLOOR, gated                   cont
 # the same traces. It is named and tunable because a business whose drift is a continuous cosine
 # distance would otherwise charge P for numerical noise.
 DRIFT_FLOOR = 0.50
-MODEL_VERSION = "kernel-v0.4.0"
+MODEL_VERSION = "kernel-v0.5.0"
 
 
 def _clamp01(x):
@@ -619,7 +662,14 @@ def score_one(feats, assign, det, art, ontology, cold_start=False, drift_suspect
         # the ontology validator is breached but the answer is still mostly grounded:
         # a veto would be disproportionate, a graded multiplier is not.
         gates["t2_untraceable_number"] = GATES["t2_untraceable_number"]
-    if unfinished > 0:
+    # Narrowed from `unfinished > 0` to `>= 1.0` in slice5, and only because detect.l4_contract
+    # learned to escalate on `absent` in the same commit. A 0.35 is a graded suspicion -- an
+    # unusual ending from a trace that still performed its cell's closing step -- and feeding it
+    # into an all-or-nothing veto put 269 normal traces in grade D on a signal whose precision
+    # for the `unfinished` class was 38/399 = 9.5%. Narrowing it *alone* was tried in slice4 and
+    # reverted; the full ledger, the A -> B attribution and the grade_separation cost are in
+    # "Resolved in slice5" in the module docstring.
+    if unfinished >= 1.0:
         gates["t1_unfinished"] = GATES["t1_unfinished"]
     if loop >= LOOP_SAT:
         gates["loop_runaway"] = GATES["loop_runaway"]

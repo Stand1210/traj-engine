@@ -1,6 +1,6 @@
 # 数据契约 v1（bench 生成器 与 kernel 算法 的共同规格）
 
-状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice4-v0.4.0` 实测冻结）**。
+状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice5-v0.5.0` 实测冻结）**。
 生成器输出与内核接口同时受其约束；变更需升版本号。
 
 - v1 → v1.1：`ClusterAssign` 增补 `near_intent/near_pattern/post_margin`；检测器输出增补
@@ -172,6 +172,24 @@ v1 冻结项、本来就在 `METRICS` 里），第五个 **`goal_drift_max` 是 
 （`error` 类上 20.8% 非零，26 条），加**归因门**后 **0.000**（机制见 §2.2）。缺失时
 （bench_v1 上 0.8%）按通道**丢弃并重归一**，不填常数，并对 `dim_conf["P"]` 乘 0.90。
 
+**slice5 一个新特征都没接，`METRICS` 一个都没动，改的是既有检测器输出的语义。**
+`detect.struct.unfinished` 原本只有 `aborted`（有 span 撞 token 上限或 `status == "error"`）与
+`short`（必需步骤缺失）两条升到 1.0 的通路，其余「末动作不等于本 cell 学到的终点」一律记 0.35。
+麻烦在于 `term` 是 `baseline._profile` 按**众数**学出来的、并不保证属于 `required`：当它是
+`optional_steps` 里的 `verify` / `api_call` / `peer_review` 时，把它从末尾弹掉仍覆盖全部必需步骤，
+检测器只能报 0.35，下游无从与「结束得不常见」区分。slice5 补上第三条判据
+**`absent = term not in present`**——cell 的终点须达到 `TERMINAL_PREVALENCE`（0.70）支持度才会被
+学出来，所以「这个收尾动作在整条序列里一次都没出现」是**可证的未完成**，与 `aborted` / `short`
+同级；「收尾动作做过、只是结束在别处」仍是分级怀疑，留在 0.35。同时把 `short` 从**重数计数**
+（`len([a for a in seq if a in set(required)]) < len(required)`）改成集合覆盖 `bool(missing)`，
+消掉它与 15 行之上 `missing` 的口径分歧（bench_v1 上 11 条分歧，全部同时满足 `absent`，
+故此修正在本基准上惰置）。实测 22,800 条：`absent` 精确升级 **38** 条，与 38 条 `unfinished`
+类软轨迹**完全重合**（交集 38/38、零误报），`unfinished >= 1.0` 的触发面 146 → **184** 条而
+其中真值 1.0 的**仍是同样的 11 条**，归因门台账 11 → **0** 一字不变。`score.py` 的
+`t1_unfinished` 硬门随之从 `unfinished > 0` 收窄到 `>= 1.0`，与检测器对「分类级违约」的定义对齐；
+**两处必须同批落地**——单独收窄在 slice4 已实测为净损失并回退。全部数字与否决的替代方案见
+`kernel/score.py` docstring 的 slice5 一节与 README。
+
 **v2 已发射**——`kernel/features.py::extract` 已产出。除下面单独标注的一项，
 均**没有**进 `METRICS`、没有进打分：
 
@@ -198,7 +216,7 @@ v1 冻结项、本来就在 `METRICS` 里），第五个 **`goal_drift_max` 是 
 
 **v3 已发射、未接线（34 项）**——`bench-gen-v3.0.0` 起数据才携带其原料，
 `kernel/features.py::extract` 已产出，但与 v2 同规则：**没有**进 `METRICS`、没有进打分，
-以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接）；**slice4 改变了其中一项**——`goal_drift_max` 进打分（P 维），`METRICS` 仍未动，见本节开头。
+以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接）；**slice4 改变了其中一项**——`goal_drift_max` 进打分（P 维），`METRICS` 仍未动，见本节开头；**slice5 一个新特征都没接**，它改的是 `detect.struct.unfinished` 的判据，三态表一行都没动。
 其中 `self_correction_count` 与 `path_convergence` 已就 R 维**实测并否决**——两者污染都是
 0.00，但与已选三通道秩冗余：`self_correction_count` 作第四项罚分会把 err_recov 排到 loop
 之下（0.6915 < 0.8125，类序余量 −0.1210），作恢复加分则均值 spearman 到小数点后 5 位不变

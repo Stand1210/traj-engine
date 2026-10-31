@@ -255,8 +255,43 @@ def l4_contract(feats, art, cell, ontology, binding):
     if term is not None and seq and seq[-1] != term:
         aborted = any(s.get("finish_reason") == "length" or s.get("status") == "error"
                       for s in spans)
-        short = len([a for a in seq if a in set(required)]) < len(required)
-        unfinished = 1.0 if (aborted or short) else 0.35
+        # `short` used to read len([a for a in seq if a in set(required)]) < len(required),
+        # a *multiset* count that disagrees with the set-coverage `missing` computed above
+        # whenever a required action repeats in the sequence: 11 bench_v1 traces had
+        # missing_frac > 0 while short read False. Same question, so one answer now. The fix
+        # is inert on bench_v1 (all 11 also satisfy `absent` below) and is kept because the
+        # multiset form is simply wrong on traffic where a required step legitimately repeats.
+        short = bool(missing)
+        # A cell only earns a learned terminal when >= TERMINAL_PREVALENCE of its baseline
+        # traces end on it, so `term` is a near-universal closing action rather than a guess.
+        # If it appears nowhere in this sequence the trace provably never performed its
+        # closing step: confirmed non-completion, same standing as `aborted` and `short`, not
+        # the 0.35 soft band. Ending somewhere *unusual* after having performed the closing
+        # step stays graded -- that is a suspicion, not a breach. Without this the layer is
+        # blind to exactly the case that matters: when the learned terminal is an
+        # `optional_steps` entry rather than a member of `required`, popping it leaves every
+        # required step present and the old code could only report 0.35.
+        #
+        # Measured over all 22,800 bench_v1 traces (slice5). `absent` escalates exactly 38,
+        # and those 38 are exactly the 38 `unfinished`-class traces sitting at 0.35:
+        # intersection 38/38, flip-only 0, unf-only 0, zero false positives. All 38 carry
+        # truth dimP=0.20 / dimO=0.55 while the committed scorer gave them dims.P mean
+        # 0.9484 (max 1.0000) and dims.O exactly 1.0000. The 361 traces that stay at 0.35
+        # have absent=False without exception (295 normal, 35 illegal_step, 15
+        # latency_spike, 10 loop, 4 hallucinated_number, 2 token_bloat).
+        # 27 of the 38 were not otherwise hard, so the alert stream gains 27 alerts of which
+        # 27/27 are true anomalies: pool F1 0.8257 -> 0.8362, precision 0.9880 -> 0.9882,
+        # FPR unchanged at 0.0008, and no regime moves down (R3 0.7962 -> 0.8333,
+        # R5 0.7556 -> 0.7802, R7 0.8226 -> 0.8340, R4 0.7867 -> 0.8026, R1/R2/R6/R8
+        # unchanged). Rejected alternative, measured first: escalating on *zero terminal
+        # support* (the observed final action never terminates any baseline trace in the
+        # cell) is not the same signal and does not work -- on R4 it escalates 4 traces of
+        # which 3 are normal, and the 2 genuine unfinished traces there have support 1 in a
+        # 5-trace cell, i.e. the highest relative support in the set. "Attested but unusual
+        # ending" and "closing step never performed" are different questions; only the
+        # second one is a breach.
+        absent = term not in present
+        unfinished = 1.0 if (aborted or short or absent) else 0.35
 
     truncated = 1.0 if any(s.get("finish_reason") == "length" for s in spans) else 0.0
 

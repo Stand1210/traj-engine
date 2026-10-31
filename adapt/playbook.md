@@ -182,6 +182,7 @@ R3 是活教材：门槛表写 `ari_intent ≥ 0.55`，而该 regime **全量数
 | `W_R_FAIL` `W_R_UNREC` `W_R_LOOP` | `kernel/score.py` | .20 / .50 / .30 | R 维三通道相对权重（步骤失败率 / 未恢复错误 / 循环规则） | 按业务对「彻底不出错 vs 出错能自愈 vs 不打转」的偏好；三通道在干净流量上**精确为 0**，任何在 ok 组内会变的通道都不准进 R（见 §2.2） |
 | `W_P_ILL` `W_P_UNF` `W_P_LOOP` `W_P_MISS` `W_P_DRIFT` | `kernel/score.py` | .30 / .20 / .15 / .25 / .10 | P 维五通道相对权重（违规动作 / 确认未完成 / 循环饱和 / 声明工作流缺失比例 / 目标漂移） | 按业务对「不越权 vs 交付完整 vs 不打转 vs 不漏步骤 vs 不跑偏」的偏好；五通道在干净流量上**精确为 0**，其中两条受**归因门**约束（见 §2.2）；缺失通道一律**丢弃并重归一**，禁止填常数 |
 | `DRIFT_FLOOR` | `kernel/score.py` | 0.50 | `goal_drift_max` 的二值化门槛 | bench_v1 上**惰置**（该特征 273 个非零值全部恰为 1.0，(0,1) 内任何门槛选出同一批轨迹）；业务的漂移量若是连续余弦距离则必须重推，否则数值噪声也会扣 P 分 |
+| `REQUIRED_PREVALENCE` `TERMINAL_PREVALENCE` | `kernel/baseline.py` | .95 / .70 | 学到的必需动作集、以及学到的终点动作的最低支持度 | **自 slice5 起 `TERMINAL_PREVALENCE` 承重**：它决定 `absent`（学到的终点在整条序列里一次都不出现 = 确认未完成）这条**分类级**判据的触发面。调低会让终点在更小样本上被学出来、`absent` 更易误触；调高则更多 cell 学不出终点、判据直接失效（`term is None` 时整条通路关闭）。冷启动与极稀疏格子上必须复核 |
 | `CEIL_RATIO` | `bench/runner.py` | 0.90 | 门槛相对信息上界的封顶比例 | 只能更严不能更松 |
 | `MIN_LABELS_CALIB` `K_FOLDS` | `bench/runner.py` | 60 / 3 | 校准的最小标签数与折数 | 按标签预算 |
 
@@ -234,6 +235,18 @@ R3 是活教材：门槛表写 `ari_intent ≥ 0.55`，而该 regime **全量数
   错误注入分支同时写 `dim["O"]`（0.95 / 0.75）与 `dim["R"]`（0.60 / 0.35）。
   准入规则禁止的是「目标维真值不动」的通道，而 `error_ratio` 对 O 和 R 的真值-1.0 类集
   污染都是 **0.00**。换业务时若生成侧不再双重计价，这条豁免立刻失效，必须重测。
+- **「确认未完成」只认可证命题，不认统计偏离**（`kernel/detect.py::l4_contract`，slice5 锁定）。
+  `struct.unfinished` 升到 **1.0** 只有三条通路，且都是能从序列直接证伪的命题：`aborted`
+  （有 span 的 `finish_reason == "length"` 或 `status == "error"`）、`short`（`missing` 非空，
+  即有必需动作在序列里完全不出现）、`absent`（本 cell 学到的终点动作在序列里完全不出现）。
+  「末动作 ≠ 学到的众数终点」本身**只是统计偏离**——`TERMINAL_PREVALENCE = 0.70` 就意味着
+  最多 30% 的正常轨迹本来就结束在别处——所以只能记 **0.35** 的分级怀疑。换业务时终点动作与
+  必需步骤集都会变，但**「1.0 只给可证命题、0.35 只给统计偏离」这条分界不许动**：
+  `score.py` 的 `t1_unfinished` 是**分类级否决**（0.25）且正是按 `>= 1.0` 触发的，分界一移，
+  一个硬否决就重新挂到一个 9.5% 精度的怀疑信号上（bench_v1 实测：399 条软轨迹里只有 38 条
+  真属 `unfinished` 类，269 条 normal 仅因这一个门被压到 D 档）。同理，`short` 必须用**集合覆盖**
+  而不是重数计数。实测收益与否决的替代方案（零终点支持度）见 `kernel/detect.py` 的 `absent`
+  注释、`kernel/score.py` docstring 的 slice5 一节与 README。
 - **禁用 `point-adjust`** 评估口径（`meta.point_adjust_is_banned` 抛异常断言）
 - **禁用任何生成式判官**（LLM-as-a-Judge）
 

@@ -164,7 +164,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9983079526226735
   },
-  "code_hash": "c7e53c3d81d94dcc",
+  "code_hash": "0064f089a6b550d7",
   "cold_start": true,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -449,7 +449,7 @@
   },
   "n": 600,
   "n_pool": 591,
-  "pipeline_version": "slice4-v0.4.0",
+  "pipeline_version": "slice5-v0.5.0",
   "regime_id": "R6",
   "scoring": {
     "gate_hits": {
@@ -458,14 +458,14 @@
       "loop_runaway": 3,
       "novelty": 9,
       "t0_result_broken": 9,
-      "t1_unfinished": 15,
+      "t1_unfinished": 7,
       "t2_untraceable_number": 3
     },
     "grade_abs": {
-      "A": 375,
-      "B": 160,
+      "A": 378,
+      "B": 162,
       "C": 11,
-      "D": 54
+      "D": 49
     },
     "grade_rel": {
       "A": 154,
@@ -473,10 +473,10 @@
       "C": 152,
       "D": 86
     },
-    "grade_separation": 42.66376668492174,
-    "kendall_vs_oracle": 0.634072612512961,
-    "mean_S_anomaly": 48.17486152570339,
-    "mean_S_normal": 90.83862821062513,
+    "grade_separation": 39.30960358656749,
+    "kendall_vs_oracle": 0.6344856069232389,
+    "mean_S_anomaly": 51.79274636019207,
+    "mean_S_normal": 91.10234994675956,
     "mean_conf": 0.9129649311379302,
     "per_dim": {
       "C": {
@@ -510,18 +510,18 @@
         "spearman": 0.9999909838024008
       }
     },
-    "score_auc": 0.8873119127406531,
-    "spearman_vs_oracle": 0.8113319559478276,
+    "score_auc": 0.8756160063079046,
+    "spearman_vs_oracle": 0.8145543363700042,
     "zero_residual_max": 9.059419880941277e-14
   },
   "spec_hash": "6df7cb38491a91dd",
   "timings": {
-    "baseline": 0.06156444549560547,
-    "cluster": 100.65261220932007,
-    "detect": 0.18199539184570312,
-    "ingest_features": 0.47236084938049316,
-    "score": 0.015247106552124023
+    "baseline": 0.057437896728515625,
+    "cluster": 96.31138443946838,
+    "detect": 0.1363389492034912,
+    "ingest_features": 0.6684079170227051,
+    "score": 0.017059326171875
   },
   "title": "cold start",
-  "wall_s": 101.50219058990479
+  "wall_s": 97.38170313835144
 }

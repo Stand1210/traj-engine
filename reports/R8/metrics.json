@@ -197,7 +197,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.990443686006826
   },
-  "code_hash": "c7e53c3d81d94dcc",
+  "code_hash": "0064f089a6b550d7",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -527,7 +527,7 @@
   },
   "n": 3000,
   "n_pool": 2930,
-  "pipeline_version": "slice4-v0.4.0",
+  "pipeline_version": "slice5-v0.5.0",
   "regime_id": "R8",
   "scoring": {
     "gate_hits": {
@@ -536,14 +536,14 @@
       "loop_runaway": 19,
       "novelty": 70,
       "t0_result_broken": 25,
-      "t1_unfinished": 57,
+      "t1_unfinished": 29,
       "t2_untraceable_number": 14
     },
     "grade_abs": {
-      "A": 1848,
-      "B": 856,
-      "C": 47,
-      "D": 249
+      "A": 1866,
+      "B": 857,
+      "C": 48,
+      "D": 229
     },
     "grade_rel": {
       "A": 754,
@@ -551,10 +551,10 @@
       "C": 751,
       "D": 445
     },
-    "grade_separation": 37.075917384841574,
-    "kendall_vs_oracle": 0.5937975630978783,
-    "mean_S_anomaly": 53.47801934703543,
-    "mean_S_normal": 90.553936731877,
+    "grade_separation": 36.79742235134304,
+    "kendall_vs_oracle": 0.5995191125800672,
+    "mean_S_anomaly": 54.24445564837129,
+    "mean_S_normal": 91.04187799971433,
     "mean_conf": 0.9473591414160972,
     "per_dim": {
       "C": {
@@ -588,18 +588,18 @@
         "spearman": 0.9999919814144526
       }
     },
-    "score_auc": 0.8378277842789374,
-    "spearman_vs_oracle": 0.7834420191087607,
+    "score_auc": 0.8404387339096296,
+    "spearman_vs_oracle": 0.7943631447238693,
     "zero_residual_max": 9.414691248821327e-14
   },
   "spec_hash": "469f903d257a4288",
   "timings": {
-    "baseline": 0.3189246654510498,
-    "cluster": 77.06320261955261,
-    "detect": 0.9262187480926514,
-    "ingest_features": 2.2448322772979736,
-    "score": 0.09555745124816895
+    "baseline": 0.3722372055053711,
+    "cluster": 79.60357189178467,
+    "detect": 0.7515590190887451,
+    "ingest_features": 2.635416269302368,
+    "score": 0.08728456497192383
   },
   "title": "foreign ontology",
-  "wall_s": 81.7779471874237
+  "wall_s": 84.56441617012024
 }
