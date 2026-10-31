@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9992395437262357
   },
-  "code_hash": "f651db1a9f2380b0",
+  "code_hash": "c7e53c3d81d94dcc",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -519,7 +519,7 @@
   },
   "n": 4000,
   "n_pool": 3945,
-  "pipeline_version": "slice3-v0.3.0",
+  "pipeline_version": "slice4-v0.4.0",
   "regime_id": "R1",
   "scoring": {
     "gate_hits": {
@@ -532,8 +532,8 @@
       "t2_untraceable_number": 26
     },
     "grade_abs": {
-      "A": 2500,
-      "B": 1107,
+      "A": 2502,
+      "B": 1105,
       "C": 68,
       "D": 325
     },
@@ -543,10 +543,10 @@
       "C": 1002,
       "D": 597
     },
-    "grade_separation": 42.6606646255796,
-    "kendall_vs_oracle": 0.619358770336135,
-    "mean_S_anomaly": 47.509050500534514,
-    "mean_S_normal": 90.16971512611411,
+    "grade_separation": 42.61558796450088,
+    "kendall_vs_oracle": 0.6194957605979063,
+    "mean_S_anomaly": 47.561401623813346,
+    "mean_S_normal": 90.17698958831423,
     "mean_conf": 0.9671880252808015,
     "per_dim": {
       "C": {
@@ -568,10 +568,10 @@
         "spearman": 0.9713204108595669
       },
       "P": {
-        "mean_anomaly": 0.9208302583025836,
-        "mean_normal": 0.9984567229178005,
-        "pearson": 0.9242852684572397,
-        "spearman": 0.7231376457109152
+        "mean_anomaly": 0.9399958999589995,
+        "mean_normal": 1.0,
+        "pearson": 0.9695911485606172,
+        "spearman": 0.9873093390833171
       },
       "R": {
         "mean_anomaly": 0.955902594740233,
@@ -580,18 +580,18 @@
         "spearman": 0.9999940888991891
       }
     },
-    "score_auc": 0.8956183573811786,
-    "spearman_vs_oracle": 0.8100945446608865,
+    "score_auc": 0.8980750340981908,
+    "spearman_vs_oracle": 0.8103763538402595,
     "zero_residual_max": 9.547918011776346e-14
   },
   "spec_hash": "007a872125bac9bb",
   "timings": {
-    "baseline": 0.4585685729980469,
-    "cluster": 110.09805989265442,
-    "detect": 1.0212173461914062,
-    "ingest_features": 7.981258153915405,
-    "score": 0.27846837043762207
+    "baseline": 0.43111205101013184,
+    "cluster": 104.32544326782227,
+    "detect": 1.047165870666504,
+    "ingest_features": 4.076234579086304,
+    "score": 0.2556619644165039
   },
   "title": "bimodal main path",
-  "wall_s": 121.10487031936646
+  "wall_s": 111.31148076057434
 }

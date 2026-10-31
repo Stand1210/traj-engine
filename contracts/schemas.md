@@ -1,6 +1,6 @@
 # 数据契约 v1（bench 生成器 与 kernel 算法 的共同规格）
 
-状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice3-v0.3.0` 实测冻结）**。
+状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice4-v0.4.0` 实测冻结）**。
 生成器输出与内核接口同时受其约束；变更需升版本号。
 
 - v1 → v1.1：`ClusterAssign` 增补 `near_intent/near_pattern/post_margin`；检测器输出增补
@@ -164,6 +164,14 @@ answer_number_count, traceable_number_ratio, action_seq:[str], embedding:[float]
 且 `guard_hits` 与 `guard_violation` 硬门禁重复计价），但它们**仍在 `METRICS` 里**、
 仍参与条件基线与检测门槛——三态彼此独立，退出一态不等于退出另一态。
 
+**slice4 接了一个新特征，但只接进第二态。** P 维五个通道里四个来自 v1 冻结项或检测器输出
+（`illegal_actions` / `unfinished` / `missing_frac` 出自 `detect.struct`，`loop_count` 是
+v1 冻结项、本来就在 `METRICS` 里），第五个 **`goal_drift_max` 是 v3 已发射项（A.4）**，
+自 slice4 起**进打分**（P 维第五通道，权重 `W_P_DRIFT = 0.10`），但**仍不进 `METRICS`**：
+条件基线与检测门槛一个都没动，历史门槛数字仍然可比。准入依据是污染实测——未加门时 0.001
+（`error` 类上 20.8% 非零，26 条），加**归因门**后 **0.000**（机制见 §2.2）。缺失时
+（bench_v1 上 0.8%）按通道**丢弃并重归一**，不填常数，并对 `dim_conf["P"]` 乘 0.90。
+
 **v2 已发射**——`kernel/features.py::extract` 已产出。除下面单独标注的一项，
 均**没有**进 `METRICS`、没有进打分：
 
@@ -190,13 +198,31 @@ answer_number_count, traceable_number_ratio, action_seq:[str], embedding:[float]
 
 **v3 已发射、未接线（34 项）**——`bench-gen-v3.0.0` 起数据才携带其原料，
 `kernel/features.py::extract` 已产出，但与 v2 同规则：**没有**进 `METRICS`、没有进打分，
-以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接，见本节开头）。
+以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接）；**slice4 改变了其中一项**——`goal_drift_max` 进打分（P 维），`METRICS` 仍未动，见本节开头。
 其中 `self_correction_count` 与 `path_convergence` 已就 R 维**实测并否决**——两者污染都是
 0.00，但与已选三通道秩冗余：`self_correction_count` 作第四项罚分会把 err_recov 排到 loop
 之下（0.6915 < 0.8125，类序余量 −0.1210），作恢复加分则均值 spearman 到小数点后 5 位不变
 （+0.998693）而余量从 +0.1121 削到 +0.0793；`path_convergence` 只在 loop 类上 66% 非零、
 均值 0.1339，信息被 `loop_rule` 完全覆盖。数字与否决理由在 `kernel/score.py` docstring 与
 README 的 slice3 一节。
+
+slice4 又就 **P 维**实测并否决了一批 v2 / v3 项，完整表格（含污染与 ok 组非零比例两列）在
+`kernel/score.py` docstring 的 slice4 一节与 README。否决理由分三类：**零信号**——
+`plan_revision_count`（单独 spearman +0.0006，尽管它与生成器的 `orc_plan_revision_true`
+逐条相等）、`goal_drift_slope`（+0.0184）、`self_correction_count`（−0.0077）；
+**与已选通道秩冗余**——`path_convergence`、`longest_repeated_subseq`、`loop_rule`；
+**在真值 1.0 的流量上非零比例过高**（P 真值 96.9% 挤在 1.0，任何在 ok 组内会变的通道按定义
+就是噪声）——`tool_success_rate` / `tool_arg_valid_rate` / `effective_info_ratio` /
+`cost_per_step_of_progress` / `query_complexity` / `n_turns_in_session` 均 99–100%，
+`kind_ratio_guard` 49%、`warn_level_ratio` 21.8%、`missing_field_ratio` 15.1%、
+`reformulation_signal` 14.1%、`tool_repeat_rate` 13.9%、`n_unique_tools` 94.5%、
+`max_width` / `depth` / `n_spans` / `branch_factor` 100%。检测器的复合偏离度 `struct.dev`
+污染 0.024、ok 组非零 3.90%，因为它把 `err_dev` / `truncated` / `traceable_viol`
+（R 与 O 的缺陷）一起折了进来，同样否决。v2 的 `loop_group_count` 是**最需要注意的一条**：
+污染 0.000、ok 组非零 0.00%、均值 spearman 甚至比选中方案高 2e-6，**仍然否决**——它与生成器
+自己的 `orc_loop_true` 在 21,541/21,541 条上逐位相同，属于基准过拟合而非特征性质，且它不在
+v1 冻结的 `METRICS` 里。**`implicit_feedback` 任何情况下都不得接线**（与标签按设计相关，
+属弱监督，接进去等于用答案预测答案）。
 
 - 成本分解（A.3，15 项）：`tokens_total_contract, cache_read_tokens, cache_write_tokens,
   cache_hit_ratio, system_prompt_ratio, token_efficiency, cost_concentration_gini,

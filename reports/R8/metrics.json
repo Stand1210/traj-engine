@@ -197,7 +197,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.990443686006826
   },
-  "code_hash": "f651db1a9f2380b0",
+  "code_hash": "c7e53c3d81d94dcc",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -527,7 +527,7 @@
   },
   "n": 3000,
   "n_pool": 2930,
-  "pipeline_version": "slice3-v0.3.0",
+  "pipeline_version": "slice4-v0.4.0",
   "regime_id": "R8",
   "scoring": {
     "gate_hits": {
@@ -540,8 +540,8 @@
       "t2_untraceable_number": 14
     },
     "grade_abs": {
-      "A": 1847,
-      "B": 857,
+      "A": 1848,
+      "B": 856,
       "C": 47,
       "D": 249
     },
@@ -551,10 +551,10 @@
       "C": 751,
       "D": 445
     },
-    "grade_separation": 37.18197990328032,
-    "kendall_vs_oracle": 0.5944789540965345,
-    "mean_S_anomaly": 53.368071016597,
-    "mean_S_normal": 90.55005091987732,
+    "grade_separation": 37.075917384841574,
+    "kendall_vs_oracle": 0.5937975630978783,
+    "mean_S_anomaly": 53.47801934703543,
+    "mean_S_normal": 90.553936731877,
     "mean_conf": 0.9473591414160972,
     "per_dim": {
       "C": {
@@ -576,10 +576,10 @@
         "spearman": 0.8876311238625307
       },
       "P": {
-        "mean_anomaly": 0.88350988700565,
-        "mean_normal": 0.9991481069042314,
-        "pearson": 0.9667148898363059,
-        "spearman": 0.886309917240178
+        "mean_anomaly": 0.9082097457627117,
+        "mean_normal": 1.0,
+        "pearson": 0.9748882491832136,
+        "spearman": 0.9949260846340392
       },
       "R": {
         "mean_anomaly": 0.9444881624966368,
@@ -588,18 +588,18 @@
         "spearman": 0.9999919814144526
       }
     },
-    "score_auc": 0.8380920249644533,
-    "spearman_vs_oracle": 0.7839504161137306,
+    "score_auc": 0.8378277842789374,
+    "spearman_vs_oracle": 0.7834420191087607,
     "zero_residual_max": 9.414691248821327e-14
   },
   "spec_hash": "469f903d257a4288",
   "timings": {
-    "baseline": 0.32826852798461914,
-    "cluster": 79.41426587104797,
-    "detect": 1.1180791854858398,
-    "ingest_features": 2.200315237045288,
-    "score": 0.10135889053344727
+    "baseline": 0.3189246654510498,
+    "cluster": 77.06320261955261,
+    "detect": 0.9262187480926514,
+    "ingest_features": 2.2448322772979736,
+    "score": 0.09555745124816895
   },
   "title": "foreign ontology",
-  "wall_s": 84.2318069934845
+  "wall_s": 81.7779471874237
 }

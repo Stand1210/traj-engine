@@ -207,7 +207,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9972278225806451
   },
-  "code_hash": "f651db1a9f2380b0",
+  "code_hash": "c7e53c3d81d94dcc",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -540,7 +540,7 @@
   },
   "n": 4000,
   "n_pool": 3968,
-  "pipeline_version": "slice3-v0.3.0",
+  "pipeline_version": "slice4-v0.4.0",
   "regime_id": "R7",
   "scoring": {
     "gate_hits": {
@@ -554,8 +554,8 @@
       "t2_untraceable_number": 15
     },
     "grade_abs": {
-      "A": 2519,
-      "B": 951,
+      "A": 2520,
+      "B": 950,
       "C": 35,
       "D": 495
     },
@@ -565,10 +565,10 @@
       "C": 1000,
       "D": 598
     },
-    "grade_separation": 37.63736968970661,
-    "kendall_vs_oracle": 0.5492509784189638,
-    "mean_S_anomaly": 50.34184057435336,
-    "mean_S_normal": 87.97921026405997,
+    "grade_separation": 37.64356897792933,
+    "kendall_vs_oracle": 0.5504251827524602,
+    "mean_S_anomaly": 50.34365349927821,
+    "mean_S_normal": 87.98722247720754,
     "mean_conf": 0.9679686589714188,
     "per_dim": {
       "C": {
@@ -590,10 +590,10 @@
         "spearman": 0.9353723652248752
       },
       "P": {
-        "mean_anomaly": 0.9329111111111119,
-        "mean_normal": 0.9982251908396943,
-        "pearson": 0.8930571592051739,
-        "spearman": 0.6877072066208139
+        "mean_anomaly": 0.9439999999999996,
+        "mean_normal": 1.0,
+        "pearson": 0.9193060022656234,
+        "spearman": 0.9351294193865671
       },
       "R": {
         "mean_anomaly": 0.9383068783068785,
@@ -602,18 +602,18 @@
         "spearman": 0.9999878661857892
       }
     },
-    "score_auc": 0.8522260087241004,
-    "spearman_vs_oracle": 0.746941132254787,
+    "score_auc": 0.8568679571065068,
+    "spearman_vs_oracle": 0.7479220061263974,
     "zero_residual_max": 9.43689570931383e-14
   },
   "spec_hash": "1bd79369786bde6f",
   "timings": {
-    "baseline": 0.5172450542449951,
-    "cluster": 91.54986667633057,
-    "detect": 1.3665192127227783,
-    "ingest_features": 4.14273738861084,
-    "score": 0.1306750774383545
+    "baseline": 0.35856103897094727,
+    "cluster": 104.93986320495605,
+    "detect": 1.2357025146484375,
+    "ingest_features": 4.888400316238403,
+    "score": 0.13671350479125977
   },
   "title": "mid-stream drift x1.6",
-  "wall_s": 99.16201305389404
+  "wall_s": 113.26403141021729
 }

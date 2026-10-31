@@ -122,7 +122,7 @@ TRACE R8-00001   [intent0: 给我 NE-87F6-25 的指标劣化分析报告，并�
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=148  cache_write_true=270  system_prompt_ratio_true=0.2861  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
+  PIPELINE OUTPUT (slice4-v0.4.0)
     S=98.4029  G=1.00  grade_abs=A  grade_rel=A  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp0
     dims    : O=1.000  P=1.000  L=0.953  C=0.942  R=1.000
@@ -198,7 +198,7 @@ TRACE R8-00006   [intent1: does the topology impact scope of NE-9912-25 reach th
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=270  cache_write_true=548  system_prompt_ratio_true=0.2787  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
+  PIPELINE OUTPUT (slice4-v0.4.0)
     S=50.4264  G=1.00  grade_abs=D  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp2
     dims    : O=1.000  P=1.000  L=0.000  C=0.800  R=1.000
@@ -272,7 +272,7 @@ TRACE R8-00335   [intent2: NE-4026-16 的变更评审结论是否需要附加条
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=1
     cache_read_true=419  cache_write_true=0  system_prompt_ratio_true=0.2033  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
+  PIPELINE OUTPUT (slice4-v0.4.0)
     S=17.3431  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp0
     dims    : O=0.446  P=1.000  L=0.883  C=0.850  R=1.000
@@ -374,12 +374,12 @@ TRACE R8-00066   [intent0: write the kpi degradation analysis for NE-A80E-27 and
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=1267  cache_write_true=0  system_prompt_ratio_true=0.0741  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
-    S=15.9615  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice4-v0.4.0)
+    S=16.1765  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=True)  cold_start=False  cell=i1xp2
-    dims    : O=1.000  P=0.800  L=0.744  C=0.000  R=0.700
-    contrib : O=+0.000  P=-1.194  L=-1.185  C=-15.705  R=-0.955   sum=-19.0385
-    zero-residual: S-100G=-19.0385  |diff|=2.00e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.850  L=0.744  C=0.000  R=0.700
+    contrib : O=+0.000  P=-0.875  L=-1.192  C=-15.797  R=-0.960   sum=-18.8235
+    zero-residual: S-100G=-18.8235  |diff|=2.70e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9936  a_cal=0.9910  conf=0.9151  anchor=anchor-R8-469f903d257a4288
     gates: {"loop_runaway": 0.35}
@@ -452,7 +452,7 @@ TRACE R8-00091   [intent0: what belongs in the kpi degradation analysis of NE-03
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=555  cache_write_true=0  system_prompt_ratio_true=0.0681  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
+  PIPELINE OUTPUT (slice4-v0.4.0)
     S=41.2193  G=1.00  grade_abs=D  grade_rel=D  tier=1  novelty=False
     alert=True (rule=False stat=True)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=1.000  L=0.000  C=0.237  R=1.000
@@ -538,12 +538,12 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=688  cache_write_true=0  system_prompt_ratio_true=0.2139  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
-    S=3.7964  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice4-v0.4.0)
+    S=3.9840  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
-    dims    : O=1.000  P=0.550  L=0.873  C=0.818  R=1.000
-    contrib : O=+0.000  P=-0.495  L=-0.084  C=-0.125  R=+0.000   sum=-0.7036
-    zero-residual: S-100G=-0.7036  |diff|=3.00e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.700  L=0.873  C=0.818  R=1.000
+    contrib : O=+0.000  P=-0.302  L=-0.086  C=-0.128  R=+0.000   sum=-0.5160
+    zero-residual: S-100G=-0.5160  |diff|=2.80e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9279  a_cal=0.9833  conf=0.9674  anchor=anchor-R8-469f903d257a4288
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
@@ -617,7 +617,7 @@ TRACE R8-01223   [intent0: 出具 NE-4FC0-07 的指标劣化分析报告]
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=146  cache_write_true=390  system_prompt_ratio_true=0.1616  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
+  PIPELINE OUTPUT (slice4-v0.4.0)
     S=18.8842  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp0
     dims    : O=0.640  P=1.000  L=0.811  C=0.625  R=1.000
@@ -694,12 +694,12 @@ TRACE R8-00126   [intent1: compute the topology impact scope around NE-763A-20 i
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=522  cache_write_true=0  system_prompt_ratio_true=0.3940  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
-    S=96.0172  G=1.00  grade_abs=A  grade_rel=A  tier=0  novelty=False
+  PIPELINE OUTPUT (slice4-v0.4.0)
+    S=94.0151  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
-    dims    : O=1.000  P=1.000  L=0.807  C=0.946  R=1.000
-    contrib : O=+0.000  P=+0.000  L=-3.160  C=-0.822  R=+0.000   sum=-3.9828
-    zero-residual: S-100G=-3.9828  |diff|=2.40e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.900  L=0.807  C=0.946  R=1.000
+    contrib : O=+0.000  P=-2.044  L=-3.128  C=-0.814  R=+0.000   sum=-5.9849
+    zero-residual: S-100G=-5.9849  |diff|=7.00e-06  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.1645  a_cal=0.0403  conf=0.9614  anchor=anchor-R8-469f903d257a4288
     evidence (3 items, drill-down order):
@@ -782,7 +782,7 @@ TRACE R8-00002   [intent0: collect the metrics of NE-C88D-34 first, then form th
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=754  cache_write_true=0  system_prompt_ratio_true=0.1418  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
+  PIPELINE OUTPUT (slice4-v0.4.0)
     S=83.6029  G=1.00  grade_abs=B  grade_rel=C  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp0
     dims    : O=1.000  P=1.000  L=0.752  C=0.403  R=1.000
@@ -858,12 +858,12 @@ TRACE R8-00126   [intent1: compute the topology impact scope around NE-763A-20 i
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=522  cache_write_true=0  system_prompt_ratio_true=0.3940  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
-    S=96.0172  G=1.00  grade_abs=A  grade_rel=A  tier=0  novelty=False
+  PIPELINE OUTPUT (slice4-v0.4.0)
+    S=94.0151  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
-    dims    : O=1.000  P=1.000  L=0.807  C=0.946  R=1.000
-    contrib : O=+0.000  P=+0.000  L=-3.160  C=-0.822  R=+0.000   sum=-3.9828
-    zero-residual: S-100G=-3.9828  |diff|=2.40e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.900  L=0.807  C=0.946  R=1.000
+    contrib : O=+0.000  P=-2.044  L=-3.128  C=-0.814  R=+0.000   sum=-5.9849
+    zero-residual: S-100G=-5.9849  |diff|=7.00e-06  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.1645  a_cal=0.0403  conf=0.9614  anchor=anchor-R8-469f903d257a4288
     evidence (3 items, drill-down order):
@@ -944,12 +944,12 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=688  cache_write_true=0  system_prompt_ratio_true=0.2139  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
-    S=3.7964  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice4-v0.4.0)
+    S=3.9840  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
-    dims    : O=1.000  P=0.550  L=0.873  C=0.818  R=1.000
-    contrib : O=+0.000  P=-0.495  L=-0.084  C=-0.125  R=+0.000   sum=-0.7036
-    zero-residual: S-100G=-0.7036  |diff|=3.00e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.700  L=0.873  C=0.818  R=1.000
+    contrib : O=+0.000  P=-0.302  L=-0.086  C=-0.128  R=+0.000   sum=-0.5160
+    zero-residual: S-100G=-0.5160  |diff|=2.80e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9279  a_cal=0.9833  conf=0.9674  anchor=anchor-R8-469f903d257a4288
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
@@ -1031,12 +1031,12 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=688  cache_write_true=0  system_prompt_ratio_true=0.2139  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
-    S=3.7964  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
+  PIPELINE OUTPUT (slice4-v0.4.0)
+    S=3.9840  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
-    dims    : O=1.000  P=0.550  L=0.873  C=0.818  R=1.000
-    contrib : O=+0.000  P=-0.495  L=-0.084  C=-0.125  R=+0.000   sum=-0.7036
-    zero-residual: S-100G=-0.7036  |diff|=3.00e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.700  L=0.873  C=0.818  R=1.000
+    contrib : O=+0.000  P=-0.302  L=-0.086  C=-0.128  R=+0.000   sum=-0.5160
+    zero-residual: S-100G=-0.5160  |diff|=2.80e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9279  a_cal=0.9833  conf=0.9674  anchor=anchor-R8-469f903d257a4288
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
@@ -1104,7 +1104,7 @@ TRACE R8-00123   [intent1: output the topology impact scope list of NE-5B32-51 w
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=2
     cache_read_true=646  cache_write_true=0  system_prompt_ratio_true=0.4050  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
+  PIPELINE OUTPUT (slice4-v0.4.0)
     S=36.8012  G=0.60  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.440  P=1.000  L=0.378  C=0.908  R=1.000
@@ -1177,7 +1177,7 @@ TRACE R8-00172   [intent0: what belongs in the kpi degradation analysis of NE-61
     citation_reachable_true=n/a  contradiction_true=0.3333  contradicted_count=1  fabricated_citation_count=0
     cache_read_true=271  cache_write_true=149  system_prompt_ratio_true=0.4117  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice3-v0.3.0)
+  PIPELINE OUTPUT (slice4-v0.4.0)
     S=82.1038  G=1.00  grade_abs=B  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp0
     dims    : O=0.800  P=1.000  L=0.757  C=0.921  R=0.583

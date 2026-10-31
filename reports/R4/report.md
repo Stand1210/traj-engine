@@ -1,6 +1,6 @@
 # 基准跑分报告 R4 - extremely sparse cells
 
-- 流水线版本 `slice3-v0.3.0`｜数据集 `5188fdfc219089b9`｜代码 `f651db1a9f2380b0`｜n=1200（可归簇 1021，覆盖率 0.851）｜冷启动 False｜墙钟 83.1s
+- 流水线版本 `slice4-v0.4.0`｜数据集 `5188fdfc219089b9`｜代码 `c7e53c3d81d94dcc`｜n=1200（可归簇 1021，覆盖率 0.851）｜冷启动 False｜墙钟 82.3s
 - 生成器真值：真实格子数 12｜异常率 0.0933｜异常类型 {"error": 9, "hallucinated_number": 9, "illegal_step": 14, "latency_spike": 20, "loop": 6, "missing_step": 14, "token_bloat": 15, "truncation": 14, "unfinished": 11}
 - 端到端时延分布 p50/p90/p99 = 5.67 / 58.20 / 277.61
 
@@ -61,13 +61,13 @@
 ## 3 打分（5 维 x 4 锚点 x 硬门禁 x LMDI 零残差）
 
 - 零残差最大偏差 `9.415e-14`（恒等式 sum(contrib) == S - 100G）
-- 分数区分度：AUC(-S vs 异常)=0.8532｜正常均分 90.40｜异常均分 51.17｜分离度 39.22
-- 与生成器 oracle 维度分的相关：Spearman=0.8057｜Kendall tau-b=0.6290
+- 分数区分度：AUC(-S vs 异常)=0.8569｜正常均分 90.40｜异常均分 51.22｜分离度 39.19
+- 与生成器 oracle 维度分的相关：Spearman=0.8060｜Kendall tau-b=0.6291
 
 | 维度 | Spearman(vs oracle) | 正常均值 | 异常均值 |
 |---|---|---|---|
 | O | 0.9347 | 0.999 | 0.891 |
-| P | 0.7422 | 0.998 | 0.895 |
+| P | 0.9373 | 1.000 | 0.918 |
 | L | 0.7447 | 0.777 | 0.710 |
 | C | 0.9177 | 0.767 | 0.759 |
 | R | 1.0000 | 0.999 | 0.950 |
@@ -111,5 +111,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 1.14, "cluster": 81.08, "baseline": 0.16, "detect": 0.31, "score": 0.03}
+- 计时 {"ingest_features": 0.97, "cluster": 80.48, "baseline": 0.16, "detect": 0.32, "score": 0.04}
 

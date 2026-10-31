@@ -207,7 +207,7 @@
     "purity_intent": 0.9336448598130841,
     "purity_pattern": 0.9967289719626168
   },
-  "code_hash": "f651db1a9f2380b0",
+  "code_hash": "c7e53c3d81d94dcc",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -531,7 +531,7 @@
   },
   "n": 3000,
   "n_pool": 2140,
-  "pipeline_version": "slice3-v0.3.0",
+  "pipeline_version": "slice4-v0.4.0",
   "regime_id": "R3",
   "scoring": {
     "gate_hits": {
@@ -544,8 +544,8 @@
       "t2_untraceable_number": 14
     },
     "grade_abs": {
-      "A": 1352,
-      "B": 770,
+      "A": 1353,
+      "B": 769,
       "C": 63,
       "D": 815
     },
@@ -555,10 +555,10 @@
       "C": 749,
       "D": 447
     },
-    "grade_separation": 39.09705267530835,
-    "kendall_vs_oracle": 0.6578231026624393,
-    "mean_S_anomaly": 51.087430045562215,
-    "mean_S_normal": 90.18448272087056,
+    "grade_separation": 38.997509934794635,
+    "kendall_vs_oracle": 0.6577234702349251,
+    "mean_S_anomaly": 51.194390907409655,
+    "mean_S_normal": 90.19190084220429,
     "mean_conf": 0.7842644473202424,
     "per_dim": {
       "C": {
@@ -580,10 +580,10 @@
         "spearman": 0.9063325907042882
       },
       "P": {
-        "mean_anomaly": 0.8955405405405403,
-        "mean_normal": 0.99839641943734,
-        "pearson": 0.9046571284354107,
-        "spearman": 0.7968713533209586
+        "mean_anomaly": 0.9200225225225221,
+        "mean_normal": 1.0,
+        "pearson": 0.8916507496647029,
+        "spearman": 0.930598150410419
       },
       "R": {
         "mean_anomaly": 0.9506864006864004,
@@ -592,18 +592,18 @@
         "spearman": 0.9999930523620105
       }
     },
-    "score_auc": 0.8783783783783784,
-    "spearman_vs_oracle": 0.8319632551551501,
+    "score_auc": 0.8802834036082118,
+    "spearman_vs_oracle": 0.8321853534503335,
     "zero_residual_max": 9.681144774731365e-14
   },
   "spec_hash": "2d9e23adcdd4eb4e",
   "timings": {
-    "baseline": 0.3495924472808838,
-    "cluster": 117.94635725021362,
-    "detect": 1.0436785221099854,
-    "ingest_features": 2.280963182449341,
-    "score": 0.1402604579925537
+    "baseline": 0.23568439483642578,
+    "cluster": 120.35084509849548,
+    "detect": 0.8648312091827393,
+    "ingest_features": 4.4290008544921875,
+    "score": 0.09330296516418457
   },
   "title": "heavy overlap + intent ambiguity",
-  "wall_s": 123.01730227470398
+  "wall_s": 127.09470057487488
 }

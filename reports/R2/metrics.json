@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9972271237711117
   },
-  "code_hash": "f651db1a9f2380b0",
+  "code_hash": "c7e53c3d81d94dcc",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -519,7 +519,7 @@
   },
   "n": 4000,
   "n_pool": 3967,
-  "pipeline_version": "slice3-v0.3.0",
+  "pipeline_version": "slice4-v0.4.0",
   "regime_id": "R2",
   "scoring": {
     "gate_hits": {
@@ -532,10 +532,10 @@
       "t2_untraceable_number": 27
     },
     "grade_abs": {
-      "A": 2505,
-      "B": 1091,
-      "C": 71,
-      "D": 333
+      "A": 2504,
+      "B": 1092,
+      "C": 72,
+      "D": 332
     },
     "grade_rel": {
       "A": 1006,
@@ -543,10 +543,10 @@
       "C": 1002,
       "D": 595
     },
-    "grade_separation": 40.13802647008647,
-    "kendall_vs_oracle": 0.6120269038197732,
-    "mean_S_anomaly": 49.713122872965215,
-    "mean_S_normal": 89.85114934305169,
+    "grade_separation": 40.0440874740038,
+    "kendall_vs_oracle": 0.6119717516754444,
+    "mean_S_anomaly": 49.81576489067487,
+    "mean_S_normal": 89.85985236467867,
     "mean_conf": 0.9654503923321006,
     "per_dim": {
       "C": {
@@ -568,10 +568,10 @@
         "spearman": 0.9454381087820187
       },
       "P": {
-        "mean_anomaly": 0.895282485875707,
-        "mean_normal": 0.9980392156862743,
-        "pearson": 0.9436983215837246,
-        "spearman": 0.7934904348142607
+        "mean_anomaly": 0.9173352165725045,
+        "mean_normal": 1.0,
+        "pearson": 0.9681115738529332,
+        "spearman": 0.9999593795547768
       },
       "R": {
         "mean_anomaly": 0.9478827011030398,
@@ -580,18 +580,18 @@
         "spearman": 0.9999937683540725
       }
     },
-    "score_auc": 0.8897224991691592,
-    "spearman_vs_oracle": 0.7947277614001161,
+    "score_auc": 0.8909872235146412,
+    "spearman_vs_oracle": 0.794534913148687,
     "zero_residual_max": 9.681144774731365e-14
   },
   "spec_hash": "52470f48253b25a6",
   "timings": {
-    "baseline": 0.41465044021606445,
-    "cluster": 80.8605625629425,
-    "detect": 1.4098141193389893,
-    "ingest_features": 4.931874513626099,
-    "score": 0.13004732131958008
+    "baseline": 0.418377161026001,
+    "cluster": 86.7202615737915,
+    "detect": 1.1693344116210938,
+    "ingest_features": 4.772596836090088,
+    "score": 0.1259291172027588
   },
   "title": "trimodal",
-  "wall_s": 89.20001816749573
+  "wall_s": 94.43267273902893
 }
