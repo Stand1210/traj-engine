@@ -322,6 +322,34 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   AUC=0.966 ARI_i=1.000 ARI_p=0.998 zerores=9.5e-14`、R3 `F1=0.833 ARI_i=0.751`、
   R6 `pool=591/600 F1=0.000 P@50=0.820`），随后 `git diff --exit-code` 两腿干净退出，
   产物各自归档（windows 2,723,765 B / ubuntu 2,723,747 B）。
+- **slice5b 是第五次跑这套对账，也是第一次「契约变了、算法一寸没动」**，commit `6644be2`，
+  `gates` run 41178517697 / `matrix` run 41178517591，四条 job 全绿。
+  `windows-latest` 腿 `8/8 regimes PASS, 8/8 byte-identical (3334 leaves, 0 differences absorbed)`；
+  `ubuntu-latest` 腿 `8/8 PASS, 3/8 byte-identical (3334 leaves, 0 differences absorbed)`，
+  `worst relative float deviation observed: 2.776e-17`——**与 slice2 / slice3 / slice4 / slice5
+  四轮逐位相同**：byte-identical 的仍是 R1 / R2 / R6，有差的仍是 58 处、仍分布在同样 5 个
+  regime（R3 18 / R4 4 / R5 6 / R7 15 / R8 15），每处最差叶子仍是 `a_cal`，
+  连**行号带两侧数值**都没动（R3 line 273 `0.11664003870292391 vs 0.11664003870292389`、
+  R4 line 129、R5 line 814、R7 line 275、R8 line 1220）。也就是说这 58 条轨迹的 `a_cal`
+  已经**跨三个代码版本**（slice4 → slice5 → slice5b）保持不变，而中间隔了一次 P 维重写、
+  一次检测判据扩充和一次本体契约收紧。这条地板现在的证据强度已经不只是「本轮没回归」，
+  而是「跨版本的数值稳定性」。
+- R1 / R2 / R6 的 `scores.jsonl` sha 换成 `4bad23f7fe810b89` / `e433456d156ddccf` /
+  `d12b0756c2e21621`（两腿全等），体积各自正好涨了**记录数那么多字节**
+  （R1 4,135,617 → 4,139,617 = +4,000；R2 +4,000；R6 611,627 → 612,227 = +600）：
+  唯一变化的字段 `model_version` 从 `slice5-v0.5.0`（13 字符）变成 `slice5b-v0.5.1`
+  （14 字符），每条记录 +1 字节。这是「除版本号外一个比特都没动」最省事的一道独立核对。
+- `gates` 两腿：`invariants` **18/18**（slice5b 新增 6 项）；`reprocheck --sample` windows
+  `mode=strict` 28.9s、ubuntu `mode=numeric-tol 1e-12` 22.9s 且照旧 `0.000e+00`
+  （该平台逐位复现数据集）；两腿都 `8/8 regimes reproduced | warnings=0 incl. SAMPLE.md`、
+  `coverage -> DATASET READY`（blockers 0 / fidelity failures 0 / stale regimes 0）、
+  `scorecard IN SYNC` 且 8/8 溯源 PASS（`code_hash 83503393771d2a04`，report == live）、
+  `README already in sync with reports/ (5 regions checked)`，派生文档守卫均报
+  `OK: README.md, COVERAGE.md and SAMPLE.md are byte-identical after regeneration`。
+  `matrix` 两腿 8 个 regime 全部 `gates=ALL-PASS`，pool / F1 / P@50 / FPR / AUC / ARI /
+  零残差在两个 OS 上逐位一致，且与本地两次重跑（并发 828s / 独占 826s）**逐字符相同**，
+  随后 `git diff --exit-code` 两腿干净退出，产物各自归档（ubuntu 2,724,156 B /
+  windows 2,724,154 B）。
 
 1e-12 相对容差比任何算法改动能造成的变化还小八个数量级（门槛带四位小数宽，真改动至少动 1e-4），
 所以它藏不住回归。但它也**不该被用来掩盖级联**：末位差有可能翻掉一个浮点**比较**，
