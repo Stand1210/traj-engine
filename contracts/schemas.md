@@ -334,6 +334,10 @@ FusedOut  { trace_id, a_raw: float, a_cal: float|null, conf: float, tier: 0|1|2,
             graded: float[0,1], alert: bool, alert_stat: bool, alert_rule: bool }
 ```
 
+`struct.unfinished` 不是连续量，只有 `1.0` 与 `0.35` 两档，判据见 §2 的 slice5 段：
+`1.0` 只认 `aborted` / `short` / `absent` 三条能直接从动作序列伪证的命题（其中 `short`
+必须用集合覆盖而非重数计数）；“末动作 ≠ 簇内众数终止动作”只是统计偏离，记 `0.35`。
+
 五层偏离度：
 
 | 层 | 名称 | 输入 | 输出 |

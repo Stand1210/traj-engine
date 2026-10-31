@@ -273,6 +273,51 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   零残差在两个 OS 上逐位一致（R1 `pool=3945/4000 F1=0.881 P@50=1.000 FPR=0.000
   AUC=0.966 ARI_i=1.000 ARI_p=0.998 zerores=9.5e-14`、R6 `pool=591/600 F1=0.000 P@50=0.820`），
   随后 `git diff --exit-code` 两腿干净退出，产物各自归档。
+- **slice5 是第四次在「流水线被改过」的前提下跑这套对账**，commit `a85b0ba`，
+  `gates` run 41173091251 / `matrix` run 41173091224，四条 job 全绿。
+  `windows-latest` 腿 `8/8 regimes PASS, 8/8 byte-identical (3334 leaves, 0 differences absorbed)`，
+  8 个 `scores.jsonl` 的 sha 两侧全等；`ubuntu-latest` 腿 `8/8 PASS, 3/8 byte-identical
+  (3334 leaves, 0 differences absorbed)`，`worst relative float deviation observed: 2.776e-17`。
+  byte-identical 的仍是 R1 / R2 / R6，但本轮 sha 是 `c8b07aa01ac297d6` / `14f3923bc363b104` /
+  `b50b4a8f04ab5fe0`，与 slice4 那轮的三个 sha 不同——这是**应有的**：slice5 改了 P 维与否决门，
+  R1/R2/R6 的 `scores.jsonl` 内容本身变了（三条 regime 的 `t1_unfinished` 命中数
+  93→28 / 103→34 / 15→7）。「byte-identical」说的是同一份 slice5 代码在两个 OS 上跑出的结果全等，
+  不是与上一版全等。有差的仍是 58 处、仍分布在 5/8 个 regime（R3 18 / R4 4 / R5 6 / R7 15 /
+  R8 15），每处最差叶子都是 `a_cal`。
+- **这一轮最有价值的地方，是它推翻了我提交前写下的预判——而预判错在哪值得单独记一笔。**
+  提交前我写的是「slice5 动了 `struct.unfinished → hard → dev → layers.L4 → a_raw → a_cal`，
+  所以偏差地板**这次应该会移动**」。实测**一寸没动**：ubuntu 腿报出的整体最差值仍是
+  `2.776e-17`（与 slice2 / slice3 / slice4 三轮逐位相同），R3 的最差叶子连**行号带两侧数值**
+  都与上一轮记录的一模一样（`line 273 leaf a_cal: 0.11664003870292391 vs 0.11664003870292389`）。
+  错因是把两种比较混为一谈：CI 的 `matrixcheck` 是**同一份 slice5 代码在两个 OS 上各跑一遍
+  再互相对账**，slice4→slice5 的代码增量在两侧同时出现、必然对消，它量的只有跨 libc 的末位差；
+  而 slice4 vs slice5 的增量是本地拿 `%TEMP%\vA` / `%TEMP%\vB` 两个变体跑出来的，与这条无关。
+  「地板会动」这个预期把本地 A/B 的口径套到了 CI 的跨平台口径上。
+  （`line N` 指 `scores.jsonl` 的第 N 条记录，见 `bench/matrixcheck.py:314`。已用
+  `git show fdc3386:reports/<rid>/scores.jsonl` 直接核对另外 4 处——R4 line 129 /
+  R5 line 814 / R7 line 275 / R8 line 1220——它们的 `a_cal` 在 slice4 与 slice5 的
+  已提交基线里逐位相等。）
+- **地板能逐位不动，本身又是一条隔离证据，而且比 slice4 那次更强。**
+  slice5 的升级确实改了 38 条轨迹的 `a_raw`，而 `a_raw` 正是等渗校准器的输入；
+  可本地隔离实测里 `calibration` 是 `0/179` 个叶子变化——**拟合出来的校准映射一个节点都没动**，
+  所以那 58 处末位差的位置与数值才能原地不变。等渗插值只要有一个节点位移，
+  这 58 处的数值就会整体漂移，实测没有。slice4 那次能说「没碰 `math.erfc` 那条链」，
+  slice5 这次是「碰了那条链下游的消费者、却没碰校准拟合本身」，是更难成立的一条，
+  而它成立。这与本地那条「3382 个叶子里只有 `detection` 92 / `scoring` 65 / `detect_info` 8 /
+  `gates` 4 变，`clustering` / `cluster_info` / `calibration` / `drift` / `data_quality` /
+  `gen_meta` 全零」互为独立复算。
+- `gates` 两腿：`invariants 12/12`；`reprocheck --sample` windows `mode=strict` 26.5s、
+  ubuntu `mode=numeric-tol 1e-12` 15.5s 且照旧 `0.000e+00`（该平台逐位复现数据集）；
+  两腿都 `8/8 regimes reproduced | warnings=0 incl. SAMPLE.md`、`coverage -> DATASET READY`
+  （blockers 0 / fidelity failures 0 / stale regimes 0）、`scorecard IN SYNC` 且 8/8 溯源 PASS
+  （`code_hash 0064f089a6b550d7`，report == live）、`README already in sync with reports/
+  (5 regions checked)`，派生文档守卫均报
+  `OK: README.md, COVERAGE.md and SAMPLE.md are byte-identical after regeneration`。
+  `matrix` 两腿 8 个 regime 全部 `gates=ALL-PASS`，pool / F1 / P@50 / FPR / AUC / ARI /
+  零残差在两个 OS 上逐位一致（R1 `pool=3945/4000 F1=0.881 P@50=1.000 FPR=0.000
+  AUC=0.966 ARI_i=1.000 ARI_p=0.998 zerores=9.5e-14`、R3 `F1=0.833 ARI_i=0.751`、
+  R6 `pool=591/600 F1=0.000 P@50=0.820`），随后 `git diff --exit-code` 两腿干净退出，
+  产物各自归档（windows 2,723,765 B / ubuntu 2,723,747 B）。
 
 1e-12 相对容差比任何算法改动能造成的变化还小八个数量级（门槛带四位小数宽，真改动至少动 1e-4），
 所以它藏不住回归。但它也**不该被用来掩盖级联**：末位差有可能翻掉一个浮点**比较**，
