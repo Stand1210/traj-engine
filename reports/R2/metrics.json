@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9972271237711117
   },
-  "code_hash": "0064f089a6b550d7",
+  "code_hash": "83503393771d2a04",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -519,7 +519,7 @@
   },
   "n": 4000,
   "n_pool": 3967,
-  "pipeline_version": "slice5-v0.5.0",
+  "pipeline_version": "slice5b-v0.5.1",
   "regime_id": "R2",
   "scoring": {
     "gate_hits": {
@@ -586,12 +586,12 @@
   },
   "spec_hash": "52470f48253b25a6",
   "timings": {
-    "baseline": 0.36261892318725586,
-    "cluster": 83.77170729637146,
-    "detect": 1.1259956359863281,
-    "ingest_features": 4.27590274810791,
-    "score": 0.13816380500793457
+    "baseline": 0.3586432933807373,
+    "cluster": 87.31126356124878,
+    "detect": 1.1074938774108887,
+    "ingest_features": 7.641526699066162,
+    "score": 0.10650253295898438
   },
   "title": "trimodal",
-  "wall_s": 91.09459018707275
+  "wall_s": 97.92456984519958
 }

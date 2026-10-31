@@ -84,8 +84,80 @@ MIN_GAP = {"latency_total": 0.0, "tokens_total": 0.0, "cost_total": 0.0, "n_span
            "traceable_number_ratio": 0.05}
 
 QS = (("ideal", 0.10), ("good", 0.50), ("warn", 0.90), ("bad", 0.99))
-DIM_METRIC = {"L": "latency_total", "C": "cost_total", "R": "retry_count",
-              "O": "traceable_number_ratio"}
+
+# --- the slo_anchors surface, derived from its consumers rather than asserted ---
+#
+# A four-anchor ladder is only worth accepting for a metric that something reads.
+# Measured, not assumed: kernel/score.py::_anch is called from exactly three places
+# -- score.py:605 latency_total (dim L), :612 cost_total (C), :613 tokens_total (C).
+# Every other entry of METRICS has anchors learned into the artefact and no reader.
+ANCHOR_CONSUMED = ("latency_total", "cost_total", "tokens_total")
+
+# Accepted slo_anchors key -> the metric it tightens. A dim letter is an alias only
+# where that dim's anchor channel is unit-unique: "C" is money, so it maps to
+# cost_total alone. tokens_total is a count and cannot share a currency ladder, so
+# it is addressable by metric name and by nothing else -- something the removed
+# dim->metric lookup (DIM_METRIC, deleted here) could not express at all.
+SLO_KEY_TO_METRIC = {"L": "latency_total", "latency_total": "latency_total",
+                     "C": "cost_total", "cost_total": "cost_total",
+                     "tokens_total": "tokens_total"}
+
+
+def validate_slo_anchors(slo):
+    """Refuse, by name and at build time, any slo_anchors key nothing can honour.
+
+    This exists because the previous behaviour was silence, and the silence had
+    three distinct shapes. All three were measured against the _apply_slo truth
+    table with a *direction-aware* ladder (stricter than the learned one in the
+    metric's own DIRECTION), so that a "did not move" reading cannot be an
+    artefact of the spec merely being laxer than the quantile anchors:
+
+      * key "R" / "retry_count" and key "O" / "traceable_number_ratio" DID tighten
+        the anchors stored in the artefact, and nothing downstream ever read them.
+        A dead write that looks exactly like a live one from the adapter's side.
+      * key "tokens_total" -- a LIVE anchor channel, score.py:613 -- could not be
+        reached by ANY spelling, because the old loop matched keys against the
+        values of the removed dim->metric lookup and tokens_total was absent from
+        it. So an adapter who wrote a "C" ladder got half of dim C tightened
+        (cost_total) with no way to tighten the other half (tokens_total) and
+        nothing to tell them so. This is the worst of the three: the numbers do
+        move, so from the outside it reads as working.
+      * every other key was dropped outright, also silently.
+
+    The defect fixed here is the silence, not the restriction. O / P / R are rule
+    channels and legitimately have no anchor ladder; tighten them through the
+    weights and saturation points of adapt/playbook.md section 2.1, or through the
+    ontology's validators / forbidden_actions / required_steps. Accepting a key and
+    then doing nothing about it is the part that is not legitimate.
+
+    Unreachable on bench_v1 -- ontA and ontB both ship slo_anchors: {} -- so this
+    moved no published figure. It is an adaptation-time guard, not a scoring change.
+    """
+    if not slo:
+        return
+    bad = []
+    for cell in sorted(slo):
+        per_dim = slo.get(cell)
+        if not isinstance(per_dim, dict):
+            bad.append((cell, "<value is %s, expected a dict>" % type(per_dim).__name__))
+            continue
+        for key in sorted(per_dim):
+            if key not in SLO_KEY_TO_METRIC:
+                bad.append((cell, key))
+    if not bad:
+        return
+    detail = "; ".join("cell %r key %r" % (c, k) for c, k in bad)
+    raise ValueError(
+        "slo_anchors: refused %d key(s) that nothing downstream would honour (%s). "
+        "Accepted keys are exactly {%s}, covering the three anchor channels %s. "
+        "O / P / R are rule channels with no anchor ladder: tighten them via the "
+        "weights and saturation points in adapt/playbook.md section 2.1, or via the "
+        "ontology's validators / forbidden_actions / required_steps. Note that a "
+        "C ladder reaches cost_total only -- tokens_total must be keyed by its own "
+        "metric name. See validate_slo_anchors() for the measured failure modes "
+        "this replaces."
+        % (len(bad), detail, ", ".join(sorted(SLO_KEY_TO_METRIC)),
+           " / ".join(ANCHOR_CONSUMED)))
 
 
 def quantile(sv, q):
@@ -273,6 +345,7 @@ def build(records, ontology, anchor_version="anchor-v1"):
     gstat = dict((m, _moments(gvals[m])) for m in METRICS)
 
     slo = (ontology or {}).get("slo_anchors") or {}
+    validate_slo_anchors(slo)
     cell_out = {}
     fallback_pairs = 0
     total_pairs = 0
@@ -402,17 +475,26 @@ def span_baseline(art, cell, action, kind):
 
 
 def _apply_slo(a, metric, cell, slo):
-    """Ontology SLO anchors override the learned ones, keeping whichever is stricter."""
+    """Ontology SLO anchors override the learned ones, keeping whichever is stricter.
+
+    Keys are matched through SLO_KEY_TO_METRIC, so both spellings of an honoured
+    channel work ("C" and "cost_total" are equivalent). Supplying both is well
+    defined rather than order-dependent: each rung keeps the stricter of the two
+    values, and min/min (or max/max) is associative and commutative, so the result
+    is the same for any dict iteration order. Metrics outside ANCHOR_CONSUMED are
+    never reached, and validate_slo_anchors() has already refused any key that
+    would have asked for one.
+    """
     if a is None or not slo:
         return a
     for key in (cell, "*"):
         per_dim = slo.get(key)
         if not per_dim:
             continue
-        for dim, dm in DIM_METRIC.items():
-            if dm != metric:
+        for slo_key, target in SLO_KEY_TO_METRIC.items():
+            if target != metric:
                 continue
-            spec = (per_dim.get(dim) or per_dim.get(metric))
+            spec = per_dim.get(slo_key)
             if not spec:
                 continue
             out = dict(a)

@@ -1,6 +1,6 @@
 # 基准跑分报告 R7 - mid-stream drift x1.6
 
-- 流水线版本 `slice5-v0.5.0`｜数据集 `1bd79369786bde6f`｜代码 `0064f089a6b550d7`｜n=4000（可归簇 3968，覆盖率 0.992）｜冷启动 False｜墙钟 96.7s
+- 流水线版本 `slice5b-v0.5.1`｜数据集 `1bd79369786bde6f`｜代码 `83503393771d2a04`｜n=4000（可归簇 3968，覆盖率 0.992）｜冷启动 False｜墙钟 96.3s
 - 生成器真值：真实格子数 6｜异常率 0.0777｜异常类型 {"error": 25, "hallucinated_number": 39, "illegal_step": 14, "latency_spike": 50, "loop": 41, "missing_step": 28, "token_bloat": 58, "truncation": 36, "unfinished": 20}
 - 端到端时延分布 p50/p90/p99 = 2.55 / 77.04 / 194.25
 
@@ -112,5 +112,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 4.55, "cluster": 89.14, "baseline": 0.36, "detect": 1.11, "score": 0.12}
+- 计时 {"ingest_features": 5.09, "cluster": 87.97, "baseline": 0.33, "detect": 1.15, "score": 0.12}
 

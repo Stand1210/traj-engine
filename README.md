@@ -8,11 +8,11 @@
 
 方法论出处：`insight-reports/风险与轨迹/智能体轨迹聚类异常识别与打分方法论设计.md`。
 
-当前版本：数据集生成器 `bench-gen-v3.1.0`｜流水线 `slice5-v0.5.0`｜数据契约 v1.3.1。
+当前版本：数据集生成器 `bench-gen-v3.1.0`｜流水线 `slice5b-v0.5.1`｜数据契约 v1.3.2。
 
 ## 目录
 
-- `contracts/schemas.md` — 数据契约 v1.3.1：输入（含 token 口径两条约定）/ 特征（v1 冻结 21 项
+- `contracts/schemas.md` — 数据契约 v1.3.2：输入（含 token 口径两条约定）/ 特征（v1 冻结 21 项
   + v2 40 余项 + v3 34 项，后两者已发射未接线）/ 簇 / 检测 / 打分 / 真值 schema、regime DSL、
   **门槛表（含信息上界封顶）**、三通道口径、关键机制的实现约束、本体接口、
   **§12 数据集产物与溯源（`meta.json` 契约 / `spec_hash` 构成 / 嵌入几何与标定证据 /
@@ -20,7 +20,8 @@
 - `bench/` — 基准套件
   - `regime.py` — 8 个 regime 规格与门槛（变化轴而非业务：峰数 / 稀疏 / 残缺 / 冷启动 / 漂移 / 异本体）
   - `generate.py` — 参数化生成器，种子固定、纯 Python、无 numpy，随数据发射真值
-  - `invariants.py` — 12 条业务无关不变量
+  - `invariants.py` — 13 条业务无关不变量（共发射 18 项断言；其中 6 项由 slice5b 的
+    `i_slo_anchors_contract` 发射，锁 `slo_anchors` 的广告面必须等于消费面）
   - `runner.py` — 全链路跑分 + 门槛判定 + 报告渲染
   - `show.py` — 人类可读检视器：把单条 trace 渲染成 Span 树，并把真值与算法输出并排显示
   - `coverage.py` — 数据集充分性审计：**`spec_hash` 新鲜度对账**、字段清单 vs 77 特征合同、
@@ -53,7 +54,10 @@
     且排除根 Span；两个跨记录特征由 `annotate_sessions()` 补齐）
   - `cluster.py` — 双视图共识聚类 → 二维分析格子（袋装 + 中位数阶 + 共现轮廓系数 + 后验余量弃权；
     两个视图的轮廓系数均为 **k-neutral** 口径）
-  - `baseline.py` — 簇内条件基线：四档锚点 P10/P50/P90/P99、L3→L2→L1 credibility 池化、对数尺度尾部模型
+  - `baseline.py` — 簇内条件基线：四档锚点 P10/P50/P90/P99、L3→L2→L1 credibility 池化、对数尺度尾部模型；
+    自 slice5b 起 `slo_anchors` 的可接受键集**从消费者反推**（只认 `L` / `latency_total` / `C` /
+    `cost_total` / `tokens_total`），不可兑现的键在 `build` 期显式报错而不是静默失效
+    （见下方 slice5b 一节）
   - `binding.py` — 模式簇 → 本体声明工作流的绑定
   - `detect.py` — L1–L5 五层偏离度 + 单次 Bonferroni + BH-FDR + 分诊分层；
     L4 契约层的「确认未完成」自 slice5 起有三条**可证**判据（`aborted` / `short` / `absent`），
@@ -90,7 +94,7 @@
 
 ```
 python -m bench.generate --regimes R1,R2,R3,R4,R5,R6,R7,R8   # 生成标准数据集
-python -m bench.invariants                                   # 12 条业务无关不变量
+python -m bench.invariants                                   # 13 条不变量 / 18 项断言
 python -m bench.runner  --regimes R1,R2,R3,R4,R5,R6,R7,R8    # 全链路跑分 + 门槛 + 报告
 python -m bench.scorecard                                    # 用跑分结果重写本文件「当前跑分」五个区块
 python -m bench.coverage --md                                # 数据集够不够用：充分性审计（写 COVERAGE.md）
@@ -99,7 +103,7 @@ python -m bench.runner  --regimes R1,R2,R3,R4,R5,R6,R7,R8 --out /tmp/reports-ci 
 python -m bench.matrixcheck --candidate /tmp/reports-ci      # 流水线可复现性：与已提交 reports/ 三层对账
 ```
 
-三条验证命令全绿即视为可开工：`invariants` 12/12、`runner` 8/8 regime ALL-PASS、`coverage` 退出码 0。
+三条验证命令全绿即视为可开工：`invariants` 18/18、`runner` 8/8 regime ALL-PASS、`coverage` 退出码 0。
 `coverage` 的退出码同时受三道硬门约束：**`spec_hash` 与当前生成器不符**（数据集是旧代码产的）、
 **标签↔真值↔特征不一致**（任一条）或**差分测试不通过**（`probe()` 与 `kernel/features.py`
 任一特征不一致）都会返回 1。
@@ -343,7 +347,7 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
 （逐维参与比：审计的 200 条抽样口径实测 40.0–125.9 / 384，`meta.json` 的全量口径 72.3–131.7——小样本逐维方差更噪，读数系统性偏低，两个数都对；各向同性团会是 384，单维塔缩会是 1.0000，两端都会被判失败）。
 
 <!-- scorecard:header:begin -->
-## 当前跑分（流水线 `slice5-v0.5.0`，8/8 regime 全门槛通过，全矩阵约 769s）
+## 当前跑分（流水线 `slice5b-v0.5.1`，8/8 regime 全门槛通过，全矩阵约 826s）
 <!-- scorecard:header:end -->
 
 `ARI_pattern` 列的括号内是「oracle 同池上界 / **弃权前**（关掉 novelty、按最近簇给全部轨迹打分）」。
@@ -352,14 +356,14 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
 <!-- scorecard:main:begin -->
 | regime | 分布形态 | n | 可归簇 | novelty | ARI_intent（上界） | ARI_pattern（上界 / 弃权前） | novelty 纯度 | F1 | P@50 | FPR | AUC | ECE | 漂移 | 墙钟 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| R1 | bimodal main path | 4000 | 3945 | 0.0138 | 1.0000 (1.0000) | 0.9976 (0.9976 / 0.9856) | 0.8545 | 0.881 | 1.000 | 0.0003 | 0.966 | 0.0167 | 无漂移，-12.5 vs λ 12.3 | 99.2s |
-| R2 | trimodal | 4000 | 3967 | 0.0083 | 1.0000 (1.0000) | 0.9912 (0.9960 / 0.9913) | 1.0000 | 0.867 | 1.000 | 0.0011 | 0.971 | 0.0127 | 无漂移，-31.1 vs λ 21.1 | 91.1s |
-| R3 | heavy overlap + intent ambiguity | 3000 | 2140 | 0.2867 | 0.7512 (0.7521) | 0.9866 (0.9907 / 0.9893) | 0.9988 | 0.833 | 1.000 | 0.0020 | 0.945 | 0.0330 | 无漂移，-18.4 vs λ 18.8 | 122.1s |
-| R4 | extremely sparse cells | 1200 | 1021 | 0.1492 | 1.0000 (1.0000) | 0.9879 (0.9938 / 0.9842) | 0.9888 | 0.803 | 0.980 | 0.0011 | 0.938 | 0.0200 | 无漂移，-14.3 vs λ 42.2 | 71.2s |
-| R5 | heavily corrupted telemetry | 3000 | 2979 | 0.0070 | 1.0000 (1.0000) | 0.9804 (0.9892 / 0.9798) | 1.0000 | 0.780 | 1.000 | 0.0007 | 0.928 | 0.0332 | 无漂移，9.1 vs λ 43.6 | 107.1s |
-| R6 | cold start | 600 | 591 | 0.0150 | 1.0000 (1.0000) | 0.9949 (0.9949 / 0.9887) | 1.0000 | 0.000 | 0.820 | 0.0000 | 0.917 | 0.0000 | 冷启动抑制 | 97.4s |
-| R7 | mid-stream drift x1.6 | 4000 | 3968 | 0.0080 | 1.0000 (1.0000) | 0.9891 (0.9953 / 0.9868) | 1.0000 | 0.834 | 1.000 | 0.0005 | 0.929 | 0.0118 | 检出 idx 2001 / 真值 2000，lag +1（963.1 vs λ 17.6） | 96.7s |
-| R8 | foreign ontology | 3000 | 2930 | 0.0233 | 1.0000 (1.0000) | 0.9723 (0.9978 / 0.9721) | 0.9857 | 0.838 | 1.000 | 0.0004 | 0.922 | 0.0333 | 无漂移，-7.2 vs λ 42.5 | 84.6s |
+| R1 | bimodal main path | 4000 | 3945 | 0.0138 | 1.0000 (1.0000) | 0.9976 (0.9976 / 0.9856) | 0.8545 | 0.881 | 1.000 | 0.0003 | 0.966 | 0.0167 | 无漂移，-12.5 vs λ 12.3 | 115.3s |
+| R2 | trimodal | 4000 | 3967 | 0.0083 | 1.0000 (1.0000) | 0.9912 (0.9960 / 0.9913) | 1.0000 | 0.867 | 1.000 | 0.0011 | 0.971 | 0.0127 | 无漂移，-31.1 vs λ 21.1 | 97.9s |
+| R3 | heavy overlap + intent ambiguity | 3000 | 2140 | 0.2867 | 0.7512 (0.7521) | 0.9866 (0.9907 / 0.9893) | 0.9988 | 0.833 | 1.000 | 0.0020 | 0.945 | 0.0330 | 无漂移，-18.4 vs λ 18.8 | 133.0s |
+| R4 | extremely sparse cells | 1200 | 1021 | 0.1492 | 1.0000 (1.0000) | 0.9879 (0.9938 / 0.9842) | 0.9888 | 0.803 | 0.980 | 0.0011 | 0.938 | 0.0200 | 无漂移，-14.3 vs λ 42.2 | 84.3s |
+| R5 | heavily corrupted telemetry | 3000 | 2979 | 0.0070 | 1.0000 (1.0000) | 0.9804 (0.9892 / 0.9798) | 1.0000 | 0.780 | 1.000 | 0.0007 | 0.928 | 0.0332 | 无漂移，9.1 vs λ 43.6 | 106.3s |
+| R6 | cold start | 600 | 591 | 0.0150 | 1.0000 (1.0000) | 0.9949 (0.9949 / 0.9887) | 1.0000 | 0.000 | 0.820 | 0.0000 | 0.917 | 0.0000 | 冷启动抑制 | 106.8s |
+| R7 | mid-stream drift x1.6 | 4000 | 3968 | 0.0080 | 1.0000 (1.0000) | 0.9891 (0.9953 / 0.9868) | 1.0000 | 0.834 | 1.000 | 0.0005 | 0.929 | 0.0118 | 检出 idx 2001 / 真值 2000，lag +1（963.1 vs λ 17.6） | 96.3s |
+| R8 | foreign ontology | 3000 | 2930 | 0.0233 | 1.0000 (1.0000) | 0.9723 (0.9978 / 0.9721) | 0.9857 | 0.838 | 1.000 | 0.0004 | 0.922 | 0.0333 | 无漂移，-7.2 vs λ 42.5 | 85.9s |
 <!-- scorecard:main:end -->
 
 <!-- scorecard:notes:begin -->
@@ -1376,6 +1380,118 @@ slice4 在 P 维留了一条明确记名的债：弃用 `unfinished == 0.35` 软
 `pipeline_version` 两个叶子，其余**每一个 metrics 叶子与每一条 `scores.jsonl` 字段逐位相同**
 （R4 全 1,200 条逐字段核对），所以 5.5 / 5.6 的 A、B 数字对已提交制品同样成立。
 
+## slice5b：`slo_anchors` 广告了四个维度、只兑现两个；第三条更坏——活的通道反而表达不出来
+
+这一刀不动任何算法，动的是一条**适配期契约**：本体里唯一可插拔的 SLO 入口 `slo_anchors`，
+此前会安静地接受它兑现不了的键。它是「细节打磨」清单的第二项，也是交底与手册里唯一一条
+明写着「正确修法是显式报错，要单独升版走一遍」的欠账。
+
+### 5b.1 问题：广告面比消费面大，而且不止一处
+
+四档锚点（`ideal/good/warn/bad`）在整个内核里**只剩一个消费者**——`kernel/score.py::_anch`，
+而它只被三处调用：`score.py:605` 的 `latency_total`（L 维）、`:612` 的 `cost_total`（C 维）、
+`:613` 的 `tokens_total`（C 维）。但旧的 `DIM_METRIC` 对外**广告了四个维度**
+（`L→latency_total`、`C→cost_total`、`R→retry_count`、`O→traceable_number_ratio`）。
+
+用**方向感知**的档位去探 `_apply_slo` 的真值表——即档位在该指标自己的 `DIRECTION` 下严格于
+学到的分位锚点，这样「没动」就不可能是「不够严」造成的假象。这个假阴性真的踩到过一次：
+`traceable_number_ratio` 是 `lower_worse`，第一轮用统一的小档位探它，`_apply_slo` 取
+「更严的那个」于是取了 `max`，结果原封不动，看起来像"够不到"，其实够到了。换成方向感知
+档位后，修之前的实测是：
+
+| `slo_anchors` 的键 | 能否收紧制品里的锚点 | 有没有消费者 | 结论 |
+|---|---|---|---|
+| `L` / `latency_total` | 能 | 有（`score.py:605`） | 正常兑现 |
+| `C` / `cost_total` | 能 | 有（`score.py:612`） | 正常兑现 |
+| `tokens_total`（**任何拼法**） | **不能** | **有**（`score.py:613`） | **活的通道，表达不出来** |
+| `R` / `retry_count` | 能 | 无 | 死写：进了制品，无人读取 |
+| `O` / `traceable_number_ratio` | 能 | 无 | 死写：进了制品，无人读取 |
+| `P` 及其余任意键 | 不能 | 无 | 静默丢弃 |
+
+三条路径里只有 `R` 那条被记进了交底与手册，**`O` 那条从未被记录**，形状与 `R` 完全相同。
+而**第三条最坏**：`tokens_total` 是一条**活的**锚点通道，旧循环拿键去撞 `DIM_METRIC.values()`，
+`tokens_total` 不在其中，所以任何拼法都够不到它。后果是——C 维由 `cost_total` 与
+`tokens_total` 两个锚点通道合成，业务写一个 `C` 档位只收紧了其中一半，另一半**既无法表达、
+也无人告知**，而且**分数真的会动**，从适配侧看与「完全生效」不可区分。前两条是「写了没用」，
+这一条是「用了半截还以为全用了」。
+
+### 5b.2 修法：从消费者反推可接受键集，不可兑现就在 build 期报错
+
+- `kernel/baseline.py` 删掉 `DIM_METRIC`，换成两张**从消费者派生**的表：`ANCHOR_CONSUMED`
+  （有读者的那三个指标）与 `SLO_KEY_TO_METRIC`（可接受键 → 它收紧哪个指标，五个键覆盖三个指标）。
+  `C` 只映射到 `cost_total`：`C` 是钱，`tokens_total` 是计数，两者不能共用一把货币阶梯，
+  所以 `tokens_total` 只能用**指标名**做键——这恰好是旧循环表达不出来的那一格。
+- 新增 `validate_slo_anchors(slo)`，在 `build()` 读到 `slo_anchors` 的下一行调用：逐 cell、
+  逐键检查，把所有不在可接受集里的键收集齐，**一次性**抛 `ValueError`。报错文本点名 cell 与键、
+  列出可接受集与三条锚点通道、指出 O / P / R 是规则通道该去哪儿调，并明说「`C` 档位只到
+  `cost_total`，`tokens_total` 必须用它自己的指标名做键」。
+- `_apply_slo` 改成拿**指标**去撞 `SLO_KEY_TO_METRIC`，于是 `tokens_total` 第一次变得可表达。
+  两种拼法同时给出也是良定义的：每一档取更严的那个，而 min/min（或 max/max）满足结合律与
+  交换律，所以结果与字典迭代序无关（实测：`C` 与 `cost_total` 正序反序给出同一组
+  `{ideal 3.0, good 5.0, warn 1.0, bad 2.0}`）。
+- **要修的是静默，不是限制本身。** O / P / R 是规则通道，本来就没有四档阶梯；收紧它们只能调
+  `adapt/playbook.md` §2.1 的权重与饱和点，或改本体的 `validators` / `forbidden_actions` /
+  `required_steps`。「接受一个键、然后什么都不做」才是不合法的那部分——所以修法是报错，
+  而不是把 `R` / `O` 的映射删掉了事：删了会让业务写下的 R SLO 从「静默失效」变成「静默丢弃」，
+  更糟。这一条 slice3 当时就判断对了，只是没落。
+
+### 5b.3 锁：不变量从 `score.py` 源码反推，不信任手写表
+
+新增 `bench/invariants.py::i_slo_anchors_contract`，发射 6 条 check，`invariants` 从 12/12 变
+**18/18**。承重的一条是 `baseline.slo_anchors_match_consumers`：它**不信任** `ANCHOR_CONSUMED`
+这张手写表，而是用正则从 `kernel/score.py` 的源码里**反推** `_anch` 的调用点，要求
+「源码里的消费面 == `ANCHOR_CONSUMED` == `SLO_KEY_TO_METRIC.values()`」三者恒等。
+将来谁在打分侧增删一个锚点通道却没同步基线侧的广告面，这条会当场失败，而不是让某个业务写下的
+SLO 悄悄搁浅——**这正是本次要修的缺陷的形状，所以锁必须按这个形状做，而不是把表再抄一遍。**
+另外五条：三个被消费的指标都至少有一个可接受键够得到（防 `tokens_total` 再次失联）、
+可接受键集里不含任何无消费者的指标（防死写复活）、
+`R` / `O` / `P` / `retry_count` / `traceable_number_ratio` / `n_spans` / `cost` 七个键全部被拒
+（实测无一漏网）、被兑现的六种写法全部被接受（含空字典、`{"*": {}}` 与按 cell 指定）、
+以及双拼法的字典序无关性。
+
+### 5b.4 零跑分移动的口径
+
+这条分支在 bench_v1 上**不可达**：ontA 与 ontB 的 `slo_anchors` 都是 `{}`，
+`validate_slo_anchors` 立即返回，`_apply_slo` 也走不到覆盖分支。所以它是适配期契约修正，
+不是跑分改动。可证伪的口径事先写下：全矩阵重跑后，**每个 metrics 叶子与每条 `scores.jsonl`
+字段都应当只有 `code_hash`、`pipeline_version`（以及它逐条写进记录的 `model_version`）变化，
+其余逐位相同**；五个维度的秩保真、pool F1 / FPR / AUC、`mean_S_normal`、等级分布、
+零残差全部原地不动。
+
+### 5b.5 实测：口径兑现，外加一条被证伪的担心
+
+全矩阵独占重跑 **8/8 regime `gates=ALL-PASS`**，`code_hash 0064f089a6b550d7 → 83503393771d2a04`，
+流水线版本 `slice5-v0.5.0 → slice5b-v0.5.1`。逐叶子对账（`git show HEAD:reports/...` 对比工作树）：
+
+| 制品 | 比较规模 | 实际变化的位置 |
+|---|---|---|
+| `metrics.json` | 3,382 个叶子（`matrixcheck` 排除 48 个机器相关项后比较 3,334 个） | 每个 regime **恰好 8 个**：`code_hash`、`pipeline_version`、`wall_s` 与 5 个 `timings/*`。其中 6 个正是被排除的机器相关项，剩下 2 个是溯源戳。**算法叶子零变化** |
+| `scores.jsonl` | **22,800 条记录 × 全部字段** | 唯一变化的字段是 **`model_version`**（`bench/runner.py:263` 把 `PIPELINE_VERSION` 逐条写进这个字段）。`S` / `G` / `a_raw` / `a_cal` / 五个 `dims` / 全部 `gates` / `grade_abs` / `grade_rel` / `contrib` / `evidence` 逐位相同 |
+| `report.md` | 8 份 × 101–117 行 | 只有第 3 行（版本 / 哈希 / 墙钟 头）与末尾计时行——正是 `matrixcheck` 掩掉的那两行 |
+
+逐 regime 打印的 `pool=… F1=… P@50=… FPR=… AUC=… ARI_i=… ARI_p=… zerores=…` 与 slice5 那一轮
+**逐字符相同**（R1 `pool=3945/4000 F1=0.881 P@50=1.000 FPR=0.000 AUC=0.966`、R3 `F1=0.833
+ARI_i=0.751`、R6 `pool=591/600 F1=0.000 P@50=0.820`）。这就是 5b.4 事先写下的可证伪口径的兑现。
+
+本地五道门禁全绿：`invariants` **18/18**（新增 6 项）、`reprocheck --sample`
+**8/8 regimes reproduced | mode=strict | warnings=0 incl. SAMPLE.md**、`coverage --md`
+**DATASET READY**（blockers 0 / fidelity failures 0 / stale regimes 0）、`scorecard --check`
+**IN SYNC + 8/8 溯源 PASS**（`code_hash 83503393771d2a04`，report == live）、
+`matrixcheck --candidate <fresh R4>` **1/1 PASS, 1/1 byte-identical（420 leaves, 0 differences
+absorbed，`floats: exact equality`，`scores.jsonl sha=7afcb999863c5fcf` 两侧全等）**。
+
+**一条被实测证伪的担心，照规矩记下来。** 第一次跑全矩阵时我正在并发改文档，事后担心 `wall_s`
+被抬高、进而污染要发布的「全矩阵约 NNN s」标题行，于是独占重跑了一遍：**828s（并发）vs
+826s（独占）**，差 2s ≈ **0.2%**，远小于跑分本身的 run-to-run 离散（v3.1.0 三次独占实测
+782 / 743 / 747s，最大差 5.2%）。所以「矩阵必须独占跑」这条经验对**轻量文档编辑并发**是不必要的，
+真正需要独占的是任何吃 CPU 的并行任务。两次跑分之间除机器相关叶子外**逐位相同**，
+顺带又是一次同码同数据的确定性复算。
+
+（`SAMPLE.md` 是**数据集 × 流水线输出**的共同派生物：`model_version` 从 13 字符变 14 字符，
+8 份各差 14 字节，`reprocheck --sample` 当场报 **0/8**。按 slice2 就立下的修法用
+`python -m bench.show <rid> --sample` 重生成全 8 份后恢复 **8/8 strict**，
+**没有**为此加任何容差——这正是那条耦合警告存在的意义。）
+
 ## 已知边界（开工前必读）
 
 - **`METRICS` 仍是 v1 冻结的那 **12** 个，一个都没加**。slice2 只把 `fact_precision` 接进了**打分**
@@ -1410,14 +1526,14 @@ slice4 在 P 维留了一条明确记名的债：弃用 `unfinished == 0.35` 软
 - **O 维现存 64 条漏检也已定位到类**：`hallucinated_number` 36 条 + `truncation` 28 条。
   `truncated` 目前只进 `t0_result_broken` 门禁、不进 O 的四通道，所以 `dims.O` 对它是 1.0；
   这是否该改要先过归因门那关（门禁已经认领了同一份证据）。
-- **本体 `slo_anchors` 里给 R 写档位，slice3 之后会静默失效**。`kernel/baseline.py:DIM_METRIC`
-  仍把 R 映射到 `retry_count`，`_apply_slo` 也照样收紧进制品；但四档锚点在全内核**只剩一个消费者**
-  （`kernel/score.py::_anch`），而它 slice3 之后只被 `latency_total` / `cost_total` /
-  `tokens_total` 三处调用。O / P / R 三维都是**规则通道**不是锚点通道。**没有直接删掉这个映射**：
-  删了会让业务侧的 R SLO 从「静默失效」变成「静默丢弃」，更糟；正确修法是让 `baseline.build`
-  收到 R 档 SLO 时**显式报错**，那是一次契约变更，要单独升版走一遍。在 bench_v1 上这条分支
-  **不可达**（两套本体的 `slo_anchors` 都是 `{}`），所以它没有污染任何已公布的数字——
-  这是适配期陷阱，不是跑分回归。红线与处方已写进 `adapt/playbook.md` Step 3。
+- **本体 `slo_anchors` 的三条静默失效路径已在 slice5b 修掉**（`R` 与 `O` 的死写、
+  `tokens_total` 这条活通道任何拼法都够不到）。可接受键集收紧为**恰好**
+  `{L, latency_total, C, cost_total, tokens_total}`，其余键在 `baseline.build` 期抛 `ValueError`；
+  由不变量 `baseline.slo_anchors_match_consumers` 从 `score.py` 源码反推消费者集合锁死。
+  O / P / R 是规则通道、本来就没有四档阶梯，收紧它们只能调 `adapt/playbook.md` §2.1 的权重与
+  饱和点，或改本体的 `validators` / `forbidden_actions` / `required_steps`。
+  证据与实测真值表在上方 slice5b 一节。
+
 - **合成数据只验工程与分布 regime 通用性**。语义文本是本体模板不是自由散文；句向量虽已是
   384 维各向异性、带话题连续谱，但它由生成器**按 latent 意图直接发射，没有经过真实编码器**，
   所以本基准的 ARI 上界仍不可外推到真实业务。

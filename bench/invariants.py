@@ -11,6 +11,7 @@ import io
 import math
 import os
 import random
+import re
 import sys
 
 from kernel import baseline as bl
@@ -265,6 +266,76 @@ def i_point_adjust_banned():
     check("meta.point_adjust_is_banned", ok, msg)
 
 
+def i_slo_anchors_contract():
+    """The slo_anchors surface may only advertise channels something consumes.
+
+    Locked because the previous surface advertised four and honoured two. The truth
+    is re-derived from kernel/score.py's source here rather than trusted from
+    bl.ANCHOR_CONSUMED, so adding or removing an `_anch` call site without updating
+    the baseline surface fails this check instead of silently stranding an adapter's
+    SLO. See bl.validate_slo_anchors for the three measured failure modes.
+    """
+    src = io.open(os.path.join(ROOT, "kernel", "score.py"), encoding="utf-8").read()
+    consumed = set(re.findall(r'_anch\(\s*[^,()]+,\s*[^,()]+,\s*"([a-z_]+)"', src))
+    advertised = set(bl.ANCHOR_CONSUMED)
+    reachable = set(bl.SLO_KEY_TO_METRIC.values())
+    ok = bool(consumed) and consumed == advertised == reachable
+    check("baseline.slo_anchors_match_consumers", ok,
+          "score.py _anch sites=%s | ANCHOR_CONSUMED=%s | SLO_KEY_TO_METRIC.values=%s"
+          % (sorted(consumed), sorted(advertised), sorted(reachable)))
+
+    base = {"ideal": 10.0, "good": 20.0, "warn": 30.0, "bad": 40.0}
+    def strict(m):
+        return ({"ideal": 1.0, "good": 2.0, "warn": 3.0, "bad": 4.0}
+                if bl.DIRECTION[m] == "higher_worse" else
+                {"ideal": 100.0, "good": 200.0, "warn": 300.0, "bad": 400.0})
+
+    # every consumed metric must be reachable by at least one accepted key spelling
+    dead = []
+    for m in sorted(advertised):
+        keys = [k for k in bl.SLO_KEY_TO_METRIC
+                if bl._apply_slo(dict(base), m, "c", {"*": {k: strict(m)}}) != base]
+        if not keys:
+            dead.append(m)
+    check("baseline.slo_every_consumed_metric_reachable", not dead,
+          "unreachable=%s" % (dead or "none"))
+
+    # and no accepted key may write to a metric nothing reads
+    stray = sorted(set(reachable) - advertised)
+    check("baseline.slo_no_dead_write_keys", not stray, "dead-write keys=%s" % (stray or "none"))
+
+    refused, accepted = [], []
+    for key in ("R", "O", "P", "retry_count", "traceable_number_ratio", "n_spans", "cost"):
+        try:
+            bl.validate_slo_anchors({"*": {key: strict("retry_count")}})
+            accepted.append(key)
+        except ValueError:
+            refused.append(key)
+    check("baseline.slo_unhonoured_keys_refused", not accepted,
+          "refused=%s | WRONGLY ACCEPTED=%s" % (refused, accepted or "none"))
+
+    ok_acc = True
+    for slo in ({}, {"*": {}}, {"*": {"L": strict("latency_total")}},
+                {"*": {"C": strict("cost_total")}},
+                {"*": {"tokens_total": strict("tokens_total")}},
+                {"cellA": {"latency_total": strict("latency_total")}}):
+        try:
+            bl.validate_slo_anchors(slo)
+        except ValueError as exc:
+            ok_acc = False
+            accepted.append("%s (%s)" % (sorted(slo), exc))
+    check("baseline.slo_honoured_keys_accepted", ok_acc,
+          "wrongly refused=%s" % (accepted or "none"))
+
+    # both spellings of one channel, given at once, must not depend on dict order
+    pair = {"ideal": 10.0, "good": 5.0, "warn": 30.0, "bad": 2.0}
+    pair2 = {"ideal": 3.0, "good": 20.0, "warn": 1.0, "bad": 40.0}
+    fwd = bl._apply_slo(dict(base), "cost_total", "c", {"*": {"C": pair, "cost_total": pair2}})
+    rev = bl._apply_slo(dict(base), "cost_total", "c", {"*": {"cost_total": pair2, "C": pair}})
+    check("baseline.slo_double_spelling_order_independent",
+          fwd == rev == {"ideal": 3.0, "good": 5.0, "warn": 1.0, "bad": 2.0}, "got=%s" % (fwd,))
+
+
 def i_no_hardcoded_actions():
     names = set()
     for oid in ONTOLOGY_IDS:
@@ -290,7 +361,7 @@ def main():
     for fn in (i_zero_residual, i_perfect_score, i_single_dim_collapse, i_gates_multiply,
                i_anchor_monotone, i_pooling_limits, i_consensus_threshold_semantics,
                i_cluster_determinism, i_calibration_monotone, i_bh_fdr_under_null,
-               i_point_adjust_banned, i_no_hardcoded_actions):
+               i_point_adjust_banned, i_slo_anchors_contract, i_no_hardcoded_actions):
         try:
             fn()
         except Exception as exc:

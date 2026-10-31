@@ -1,6 +1,6 @@
 # 基准跑分报告 R2 - trimodal
 
-- 流水线版本 `slice5-v0.5.0`｜数据集 `52470f48253b25a6`｜代码 `0064f089a6b550d7`｜n=4000（可归簇 3967，覆盖率 0.992）｜冷启动 False｜墙钟 91.1s
+- 流水线版本 `slice5b-v0.5.1`｜数据集 `52470f48253b25a6`｜代码 `83503393771d2a04`｜n=4000（可归簇 3967，覆盖率 0.992）｜冷启动 False｜墙钟 97.9s
 - 生成器真值：真实格子数 9｜异常率 0.0745｜异常类型 {"error": 22, "hallucinated_number": 45, "illegal_step": 22, "latency_spike": 46, "loop": 30, "missing_step": 29, "token_bloat": 40, "truncation": 33, "unfinished": 31}
 - 端到端时延分布 p50/p90/p99 = 3.05 / 67.13 / 152.98
 
@@ -110,5 +110,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 4.28, "cluster": 83.77, "baseline": 0.36, "detect": 1.13, "score": 0.14}
+- 计时 {"ingest_features": 7.64, "cluster": 87.31, "baseline": 0.36, "detect": 1.11, "score": 0.11}
 

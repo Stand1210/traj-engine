@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9992395437262357
   },
-  "code_hash": "0064f089a6b550d7",
+  "code_hash": "83503393771d2a04",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -519,7 +519,7 @@
   },
   "n": 4000,
   "n_pool": 3945,
-  "pipeline_version": "slice5-v0.5.0",
+  "pipeline_version": "slice5b-v0.5.1",
   "regime_id": "R1",
   "scoring": {
     "gate_hits": {
@@ -586,12 +586,12 @@
   },
   "spec_hash": "007a872125bac9bb",
   "timings": {
-    "baseline": 0.3725733757019043,
-    "cluster": 93.32583498954773,
-    "detect": 0.9502208232879639,
-    "ingest_features": 3.1501944065093994,
-    "score": 0.21787571907043457
+    "baseline": 0.6486377716064453,
+    "cluster": 107.28628063201904,
+    "detect": 1.832707405090332,
+    "ingest_features": 3.474853038787842,
+    "score": 0.40218496322631836
   },
   "title": "bimodal main path",
-  "wall_s": 99.1729781627655
+  "wall_s": 115.29117798805237
 }

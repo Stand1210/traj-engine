@@ -207,7 +207,7 @@
     "purity_intent": 0.9336448598130841,
     "purity_pattern": 0.9967289719626168
   },
-  "code_hash": "0064f089a6b550d7",
+  "code_hash": "83503393771d2a04",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -531,7 +531,7 @@
   },
   "n": 3000,
   "n_pool": 2140,
-  "pipeline_version": "slice5-v0.5.0",
+  "pipeline_version": "slice5b-v0.5.1",
   "regime_id": "R3",
   "scoring": {
     "gate_hits": {
@@ -598,12 +598,12 @@
   },
   "spec_hash": "2d9e23adcdd4eb4e",
   "timings": {
-    "baseline": 0.19051551818847656,
-    "cluster": 115.45567846298218,
-    "detect": 0.6888270378112793,
-    "ingest_features": 4.67254114151001,
-    "score": 0.10028219223022461
+    "baseline": 0.22494816780090332,
+    "cluster": 128.3348104953766,
+    "detect": 0.7835831642150879,
+    "ingest_features": 2.45509934425354,
+    "score": 0.12770819664001465
   },
   "title": "heavy overlap + intent ambiguity",
-  "wall_s": 122.11646103858948
+  "wall_s": 132.98640942573547
 }

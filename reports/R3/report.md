@@ -1,6 +1,6 @@
 # 基准跑分报告 R3 - heavy overlap + intent ambiguity
 
-- 流水线版本 `slice5-v0.5.0`｜数据集 `2d9e23adcdd4eb4e`｜代码 `0064f089a6b550d7`｜n=3000（可归簇 2140，覆盖率 0.713）｜冷启动 False｜墙钟 122.1s
+- 流水线版本 `slice5b-v0.5.1`｜数据集 `2d9e23adcdd4eb4e`｜代码 `83503393771d2a04`｜n=3000（可归簇 2140，覆盖率 0.713）｜冷启动 False｜墙钟 133.0s
 - 生成器真值：真实格子数 6｜异常率 0.0900｜异常类型 {"error": 23, "hallucinated_number": 29, "illegal_step": 15, "latency_spike": 48, "loop": 14, "missing_step": 28, "token_bloat": 31, "truncation": 33, "unfinished": 49}
 - 端到端时延分布 p50/p90/p99 = 6.84 / 25.23 / 65.06
 
@@ -112,5 +112,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 4.67, "cluster": 115.46, "baseline": 0.19, "detect": 0.69, "score": 0.1}
+- 计时 {"ingest_features": 2.46, "cluster": 128.33, "baseline": 0.22, "detect": 0.78, "score": 0.13}
 

@@ -1,6 +1,6 @@
 # 基准跑分报告 R4 - extremely sparse cells
 
-- 流水线版本 `slice5-v0.5.0`｜数据集 `5188fdfc219089b9`｜代码 `0064f089a6b550d7`｜n=1200（可归簇 1021，覆盖率 0.851）｜冷启动 False｜墙钟 71.2s
+- 流水线版本 `slice5b-v0.5.1`｜数据集 `5188fdfc219089b9`｜代码 `83503393771d2a04`｜n=1200（可归簇 1021，覆盖率 0.851）｜冷启动 False｜墙钟 84.3s
 - 生成器真值：真实格子数 12｜异常率 0.0933｜异常类型 {"error": 9, "hallucinated_number": 9, "illegal_step": 14, "latency_spike": 20, "loop": 6, "missing_step": 14, "token_bloat": 15, "truncation": 14, "unfinished": 11}
 - 端到端时延分布 p50/p90/p99 = 5.67 / 58.20 / 277.61
 
@@ -111,5 +111,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 0.93, "cluster": 68.91, "baseline": 0.2, "detect": 0.58, "score": 0.07}
+- 计时 {"ingest_features": 1.1, "cluster": 82.29, "baseline": 0.13, "detect": 0.34, "score": 0.04}
 

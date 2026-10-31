@@ -1,6 +1,6 @@
 # 基准跑分报告 R5 - heavily corrupted telemetry
 
-- 流水线版本 `slice5-v0.5.0`｜数据集 `10ff75f849deddbe`｜代码 `0064f089a6b550d7`｜n=3000（可归簇 2979，覆盖率 0.993）｜冷启动 False｜墙钟 107.1s
+- 流水线版本 `slice5b-v0.5.1`｜数据集 `10ff75f849deddbe`｜代码 `83503393771d2a04`｜n=3000（可归簇 2979，覆盖率 0.993）｜冷启动 False｜墙钟 106.3s
 - 生成器真值：真实格子数 6｜异常率 0.1027｜异常类型 {"error": 14, "hallucinated_number": 31, "illegal_step": 21, "latency_spike": 60, "loop": 25, "missing_step": 30, "token_bloat": 53, "truncation": 38, "unfinished": 36}
 - 端到端时延分布 p50/p90/p99 = 1.99 / 60.01 / 137.03
 
@@ -112,5 +112,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 3.27, "cluster": 100.9, "baseline": 0.31, "detect": 0.79, "score": 0.11}
+- 计时 {"ingest_features": 3.26, "cluster": 99.92, "baseline": 0.4, "detect": 1.19, "score": 0.16}
 

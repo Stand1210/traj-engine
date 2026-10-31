@@ -207,7 +207,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9972278225806451
   },
-  "code_hash": "0064f089a6b550d7",
+  "code_hash": "83503393771d2a04",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -540,7 +540,7 @@
   },
   "n": 4000,
   "n_pool": 3968,
-  "pipeline_version": "slice5-v0.5.0",
+  "pipeline_version": "slice5b-v0.5.1",
   "regime_id": "R7",
   "scoring": {
     "gate_hits": {
@@ -608,12 +608,12 @@
   },
   "spec_hash": "1bd79369786bde6f",
   "timings": {
-    "baseline": 0.3630235195159912,
-    "cluster": 89.13984608650208,
-    "detect": 1.113389492034912,
-    "ingest_features": 4.5548529624938965,
-    "score": 0.12069940567016602
+    "baseline": 0.3298499584197998,
+    "cluster": 87.96860933303833,
+    "detect": 1.153655767440796,
+    "ingest_features": 5.0928919315338135,
+    "score": 0.1237175464630127
   },
   "title": "mid-stream drift x1.6",
-  "wall_s": 96.67614722251892
+  "wall_s": 96.31323027610779
 }

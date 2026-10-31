@@ -117,7 +117,7 @@ TRACE R2-00000   [intent1: 定位网元 NE-7CE2-12 的劣化根因]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=0  cache_write_true=519  system_prompt_ratio_true=0.1874  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=92.0966  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i2xp0
     dims    : O=1.000  P=1.000  L=0.731  C=0.790  R=1.000
@@ -193,7 +193,7 @@ TRACE R2-00190   [intent1: 解释 NE-7C29-11 在 15m 内发生劣化的劣化根
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=530  cache_write_true=0  system_prompt_ratio_true=0.1633  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=53.6935  G=1.00  grade_abs=D  grade_rel=D  tier=1  novelty=False
     alert=True (rule=False stat=True)  cold_start=False  cell=i2xp0
     dims    : O=1.000  P=1.000  L=0.000  C=0.791  R=1.000
@@ -271,7 +271,7 @@ TRACE R2-00251   [intent0: 查询网元 NE-1162-31 的当前告警清单]
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=566  cache_write_true=0  system_prompt_ratio_true=0.4275  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=17.6541  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=0.446  P=1.000  L=0.847  C=0.997  R=1.000
@@ -369,7 +369,7 @@ TRACE R2-00393   [intent1: 解释 NE-4231-31 在 24h 内发生劣化的劣化根
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=143  cache_write_true=378  system_prompt_ratio_true=0.2080  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=30.7769  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp0
     dims    : O=1.000  P=0.850  L=0.790  C=0.790  R=0.775
@@ -460,7 +460,7 @@ TRACE R2-00205   [intent0: 查询网元 NE-F75B-13 的当前告警清单]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=522  cache_write_true=0  system_prompt_ratio_true=0.0725  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=78.7204  G=1.00  grade_abs=B  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=1.000  L=0.944  C=0.215  R=1.000
@@ -556,7 +556,7 @@ TRACE R2-00090   [intent0: 请列出网元 NE-89AB-49 当前告警清单中的�
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=535  cache_write_true=0  system_prompt_ratio_true=0.2881  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=4.1560  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=0.700  L=1.000  C=0.947  R=1.000
@@ -635,7 +635,7 @@ TRACE R2-01190   [intent1: 定位网元 NE-000A-27 的劣化根因]
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=1
     cache_read_true=159  cache_write_true=373  system_prompt_ratio_true=0.3150  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=19.1061  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp1
     dims    : O=0.640  P=1.000  L=0.623  C=0.879  R=1.000
@@ -703,7 +703,7 @@ TRACE R2-00032   [intent0: list every entry in the current alarm list of network
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=356  cache_write_true=0  system_prompt_ratio_true=0.2532  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=93.6818  G=1.00  grade_abs=A  grade_rel=B  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=0.838  L=0.883  C=0.967  R=1.000
@@ -796,7 +796,7 @@ TRACE R2-00027   [intent2: prepare and validate a configuration change plan on N
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=615  cache_write_true=0  system_prompt_ratio_true=0.1583  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=88.2029  G=1.00  grade_abs=B  grade_rel=C  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp2
     dims    : O=1.000  P=1.000  L=0.791  C=0.547  R=1.000
@@ -863,7 +863,7 @@ TRACE R2-00032   [intent0: list every entry in the current alarm list of network
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=356  cache_write_true=0  system_prompt_ratio_true=0.2532  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=93.6818  G=1.00  grade_abs=A  grade_rel=B  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=0.838  L=0.883  C=0.967  R=1.000
@@ -949,7 +949,7 @@ TRACE R2-00047   [intent2: write the configuration change plan for NE-9E26-42 an
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=503  cache_write_true=0  system_prompt_ratio_true=0.4898  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=92.8457  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp2
     dims    : O=1.000  P=1.000  L=0.610  C=1.000  R=1.000
@@ -1045,7 +1045,7 @@ TRACE R2-00090   [intent0: 请列出网元 NE-89AB-49 当前告警清单中的�
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=535  cache_write_true=0  system_prompt_ratio_true=0.2881  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=4.1560  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=0.700  L=1.000  C=0.947  R=1.000
@@ -1127,7 +1127,7 @@ TRACE R2-00327   [intent1: 追溯 NE-8087-58 在 1h 内的劣化根因，并对�
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=1
     cache_read_true=303  cache_write_true=151  system_prompt_ratio_true=0.1092  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=16.0185  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp1
     dims    : O=0.446  P=1.000  L=0.833  C=0.531  R=1.000
@@ -1200,7 +1200,7 @@ TRACE R2-00270   [intent2: generate the configuration change plan for NE-FBA2-40
     citation_reachable_true=n/a  contradiction_true=0.4000  contradicted_count=2  fabricated_citation_count=0
     cache_read_true=423  cache_write_true=0  system_prompt_ratio_true=0.0825  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5-v0.5.0)
+  PIPELINE OUTPUT (slice5b-v0.5.1)
     S=19.0317  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp1
     dims    : O=0.720  P=1.000  L=1.000  C=0.390  R=1.000

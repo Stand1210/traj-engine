@@ -1,6 +1,6 @@
 # 数据契约 v1（bench 生成器 与 kernel 算法 的共同规格）
 
-状态：**v1.3.1（生成器 `bench-gen-v3.1.0` / 流水线 `slice5-v0.5.0` 实测冻结）**。
+状态：**v1.3.2（生成器 `bench-gen-v3.1.0` / 流水线 `slice5b-v0.5.1` 实测冻结）**。
 生成器输出与内核接口同时受其约束；变更需升版本号。
 
 - v1 → v1.1：`ClusterAssign` 增补 `near_intent/near_pattern/post_margin`；检测器输出增补
@@ -27,6 +27,16 @@
   `metrics.json["code_hash"]`（§12.5.1）与 `bench/runner.py::code_hash()`，把「跑分 ↔ 代码」
   这一跳补上。新增 §12.6（README 跑分区块改为派生 + 守卫）。修正 v1.2 → v1.3 条目里 GT 的
   字段数 19 → **17**（逐键枚举 §6 的 v1.3 区块得 17，此前把 `gen_quantiles` 的嵌套键也算了进去）。
+- v1.3.1 → v1.3.2：**本体接口收紧，数据格式与已发布数字均未变**。`slo_anchors` 的键集从
+  「任意维度字母或指标名」收紧为**恰好** `{L, latency_total, C, cost_total, tokens_total}`（§11），
+  因为四档锚点在全内核只剩三个消费者（`kernel/score.py::_anch`，只被 `latency_total` /
+  `cost_total` / `tokens_total` 调用）。此前给 `R` / `O` 写档位会**收紧进制品却无人读取**（死写），
+  而 `tokens_total` 这条**活的**锚点通道反而**任何键都表达不出来**——写 `C` 档位只收紧了 C 维的
+  一半。两者都静默。`baseline.build` 现在对不可兑现的键**显式抛 `ValueError`**，并由新不变量
+  `baseline.slo_anchors_match_consumers`（从 `score.py` 源码反推 `_anch` 调用点）锁死
+  「广告面 == 消费面」。bench_v1 上两套本体的 `slo_anchors` 都是 `{}`，这条分支不可达，
+  **没有任何已公布数字移动**（8/8 regime 的每个 metrics 叶子与每条 `scores.jsonl` 字段
+  仅 `code_hash` 与 `pipeline_version` 两处变化，见 README 的 slice5b 一节）。
 
 ## 1. 输入：Trace / Span
 ```jsonc
@@ -216,7 +226,7 @@ v1 冻结项、本来就在 `METRICS` 里），第五个 **`goal_drift_max` 是 
 
 **v3 已发射、未接线（34 项）**——`bench-gen-v3.0.0` 起数据才携带其原料，
 `kernel/features.py::extract` 已产出，但与 v2 同规则：**没有**进 `METRICS`、没有进打分，
-以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接）；**slice4 改变了其中一项**——`goal_drift_max` 进打分（P 维），`METRICS` 仍未动，见本节开头；**slice5 一个新特征都没接**，它改的是 `detect.struct.unfinished` 的判据，三态表一行都没动。
+以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接）；**slice4 改变了其中一项**——`goal_drift_max` 进打分（P 维），`METRICS` 仍未动，见本节开头；**slice5 一个新特征都没接**，它改的是 `detect.struct.unfinished` 的判据，三态表一行都没动。**slice5b 也没接**，它收紧的是本体 `slo_anchors` 的可接受键集（v1.3.2），三态表同样一行没动。
 其中 `self_correction_count` 与 `path_convergence` 已就 R 维**实测并否决**——两者污染都是
 0.00，但与已选三通道秩冗余：`self_correction_count` 作第四项罚分会把 err_recov 排到 loop
 之下（0.6915 < 0.8125，类序余量 −0.1210），作恢复加分则均值 spearman 到小数点后 5 位不变
@@ -564,7 +574,11 @@ R7 命中窗 [2008, 3999]，真变点 2000，**lag +8（lag_frac = 0.0020）**�
 ## 11. 本体接口（唯一可插拔点）
 ```jsonc
 Ontology { id, actions: [str], forbidden_actions: [str],
-           required_steps: {pattern_id: [action]}, slo_anchors: {cell: {dim: {ideal,good,warn,bad}}},
+           required_steps: {pattern_id: [action]}, slo_anchors: {cell: {key: {ideal,good,warn,bad}}},
+           //   slo_anchors 的 key 只接受 L / latency_total / C / cost_total / tokens_total ——
+           //   四档锚点在全内核只有三个消费者（§5 的打分口径）。其余键（含 R / O / P 与任何
+           //   无消费者的指标名）在 baseline.build 期显式抛 ValueError，不静默。C 档位只到
+           //   cost_total（它是钱），tokens_total 是计数、不能共用一把货币阶梯，必须自己写键。
            unit_price: {prompt: float, completion: float, tool_call: float},
            validators: [ {kind: regex|json|number_traceable, target: answer|tool_output, spec: str} ],
            // ---- v1.2 增补 ----

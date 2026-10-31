@@ -82,19 +82,34 @@ R3 是活教材：门槛表写 `ari_intent ≥ 0.55`，而该 regime **全量数
 | `optional_steps` | 允许缺席的步骤 | 缺失步骤判定不误伤 |
 | `unit_price` | prompt/completion/tool_call 单价 | 成本维度 C |
 | `validators` | 只允许 `regex` / `json` / `number_traceable` 三类**确定性**校验器 | 结果符合度维度 O |
-| `slo_anchors` | 可选，业务方直接给四档锚点 | 留空则用数据分位数锚点。**只对走锚点的维度有效**：slice3 之后全内核只剩三个锚点通道 `latency_total`（L）/ `cost_total`、`tokens_total`（C），给 R 写 SLO 会静默失效，见下方第二条红线 |
+| `slo_anchors` | 可选，业务方直接给四档锚点 | 留空则用数据分位数锚点。键集**收紧为恰好** `L` / `latency_total` / `C` / `cost_total` / `tokens_total`（slice5b）——四档锚点在全内核只有三个消费者，其余键（含 `R` / `O` / `P`）在 `baseline.build` 期**显式报错**，见下方第二条红线 |
 
 > **红线：`validators` 里不得出现任何生成式判官。** 评分必须相同输入位级一致、可复现、可作审计
 > 证据。判别式模型（校准用的等渗/逻辑回归）不在此列。
 
-> **红线：`slo_anchors` 里给 `R` 写档位会静默失效（slice3 引入）。** `kernel/baseline.py:DIM_METRIC`
-> 仍把 R 映射到 `retry_count`，`_apply_slo` 也照样把业务给的档位收紧进制品；但四档锚点在整个内核里
-> **只剩一个消费者**——`kernel/score.py::_anch`，而它 slice3 之后只被 `latency_total` /
-> `cost_total` / `tokens_total` 三处调用。所以写下来的 R 档 SLO 会进制品、却没有任何下游读它。
-> O / P / R 三维都是**规则通道**而不是锚点通道，要收紧它们只能调 §2.1 的权重与饱和点，
-> 或改本体的 `validators` / `forbidden_actions` / `required_steps`。
-> **本轮没有直接删掉这个映射**：删了会让业务侧的 R SLO 从「静默失效」变成「静默丢弃」，更糟；
-> 正确修法是让 `baseline.build` 在收到 R 档 SLO 时**显式报错**，那是一次契约变更，要单独升版走一遍。
+> **红线：`slo_anchors` 只接受「有消费者」的键，不可兑现即报错（slice5b 起；此前是静默失效）。**
+> 四档锚点在整个内核里**只剩一个消费者**——`kernel/score.py::_anch`，slice3 之后它只被
+> `latency_total`（L，`score.py:605`）/ `cost_total`（C，`:612`）/ `tokens_total`（C，`:613`）
+> 三处调用。所以可接受键集就是 `{L, latency_total, C, cost_total, tokens_total}`。
+> **修之前实测到三条静默失效路径**（用**方向感知**的档位探 `_apply_slo` 真值表，即档位在该指标
+> 自己的 `DIRECTION` 下严格于学到的分位锚点，这样「没动」就不可能是「不够严」造成的假象）：
+> ① 键 `R` / `retry_count` 与键 `O` / `traceable_number_ratio` **确实**把档位收紧进了制品，
+> 而下游没有任何代码读它——从适配侧看与「生效了」完全同形的**死写**；
+> ② 键 `tokens_total` 是一条**活的**锚点通道，却**任何拼法都够不到**（旧循环拿键去撞那张
+> 维度→指标映射的 values，而 `tokens_total` 不在其中）。于是写 `C` 档位的业务只收紧了 C 维的
+> 一半（`cost_total`），另一半（`tokens_total`）无从表达、也无人告知——**这条最坏，
+> 因为分数真的动了，从外面看像是生效了**；③ 其余键直接丢弃，同样静默。
+> **要修的是静默，不是限制本身。** O / P / R 是**规则通道**不是锚点通道，本来就没有四档阶梯；
+> 收紧它们只能调 §2.1 的权重与饱和点，或改本体的 `validators` / `forbidden_actions` /
+> `required_steps`。「接受一个键、然后什么都不做」才是不合法的那部分。
+> 现在 `baseline.build` 对不可兑现的键抛 `ValueError`，报错文本点名 cell 与键、列出可接受集，
+> 并明说 `C` 档位只到 `cost_total`、`tokens_total` 必须用它自己的指标名做键。
+> 另有一处顺带修好：同一通道的两种拼法（`C` 与 `cost_total`）同时给出时结果**与字典序无关**，
+> 因为每一档都取两者中更严的，而 min/min（或 max/max）满足结合律与交换律。
+> **锁**：不变量 `baseline.slo_anchors_match_consumers` **从 `score.py` 源码反推** `_anch` 的
+> 调用点集合，要求它与 `ANCHOR_CONSUMED`、与 `SLO_KEY_TO_METRIC.values()` 三者恒等。
+> 将来谁增删一个锚点通道却没同步基线侧的广告面，这条会当场失败，
+> 而不是把某个业务写下的 SLO 悄悄搁浅。
 > 在 bench_v1 上这条分支**不可达**（ontA / ontB 的 `slo_anchors` 都是 `{}`），
 > 所以它没有污染任何已公布的数字——这是一个适配期陷阱，不是一个跑分回归。
 
@@ -247,6 +262,12 @@ R3 是活教材：门槛表写 `ari_intent ≥ 0.55`，而该 regime **全量数
   真属 `unfinished` 类，269 条 normal 仅因这一个门被压到 D 档）。同理，`short` 必须用**集合覆盖**
   而不是重数计数。实测收益与否决的替代方案（零终点支持度）见 `kernel/detect.py` 的 `absent`
   注释、`kernel/score.py` docstring 的 slice5 一节与 README。
+- **`slo_anchors` 的可接受键集锁定为「有消费者的键」**（`kernel/baseline.py::validate_slo_anchors`，
+  slice5b 锁定）。判据是 `score.py::_anch` 的**实际调用点**，不是手写的维度字母表：
+  `{L, latency_total, C, cost_total, tokens_total}` → `latency_total` / `cost_total` /
+  `tokens_total` 三条锚点通道。换业务可以改锚点的**数值**，但不许让一个没有消费者的键静默通过：
+  不可兑现就必须在 `build` 期报错。由不变量 `baseline.slo_anchors_match_consumers` 从源码反推锁死，
+  三条实测失效路径与理由见 §2 的这条红线。
 - **禁用 `point-adjust`** 评估口径（`meta.point_adjust_is_banned` 抛异常断言）
 - **禁用任何生成式判官**（LLM-as-a-Judge）
 

@@ -1,6 +1,6 @@
 # 基准跑分报告 R1 - bimodal main path
 
-- 流水线版本 `slice5-v0.5.0`｜数据集 `007a872125bac9bb`｜代码 `0064f089a6b550d7`｜n=4000（可归簇 3945，覆盖率 0.986）｜冷启动 False｜墙钟 99.2s
+- 流水线版本 `slice5b-v0.5.1`｜数据集 `007a872125bac9bb`｜代码 `83503393771d2a04`｜n=4000（可归簇 3945，覆盖率 0.986）｜冷启动 False｜墙钟 115.3s
 - 生成器真值：真实格子数 6｜异常率 0.0755｜异常类型 {"error": 16, "hallucinated_number": 54, "illegal_step": 20, "latency_spike": 43, "loop": 29, "missing_step": 33, "token_bloat": 42, "truncation": 40, "unfinished": 25}
 - 端到端时延分布 p50/p90/p99 = 2.00 / 55.61 / 118.03
 
@@ -110,5 +110,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 3.15, "cluster": 93.33, "baseline": 0.37, "detect": 0.95, "score": 0.22}
+- 计时 {"ingest_features": 3.47, "cluster": 107.29, "baseline": 0.65, "detect": 1.83, "score": 0.4}
 
