@@ -397,6 +397,19 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   里两腿 byte-identical，sha 换成 `fafe108099df8c69` / `6003aeba26d92459` / `98c2dbe16825dc43`。
   「除预期改动外一个比特都没动」这一轮由 `matrixcheck` 的逐叶子 diff 与 `scorecard --check`
   的三级溯源共同承担，而不是由体积差承担。
+- **第七次对账（commit `580bbec`，gates run 42351810425 / matrix run 42351810384，
+  四条 job 全绿）给了上面那条「地板不是常数」的解释第一个实证。**这一轮
+  `code_hash` 未变（仍 `2064664e6aa5fb46`，因为只改了闭包外的审计与文档），所以按新解释
+  预测「最差叶子不动、地板也不动」：ubuntu 腿仍报
+  `worst relative float deviation observed: 1.110e-16`、仍 `3/8 byte-identical`、
+  仍 `0 differences absorbed`，windows 腿仍 `floats: exact equality`、`8/8 byte-identical`；
+  8 个 regime 的 pool / F1 / P@50 / FPR / AUC / ARI_i / ARI_p / 零残差在两腿逐位相同
+  （零残差 ≤ 9.7e-14）且与上一轮完全一致。用时 gates 48s / 74s，matrix 6m14s / 5m53s。
+  这一轮也是新增审计项第一次在 CI 上跑：两腿都打出了
+  `unlearnable label: 38 of 246 ... (15.4%)` 这条 gap 与它的处置，也都跑了
+  `negative test: o_faithful_blind truth table`（7/7），`blockers 0 / fidelity failures 0 /
+  stale regimes 0 -> DATASET READY` 且退出码 0——即「照实报告缺口、但不把它变成红绿信号」
+  这个设计意图在两个 OS 上都成立。
 
 1e-12 相对容差比任何算法改动能造成的变化还小八个数量级（门槛带四位小数宽，真改动至少动 1e-4），
 所以它藏不住回归。但它也**不该被用来掩盖级联**：末位差有可能翻掉一个浮点**比较**，
