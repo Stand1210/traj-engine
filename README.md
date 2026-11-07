@@ -354,6 +354,49 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   零残差在两个 OS 上逐位一致，且与本地两次重跑（并发 828s / 独占 826s）**逐字符相同**，
   随后 `git diff --exit-code` 两腿干净退出，产物各自归档（ubuntu 2,724,156 B /
   windows 2,724,154 B）。
+- **slice6 是第六次跑这套对账，也是偏差地板第一次「移动」——而移动的原因本身是这一轮最有价值的
+  读数**，commit `4812419`，`gates` run 42334432187 / `matrix` run 42334432130，四条 job 全绿。
+  `windows-latest` 腿 `8/8 regimes PASS, 8/8 byte-identical (3334 metric leaves compared,
+  0 differences absorbed)`、`floats: exact equality`；`ubuntu-latest` 腿
+  `8/8 PASS, 3/8 byte-identical (3334 leaves, 0 differences absorbed)`，
+  `worst relative float deviation observed: 1.110e-16`——**前五轮报的都是 `2.776e-17`**。
+  **这不是回归，是「地板是一个常数」这个说法本身不够精确。** byte-identical 的仍是 R1 / R2 / R6，
+  有差的仍**全部**是 `a_cal`、仍分布在同样 5 个 regime，但处数 58 → **55**、分布换了
+  （R3 18→12 / R4 4→5 / R5 6→10 / R7 15→15 / R8 15→15），行号与两侧数值随之全换。
+  把五个 regime 各自的最差叶子按**它自己的数量级**读一遍，规律就出来了：
+
+  | regime | 最差叶子 | 两侧数值 | 该值所在二进制区间 | 区间 ULP | 报出的相对偏差 |
+  |---|---|---|---|---|---|
+  | R3 | line 731 `a_cal` | 0.12975688785555106 vs …5511 | [0.125, 0.25) | 2.776e-17 | 2.776e-17 = **1 ULP** |
+  | R4 | line 1080 `a_cal` | 0.14758593224159017 vs …9014 | [0.125, 0.25) | 2.776e-17 | 2.776e-17 = **1 ULP** |
+  | R5 | line 3 `a_cal` | 0.8602834144377945 vs …7947 | [0.5, 1) | **1.110e-16** | **1.110e-16 = 1 ULP** |
+  | R7 | line 2522 `a_cal` | 0.20401352464489902 vs …9908 | [0.125, 0.25) | 2.776e-17 | 5.551e-17 = **2 ULP** |
+  | R8 | line 1220 `a_cal` | 0.07003012522528625 vs …8623 | [0.0625, 0.125) | 1.388e-17 | 1.388e-17 = **1 ULP** |
+
+  **每一处都是它自己数量级的 1–2 个 ULP，无一例外。** 前五轮报 `2.776e-17`，只是因为当时最差的
+  那条 `a_cal` 恰好落在 [0.125, 0.25)；这一轮 R5 line 3 的 `a_cal` 是 0.860…，落在 [0.5, 1)，
+  同样「差 1 ULP」就报成 4 倍大的相对偏差。所以这条地板的正确表述是
+  **「跨 libc 的末位差恒为 1–2 ULP」**，而不是某个具体的相对数值——把它写成常数，
+  就会在任何一次改动把最差值推进更高二进制区间时**误报成回归**。这条现在写进 README 是为了
+  下一轮不必重新推一遍。两腿都 `0 differences absorbed`，即 1e-12 的容差一次都没被用到，
+  末位差从未影响任何门槛判定。
+- `gates` 两腿：`invariants` **22/22**（slice6 新增 4 项）；`reprocheck --sample` windows
+  `mode=strict` 21.2s、ubuntu `mode=numeric-tol 1e-12` 18.3s 且照旧 `0.000e+00`
+  （该平台逐位复现数据集）；两腿都 `8/8 regimes reproduced | warnings=0 incl. SAMPLE.md`、
+  `coverage -> DATASET READY`（blockers 0 / fidelity failures 0 / stale regimes 0）、
+  `scorecard IN SYNC` 且 8/8 溯源 PASS（`code_hash 2064664e6aa5fb46`，report == live），
+  派生文档守卫均报 `OK: README.md, COVERAGE.md and SAMPLE.md are byte-identical after
+  regeneration`。`matrix` 两腿 8 个 regime 全部 `gates=ALL-PASS`，pool / F1 / P@50 / FPR /
+  AUC / ARI / 零残差在两个 OS 上逐位一致，随后 `git diff --exit-code` 两腿干净退出，
+  产物各自归档（ubuntu 2,731,471 B / windows 2,731,479 B）。用时 gates 53s（ubuntu）/
+  68s（windows），matrix 4m56s / 4m51s。
+- **这一轮不能再用「每条 ±N 字节」核对 `scores.jsonl` 体积**：slice6 同时改了两处，方向相反且
+  逐条不等长——`model_version` 从 `slice5b-v0.5.1`（14 字符）变 `slice6-v0.6.0`（13 字符）
+  是每条 **−1** 字节，而 `evidence` 改序让规则项挤掉了部分统计项（规则项比 metric 项短），
+  R1 净变化 4,139,617 → **4,103,863** B（−35,754，约 −8.9 B/条）。R1 / R2 / R6 在 matrixcheck
+  里两腿 byte-identical，sha 换成 `fafe108099df8c69` / `6003aeba26d92459` / `98c2dbe16825dc43`。
+  「除预期改动外一个比特都没动」这一轮由 `matrixcheck` 的逐叶子 diff 与 `scorecard --check`
+  的三级溯源共同承担，而不是由体积差承担。
 
 1e-12 相对容差比任何算法改动能造成的变化还小八个数量级（门槛带四位小数宽，真改动至少动 1e-4），
 所以它藏不住回归。但它也**不该被用来掩盖级联**：末位差有可能翻掉一个浮点**比较**，
@@ -1809,9 +1852,42 @@ slice5 的升级边界。实测确实不会挪（206 条 `unfinished` 类轨迹*
 - **下一刀的候选：O 维的 64 条漏检**（见下条）与 **C / L 两维的大面积漏检**
   （C 1632 条、L 2101 条，两者假扣分均为 0）。C 的漏检是锚点阶梯**截断并列**的直接后果
   （L 维已实测到结构上界，同一机制），要动就得动锁定项，超出算法侧范围。
-- **O 维现存 64 条漏检也已定位到类**：`hallucinated_number` 36 条 + `truncation` 28 条。
-  `truncated` 目前只进 `t0_result_broken` 门禁、不进 O 的四通道，所以 `dims.O` 对它是 1.0；
-  这是否该改要先过归因门那关（门禁已经认领了同一份证据）。
+- **O 维那 64 条漏检已查到底：不是算法缺口，是 36 条不可学习的标签 + 28 条已经判对的分数。**
+  两类的命运完全不同，必须分开读：
+  - **`truncation` 28 条——无需修改。** 真值 dimO = 0.35 而 `dims.O` 是 1.0，但 **28/28 条全部
+    带 `t0_result_broken` 门禁、全部 D 档、`S` 均值 22.778（区间 18.571–24.617）、27 条会告警**。
+    `truncated` 只进门禁不进 O 的四通道，是**归因门的设计意图**：同一份证据不由两个地方
+    重复计价，而门禁是乘性的、直接把 S 压到 D 档。维度分「漏」了，最终判决一点没漏。
+  - **`hallucinated_number` 36 条——根因在生成器，不在算法。** 真值 dimO = 0.15 而 `dims.O`
+    是 1.0，**36/36 条零门禁、零告警、`contrib.O` 全为 0.0000、27 条 A 档（另 8 B / 1 C）、
+    `S` 均值 91.713（区间 71.523–99.656）**。查到底：`bench/generate.py:1071` 抽
+    `numeric = rng.random() > 0.10`，注入假数字的 `if atype == "hallucinated_number":
+    ans_nums = ans_nums + fake`（:1078-1080）**嵌在 `if numeric and pool:` 里面**，
+    而 `dim["O"] = 0.15`（:908）在**外层无条件**写下。于是 **38/246 = 15.4%** 的
+    `hallucinated_number` 轨迹答案里**一个数字都没有**（`answer_number_count == 0`、
+    `traceable_number_ratio` 为 None、`has_golden` 为 False、`fact_precision` 为 None），
+    却背着「答案含不可溯源数字」的真值。这是**不可学习的标签**：任何算法、任何人工复核都
+    不可能从这条轨迹里找到那个不存在的数字。`truncation` 是同一个形状（32/222 = 14.4%），
+    只是被门禁兜住了。
+  - **有没有别的信号能看见这 36 条？实测并否决。** 唯一在这批轨迹上有读数的是
+    `citation_reachability`（v3 已发射、未接线）：36 条里可得 23 条、均值 0.2826、13 条恰为 0.0、
+    7 条 0.5、3 条 1.0。但它在**正常流量上就有 290/20,897 = 1.3878% 的 `< 1.0` 触发率**，
+    而 O 维两条现役通道 `traceable_number_ratio` 与 `fact_precision` 在正常流量上都是
+    **0/20,788 = 0.0000%**；按 slice2 的准入表它 contam = 0.0012、nz@ok = 0.08%，
+    落在 `goal_drift_max`（0.001 / 0.13%）那一档，即**只配挂在归因门后面**——而这批轨迹
+    恰恰零门禁、没有别的维度认领证据，门后无处可挂。再收窄成
+    `citation_reachability == 0.0 且 answer_number_count == 0`：命中 13/36（36.1%），
+    正常流量误触仍有 **28/20,897 = 0.1340%**。用 0.1340% 的正常误扣换 36.1% 的召回，
+    在两条现役通道都是 0.0000% 的维度上不成立，**否决**。
+    `answer_number_count == 0` 单独更不是信号：正常流量里有 **2,704/20,897 = 12.94%**
+    的答案本来就不含数字。
+  - **结论：O 维现值 +0.956381 已经是这份数据集上的有效上界**，残余由 36 条不可学习标签钉住。
+    真正的修法在生成器（把 `dim["O"]` 的写入挪进 `if numeric and pool:`，或在
+    `atype == "hallucinated_number"` 时强制 `numeric = True`），但那会改发射字节 →
+    `GEN_VERSION` 与全部 8 个 `spec_hash` 变动 → 240 MB 数据重生成 → 所有跑分、8 份
+    `SAMPLE.md`、`COVERAGE.md`、README 五个区块全部移动，**并让两份冻结交付物（专利交底书、
+    方法论设计）里引用的每个数字失效**。那是一次**数据集换版**决定而不是算法决定，
+    需要单独授权，因此本轮只把它**量清并记录**，不动生成器。
 - **本体 `slo_anchors` 的三条静默失效路径已在 slice5b 修掉**（`R` 与 `O` 的死写、
   `tokens_total` 这条活通道任何拼法都够不到）。可接受键集收紧为**恰好**
   `{L, latency_total, C, cost_total, tokens_total}`，其余键在 `baseline.build` 期抛 `ValueError`；
