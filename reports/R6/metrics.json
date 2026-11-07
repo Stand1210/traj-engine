@@ -164,7 +164,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9983079526226735
   },
-  "code_hash": "83503393771d2a04",
+  "code_hash": "2064664e6aa5fb46",
   "cold_start": true,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -449,7 +449,7 @@
   },
   "n": 600,
   "n_pool": 591,
-  "pipeline_version": "slice5b-v0.5.1",
+  "pipeline_version": "slice6-v0.6.0",
   "regime_id": "R6",
   "scoring": {
     "gate_hits": {
@@ -516,12 +516,12 @@
   },
   "spec_hash": "6df7cb38491a91dd",
   "timings": {
-    "baseline": 0.05328702926635742,
-    "cluster": 105.8237612247467,
-    "detect": 0.16690921783447266,
-    "ingest_features": 0.5710175037384033,
-    "score": 0.017299652099609375
+    "baseline": 0.07710862159729004,
+    "cluster": 108.9970018863678,
+    "detect": 0.18607616424560547,
+    "ingest_features": 0.809537410736084,
+    "score": 0.019853830337524414
   },
   "title": "cold start",
-  "wall_s": 106.7787413597107
+  "wall_s": 110.25639986991882
 }

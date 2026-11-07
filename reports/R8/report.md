@@ -1,6 +1,6 @@
 # 基准跑分报告 R8 - foreign ontology
 
-- 流水线版本 `slice5b-v0.5.1`｜数据集 `469f903d257a4288`｜代码 `83503393771d2a04`｜n=3000（可归簇 2930，覆盖率 0.977）｜冷启动 False｜墙钟 85.9s
+- 流水线版本 `slice6-v0.6.0`｜数据集 `469f903d257a4288`｜代码 `2064664e6aa5fb46`｜n=3000（可归簇 2930，覆盖率 0.977）｜冷启动 False｜墙钟 102.7s
 - 生成器真值：真实格子数 9｜异常率 0.0803｜异常类型 {"error": 20, "hallucinated_number": 34, "illegal_step": 18, "latency_spike": 40, "loop": 27, "missing_step": 26, "token_bloat": 29, "truncation": 20, "unfinished": 27}
 - 端到端时延分布 p50/p90/p99 = 4.27 / 68.90 / 166.05
 
@@ -112,5 +112,5 @@
 
 **总体：全部通过**
 
-- 计时 {"ingest_features": 2.34, "cluster": 80.78, "baseline": 0.25, "detect": 0.88, "score": 0.1}
+- 计时 {"ingest_features": 3.19, "cluster": 96.53, "baseline": 0.56, "detect": 1.08, "score": 0.14}
 

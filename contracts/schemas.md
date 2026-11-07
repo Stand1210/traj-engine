@@ -200,6 +200,52 @@ v1 冻结项、本来就在 `METRICS` 里），第五个 **`goal_drift_max` 是 
 **两处必须同批落地**——单独收窄在 slice4 已实测为净损失并回退。全部数字与否决的替代方案见
 `kernel/score.py` docstring 的 slice5 一节与 README。
 
+**slice6 一个新特征也没接，`METRICS` 一个都没动，改的是 L4 契约层的判据面与证据落库顺序。**
+两件事：
+
+**(a) 清单级履约判据 `unfulfilled`。** `missing = [a for a in required if a not in present]`
+量的是「本 cell **绑到的**那个工作流」的必需步骤，所以它的视力**等于绑定的质量**。实测 192 条
+`missing_step` 里有 **76 条**到达打分器时 `missing_frac == 0`，根因分两类：**60 条**所在 cell
+根本没绑定任何声明工作流——`bind_patterns` 要把一个模式簇下各 cell 的判别性必需集**求交**得到
+簇核心，过切分产生的碎片 cell（`cell_n` 5–10）里混着两个真实工作流，交集为空于是整个簇连评分都
+进不去、`binding_detail` 里都查不到，只能退化到 `[agent_run, plan]` 这样的学习画像；**16 条**绑到了
+**错的**工作流——纯聚类不纯，1510 条的大 cell 绑到多数派之后里面仍有少数派的 7 条。两种情况下被删的
+那一步压根不在被检查的 `required` 列表里。
+
+**先被实测否证的那条修法（不要重走）**：给 `baseline._profile` 加一份**逐动作计数分布**，让
+「重复出现的必需动作被删掉一次」变得可见。计数分布在正常流量上无从生效——全部 **81** 个
+`(regime, pattern, action)` 三元组里，声明必需动作在**正常**轨迹中的**最小出现次数都是 1**
+（重复本身合法且可变：`plan` 17018@1 / 1120@2，`sql_query` 10637@1 / 2054@2 / 6@3），所以计数下界
+判据与既有集合判据**逐条等价**：同样命中 192/192、同样 0/20897 误报，**一分钱都买不到**。
+
+**真正管用的判据不需要绑定**。本体声明的是整个工作流清单，于是
+`unfulfilled = bool(declared) and not any(set(v) <= present for v in declared.values())`
+是关于轨迹自身的可证命题。实测全量 22,800 条：正常轨迹误报 **0 / 20,897 = 0.0000%**；
+`missing_step` 类覆盖 **116/192 → 175/192**（60.42% → 91.15%），命中的 175 条**全部**只差一个动作；
+`unfinished` 类 206/206 命中（它们本来就已通过 `unfinished >= 1.0` 判硬，两条通路在 bench_v1 上
+**从不交互**）；其余七类 `error` / `hallucinated_number` / `illegal_step` / `latency_spike` /
+`loop` / `token_bloat` / `truncation` 命中数**全为 0**。P 维准入规则因此严丝合缝：在 **1196** 条
+dimP 真值 1.0 的异常上触发 **0** 次。
+
+**不触发的 17 条要拆成两半读**。其中 **16 条是构造性不可恢复的**，不是调参没调好：它们各自
+**完整实现了另一个**声明工作流（`gap = 0`），在那个口径下就是一次合法执行，任何不依赖真值绑定的
+判据都无法把它与真正属于那个工作流的轨迹区分开。实测这 16 条**全部**落在「绑到错工作流」这一类里
+（R1 3 条、R4 1 条、R5 4 条、R6 1 条、R7 4 条、R8 3 条），因此类覆盖的诚实上界是
+**176/192 = 91.67%**，已实现 175/192。剩下 **1 条**是绑定通路**本来就看见了**的
+（`missing_frac > 0` 而 `unfulfilled` 为假）：它的 cell 学到的必需集里有一个动作不属于任何声明
+工作流，于是「清单里至少有一个被完整实现」成立、而绑定契约仍被违反。**这正是合成必须附加式
+而不能替换式的实测依据**——替换会白丢这一条，而清单判据一条也换不回来。
+
+**(b) 证据落库顺序。** 见 §5 的 `evidence` 契约段——改前 `kind == "rule"` 的落库项数为
+**0 / 68,400**，即所有确定性违约的审计证据从未进过 `scores.jsonl`。
+
+**由不变量锁死**：`i_unfulfilled_predicate` 发射 4 项断言（`detect.unfulfilled_is_exact_set_cover` /
+`detect.unfulfilled_needs_no_binding` / `detect.unfulfilled_is_categorical` /
+`detect.unfulfilled_attribution_additive`），在**每个已发布本体**上、只用该本体自己声明的
+`required_steps` 构造序列，逐条验证「精确等于集合覆盖命题」「三种绑定下取值相同」「蕴含 hard，
+且空基线下与之等价」「绑定通路已查到缺口时不被覆写」。业务无关，无真值无标签。
+`bench.invariants` 由 18/18 → **22/22**。
+
 **v2 已发射**——`kernel/features.py::extract` 已产出。除下面单独标注的一项，
 均**没有**进 `METRICS`、没有进打分：
 
@@ -226,7 +272,7 @@ v1 冻结项、本来就在 `METRICS` 里），第五个 **`goal_drift_max` 是 
 
 **v3 已发射、未接线（34 项）**——`bench-gen-v3.0.0` 起数据才携带其原料，
 `kernel/features.py::extract` 已产出，但与 v2 同规则：**没有**进 `METRICS`、没有进打分，
-以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接）；**slice4 改变了其中一项**——`goal_drift_max` 进打分（P 维），`METRICS` 仍未动，见本节开头；**slice5 一个新特征都没接**，它改的是 `detect.struct.unfinished` 的判据，三态表一行都没动。**slice5b 也没接**，它收紧的是本体 `slo_anchors` 的可接受键集（v1.3.2），三态表同样一行没动。
+以免冻结门槛失去可比性。slice3 **没有**改变这一状态（它一个新特征都没接）；**slice4 改变了其中一项**——`goal_drift_max` 进打分（P 维），`METRICS` 仍未动，见本节开头；**slice5 一个新特征都没接**，它改的是 `detect.struct.unfinished` 的判据，三态表一行都没动。**slice5b 也没接**，它收紧的是本体 `slo_anchors` 的可接受键集（v1.3.2），三态表同样一行没动。**slice6 也没接**——它改的是 `detect.l4_contract` 的判据（新增清单级 `unfulfilled`）与 `evidence` 的落库顺序，一个新特征都没接，三态表一行没动。
 其中 `self_correction_count` 与 `path_convergence` 已就 R 维**实测并否决**——两者污染都是
 0.00，但与已选三通道秩冗余：`self_correction_count` 作第四项罚分会把 err_recov 排到 loop
 之下（0.6915 < 0.8125，类序余量 −0.1210），作恢复加分则均值 spearman 到小数点后 5 位不变
@@ -335,7 +381,8 @@ ClusterAssign { ..., near_intent: int, near_pattern: int,   // 弃判前最近�
 ```jsonc
 DetectOut { trace_id, layers: {L1..L5: dev}, dev_by_metric: {metric: dev},
             z: {metric: modified_z}, p_trace: float, p_family: float,
-            struct: {missing_frac, illegal_actions, unfinished, traceable_viol, hard: bool},
+            struct: {missing_frac, illegal_actions, unfinished, traceable_viol, hard: bool,
+                     unfulfilled: bool, unfulfilled_against: str|null},
             ll: float, ll_z: float|null,
             span_dev: float, span_evidence: {span_id, metric, z, value, baseline},
             fallback_level: L1|L2|L3, b_cell: float, conf: float,
@@ -347,6 +394,16 @@ FusedOut  { trace_id, a_raw: float, a_cal: float|null, conf: float, tier: 0|1|2,
 `struct.unfinished` 不是连续量，只有 `1.0` 与 `0.35` 两档，判据见 §2 的 slice5 段：
 `1.0` 只认 `aborted` / `short` / `absent` 三条能直接从动作序列伪证的命题（其中 `short`
 必须用集合覆盖而非重数计数）；“末动作 ≠ 簇内众数终止动作”只是统计偏离，记 `0.35`。
+
+`struct.unfulfilled`（slice6）是**清单级履约判据**，与绑定无关。本体 `required_steps` 声明的是
+**整个工作流清单**，所以「这条轨迹没有完整实现清单里的任何一个」是关于**轨迹自身**的可证命题：
+对它真实的那个工作流，它缺了被删掉的一步；对其它每一个工作流，它缺好几步。
+`unfulfilled_against` 记下缺口是**归到哪个声明工作流**头上算的——取缺口最小者，并列时按名字取
+最小，因此确定性可复现。归因只在既有 cell 绑定通路**一条都没查到**时才做（**严格附加，不替换**：
+116 条已被绑定通路看见的 `missing_step` 里有 1 条不满足 `unfulfilled`，替换会白丢一条），
+而判据本身不依赖归因。它同时进 `hard`，理由与 `missing_declared` 同级且更强——
+不是「某一个绑定的工作流没走完」，而是「一个都没走完」。实测数字与否决的替代方案见 §2 的
+slice6 段与 `kernel/detect.py::l4_contract` 注释。
 
 五层偏离度：
 
@@ -388,6 +445,23 @@ ScoreRec { trace_id, cell, dims: {O,P,L,C,R}: float[0,1], gates: {name: multipli
            evidence: [ ... ] }
 ```
 恒等约束：`sum(contrib.values()) == S - 100*G`（零残差，LMDI）。
+
+**`evidence` 的顺序是契约，不是实现细节（slice6 起）**：`kind == "rule"` 的确定性违约项排最前，
+`metric` / `span` 统计项其次，`sequence`（马尔可夫低似然）最后。原因是
+`bench/runner.py::write_report` 落库时只保留**前 3 项**——这个上限此前**未成文**，而规则项当时被
+追加在末尾，于是 22,800 条已提交记录里 `kind == "rule"` 的证据项数为 **0 / 68,400**：每条恰好
+3 项 = 2 `metric` + 1 `span`，192 条 `missing_step`（含 143 条会告警的）落库的只有时延与 token 的
+z 值。`gates` 替代不了它——否决集是 `guard_violation` / `forbidden_action` / `t0_result_broken` /
+`t2_untraceable_number` / `t1_unfinished` / `loop_runaway` / `drift_suspect` / `novelty`，
+里面**没有**「声明步骤没跑」这一项，所以唯一能回答「缺了哪一步」的字段正是被截掉的那个。
+改序后 R5 实测：`metrics.json` 数值叶子差异 **0**（纯排序，不动任何数字与门槛），
+303 条规则项落库（原为 0），224/3000 条记录（7.47%）带违约项且**全部 224 条**首项即为 rule，
+分类为 `unfinished` 80 / `untraceable_answer_number` 64 / `truncated_generation` 38 /
+`missing_declared_step` 35 / `missing_step` 27 / `runaway_loop` 24 / `forbidden_action` 21 /
+`unrecovered_error` 14，其中 26 项带 slice6 新增的 `declared_pattern` 审计键。
+**上限仍是 3**：统计项的信息在 `dims` + 零残差 `contrib` 里已经完整（哪一维扣了多少，可逐条对账），
+而规则项的载荷——缺了哪个动作、哪个禁用工具、几个答案数字不可溯源、缺口归到哪个声明工作流——
+在整条记录里**没有第二个家**。
 
 ## 6. 真值（bench 生成器随数据发射）
 ```jsonc

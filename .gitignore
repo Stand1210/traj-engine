@@ -21,7 +21,10 @@ Thumbs.db
 /_*.py
 /_*.txt
 /_*.json
+/_*.jsonl
+/_*.log
 /_*.md
+/_tmp*/
 !/__init__.py
 
 # 本地凭据 / 环境

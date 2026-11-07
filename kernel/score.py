@@ -140,6 +140,23 @@ Three structural defects in the incumbent, in descending damage:
      sequence is invisible, so `missing_frac > 0` fires on only 66.67% of missing_step (106 of
      159 on the bound pool). The remaining 53 (76 over all 22,800) are the incumbent's entire
      miss count, and no reweighting inside score.py can reach them.
+     slice6 closed that gap from the detection side, and in doing so falsified the diagnosis
+     written above. The repetition story is wrong: every declared-required action has min count
+     1 among normal traces, in all 81 (regime, pattern, action) pairs, so a per-action count
+     distribution is identically equal to the set test and would buy nothing. The real cause is
+     the *binding*. In 60 of the 76 the cell was bound to no declared pattern at all -- fragment
+     cells whose per-cell required sets intersect to nothing never reach `bind_patterns`, so
+     `required_for` falls back to a learned profile degenerate to e.g. [agent_run, plan] -- and
+     in 16 it was bound to the wrong pattern through plain clustering impurity. Either way the
+     deleted step was never a member of the `required` list being checked, which is a coverage
+     failure upstream of scoring exactly as claimed, just not the one described.
+     `l4_contract` now also asks whether the trace fully implements *any* declared workflow,
+     and when the bound path is empty attributes the shortfall against the closest one. Class
+     coverage 116/192 -> 175/192, false positives 0/20897 on normals, and the admission rule
+     below still holds exactly: 0 firings on the 1196 anomalies whose P truth is 1.0. The 17
+     still invisible each fully implement a *different* declared workflow than their true one,
+     so they are a legal execution of that workflow and no binding-free test can see them.
+     Measurements and the rejected alternative are in detect.l4_contract.
   3. Constant-filling, the slice1 O defect again: `struct.get("missing_frac", 0.0) or 0.0`
      turned "no contract layer" into "nothing missing", i.e. full credit for missing data.
 
@@ -502,6 +519,12 @@ W_P_ILL = 0.30      # a forbidden action in the executed sequence           cont
 W_P_UNF = 0.20      # detect's *confirmed* non-completion only (>= 1.0)     contamination 0.00
 W_P_LOOP = 0.15     # 1 - loop_count / LOOP_SAT                             contamination 0.00
 W_P_MISS = 0.25     # 1 - missing_frac, graded -- binary inverts twice      contamination 0.00
+# `missing_frac` is measured against the bound cell's required steps -- or, only when that path
+# finds nothing *and* the trace completes no declared workflow at all, against the closest
+# declared workflow (slice6; the predicate and its measurements live in detect.l4_contract).
+# Same channel, same weight, same denominator semantics: what changed is that the contract being
+# scored is one the trace provably failed rather than one it was merely routed to. No new channel
+# and no new tunable, so the playbook's tunable whitelist and locked list are both untouched.
 W_P_DRIFT = 0.10    # goal_drift_max > DRIFT_FLOOR, gated                   contamination 0.00
 # Binarisation floor for goal_drift_max, not a saturation divisor: the feature is already a
 # maximum, so there is nothing to saturate and no DRIFT_SAT exists. INERT on bench_v1, where the
@@ -509,7 +532,7 @@ W_P_DRIFT = 0.10    # goal_drift_max > DRIFT_FLOOR, gated                   cont
 # the same traces. It is named and tunable because a business whose drift is a continuous cosine
 # distance would otherwise charge P for numerical noise.
 DRIFT_FLOOR = 0.50
-MODEL_VERSION = "kernel-v0.5.0"
+MODEL_VERSION = "kernel-v0.6.0"
 
 
 def _clamp01(x):

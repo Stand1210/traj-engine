@@ -33,7 +33,7 @@ from ontology.base import get_ontology
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-PIPELINE_VERSION = "slice5b-v0.5.1"
+PIPELINE_VERSION = "slice6-v0.6.0"
 MIN_LABELS_CALIB = 60
 K_FOLDS = 3
 # A gate that no method can reach is not a gate, it is a bug in the gate table. Clustering

@@ -1,42 +1,42 @@
 {
   "all_pass": true,
   "calibration": {
-    "auc_cal": 0.7509881422924901,
+    "auc_cal": 0.7792448069968884,
     "available": true,
-    "ece_oof": 0.03315228593866312,
-    "ece_raw": 0.10364103837483961,
+    "ece_oof": 0.030798104250744508,
+    "ece_raw": 0.10716737170817298,
     "kind": "platt",
     "n_labels": 300,
     "reliability": [
       {
-        "acc": 0.0821917808219178,
+        "acc": 0.07926829268292683,
         "bin": 0,
-        "conf": 0.07117542617157971,
-        "n": 146
+        "conf": 0.07118171446241431,
+        "n": 164
       },
       {
-        "acc": 0.088,
+        "acc": 0.08490566037735849,
         "bin": 1,
-        "conf": 0.1315664393107175,
-        "n": 125
+        "conf": 0.1329215895455568,
+        "n": 106
       },
       {
         "acc": 0.4444444444444444,
         "bin": 2,
-        "conf": 0.21911259840900268,
+        "conf": 0.21729138043815566,
         "n": 9
       },
       {
         "acc": 1.0,
         "bin": 8,
-        "conf": 0.8613465744493716,
+        "conf": 0.8670514463792509,
         "n": 2
       },
       {
         "acc": 1.0,
         "bin": 9,
-        "conf": 0.9674333542561302,
-        "n": 18
+        "conf": 0.9729858277930431,
+        "n": 19
       }
     ]
   },
@@ -201,7 +201,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9949647532729103
   },
-  "code_hash": "83503393771d2a04",
+  "code_hash": "2064664e6aa5fb46",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -235,30 +235,30 @@
       "L5"
     ],
     "n": 3000,
-    "n_alert": 199,
-    "n_alert_rule": 171,
+    "n_alert": 214,
+    "n_alert_rule": 186,
     "n_alert_stat": 28,
     "n_bound_patterns": 3,
     "n_novelty": 21
   },
   "detection": {
-    "alerts_per_day": 66.33333333333333,
+    "alerts_per_day": 71.33333333333333,
     "all": {
-      "f1": 0.777120315581854,
-      "fn": 111,
+      "f1": 0.8122605363984675,
+      "fn": 96,
       "fp": 2,
       "fpr": 0.0007429420505200594,
       "n_neg": 2692,
       "n_pos": 308,
-      "precision": 0.9899497487437185,
-      "recall": 0.6396103896103896,
+      "precision": 0.9906542056074766,
+      "recall": 0.6883116883116883,
       "tn": 2690,
-      "tp": 197
+      "tp": 212
     },
-    "auc_a_raw": 0.9276491616724006,
+    "auc_a_raw": 0.9528173284527678,
     "baseline_fallback_ratio": 0.4,
-    "below_rule_base_rate": 0.04807692307692308,
-    "below_rule_lift": 16.224,
+    "below_rule_base_rate": 0.04296455424274973,
+    "below_rule_lift": 18.1545,
     "bh_alpha": 0.2,
     "binding": {
       "0": "p3",
@@ -308,8 +308,8 @@
     "cold_start": false,
     "days": 3.0,
     "fallback_share": 0.017,
-    "n_alert": 199,
-    "n_alert_rule": 171,
+    "n_alert": 214,
+    "n_alert_rule": 186,
     "n_alert_stat": 28,
     "per_anomaly_type": {
       "error": {
@@ -348,10 +348,10 @@
         "stat": 0
       },
       "missing_step": {
-        "alert": 10,
+        "alert": 25,
         "n": 29,
-        "recall": 0.3448275862068966,
-        "rule": 10,
+        "recall": 0.8620689655172413,
+        "rule": 25,
         "stat": 0
       },
       "normal": {
@@ -384,23 +384,23 @@
       }
     },
     "pool": {
-      "f1": 0.7801980198019802,
-      "fn": 109,
+      "f1": 0.8153846153846154,
+      "fn": 94,
       "fp": 2,
       "fpr": 0.0007482229704451926,
       "n_neg": 2673,
       "n_pos": 306,
-      "precision": 0.9899497487437185,
-      "recall": 0.6437908496732027,
+      "precision": 0.9906542056074766,
+      "recall": 0.6928104575163399,
       "tn": 2671,
-      "tp": 197
+      "tp": 212
     },
-    "pr_auc": 0.8362318178938701,
+    "pr_auc": 0.8737347240874233,
     "precision_at_50": 1.0,
     "precision_at_50_below_rule": 0.78,
     "precision_at_budget": 1.0,
     "recall_at_50": 0.16339869281045752,
-    "rule_findings_per_day": 57.0,
+    "rule_findings_per_day": 62.0,
     "span_localization": {
       "fn": 162,
       "fp": 59,
@@ -410,9 +410,9 @@
       "tp": 114
     },
     "tier_mix": {
-      "0": 2780,
+      "0": 2765,
       "1": 28,
-      "2": 171
+      "2": 186
     }
   },
   "drift": {
@@ -456,12 +456,12 @@
       "want": ">=1.00"
     },
     "ece": {
-      "got": "0.0332",
+      "got": "0.0308",
       "ok": true,
       "want": "<=0.10"
     },
     "f1": {
-      "got": "0.7802",
+      "got": "0.8154",
       "ok": true,
       "want": ">=0.60"
     },
@@ -539,7 +539,7 @@
   },
   "n": 3000,
   "n_pool": 2979,
-  "pipeline_version": "slice5b-v0.5.1",
+  "pipeline_version": "slice6-v0.6.0",
   "regime_id": "R5",
   "scoring": {
     "gate_hits": {
@@ -552,9 +552,9 @@
       "t2_untraceable_number": 18
     },
     "grade_abs": {
-      "A": 1949,
-      "B": 788,
-      "C": 58,
+      "A": 1945,
+      "B": 791,
+      "C": 59,
       "D": 205
     },
     "grade_rel": {
@@ -563,9 +563,9 @@
       "C": 747,
       "D": 448
     },
-    "grade_separation": 40.28452561283106,
-    "kendall_vs_oracle": 0.6331620657425377,
-    "mean_S_anomaly": 51.60364950715257,
+    "grade_separation": 40.404848196940826,
+    "kendall_vs_oracle": 0.6334591754171245,
+    "mean_S_anomaly": 51.4833269230428,
     "mean_S_normal": 91.88817511998363,
     "mean_conf": 0.877201491809937,
     "per_dim": {
@@ -588,10 +588,10 @@
         "spearman": 0.9785403030849446
       },
       "P": {
-        "mean_anomaly": 0.9254675018155409,
+        "mean_anomaly": 0.9156938392641005,
         "mean_normal": 1.0,
-        "pearson": 0.9743140753733736,
-        "spearman": 0.9450512912564709
+        "pearson": 0.9737249605868992,
+        "spearman": 0.9910854456165525
       },
       "R": {
         "mean_anomaly": 0.9635594978732233,
@@ -600,18 +600,18 @@
         "spearman": 0.9895975554705048
       }
     },
-    "score_auc": 0.9016832571661911,
-    "spearman_vs_oracle": 0.8178525539027908,
+    "score_auc": 0.9061469206712489,
+    "spearman_vs_oracle": 0.818534748138057,
     "zero_residual_max": 9.592326932761353e-14
   },
   "spec_hash": "10ff75f849deddbe",
   "timings": {
-    "baseline": 0.40415072441101074,
-    "cluster": 99.91996741294861,
-    "detect": 1.1859478950500488,
-    "ingest_features": 3.2583067417144775,
-    "score": 0.15996170043945312
+    "baseline": 0.35297560691833496,
+    "cluster": 108.24139451980591,
+    "detect": 0.8970470428466797,
+    "ingest_features": 3.750056743621826,
+    "score": 0.09293651580810547
   },
   "title": "heavily corrupted telemetry",
-  "wall_s": 106.33280658721924
+  "wall_s": 114.35299897193909
 }

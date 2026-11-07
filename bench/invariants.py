@@ -336,6 +336,107 @@ def i_slo_anchors_contract():
           fwd == rev == {"ideal": 3.0, "good": 5.0, "warn": 1.0, "bad": 2.0}, "got=%s" % (fwd,))
 
 
+def i_unfulfilled_predicate():
+    """`struct.unfulfilled` must be exactly a binding-free set-cover proposition.
+
+    slice6 added "no declared workflow is fully implemented by this trace" as an L4 rule, so
+    that a dropped required step stays provable when the cell binding is unusable. Four
+    properties are asserted here on every shipped ontology, over sequences built only from
+    that ontology's own `required_steps`, so nothing in the test can be a business-specific
+    fit:
+
+      1. exactness    -- the flag equals `not any(declared[p] <= present)`, recomputed
+                         independently below, for every complete workflow and for every
+                         one-action-deleted variant of every workflow;
+      2. independence -- the flag is identical under a blind artifact (no cells at all), a
+                         binding pointing at the wrong pattern, and the correct binding. This
+                         is the whole point of the rule: it must not need the binding;
+      3. hardness     -- `unfulfilled` implies `hard`, and under a blind artifact the two are
+                         exactly equal, i.e. with no baseline whatsoever the contract layer's
+                         entire categorical verdict *is* the inventory proposition;
+      4. additivity   -- when the bound-cell path already found a shortfall, that shortfall is
+                         reported unchanged and `unfulfilled_against` stays None. The
+                         inventory fallback only ever fills an empty one, and when it does it
+                         names the closest declared workflow and reports that workflow's gap.
+    """
+    def feats_for(seq):
+        return {"trace_id": "t", "action_seq": list(seq), "spans": [], "loop_count": 0,
+                "traceable_number_ratio": None, "answer_number_count": 0,
+                "n_spans": len(seq), "flags": {}}
+
+    def art_for(req):
+        return {"cell": {"i0xp0": {"n": 500, "profile": {"required": req, "terminal": None}}},
+                "global_profile": {"required": [], "terminal": None}}
+
+    blind = {"cell": {}, "global_profile": {"required": [], "terminal": None}}
+    bad_exact, bad_indep, bad_hard, bad_add = [], [], [], []
+    overlaps, n_case = [], 0
+    for oid in ONTOLOGY_IDS:
+        ont = get_ontology(oid)
+        declared = dict((p, set(v)) for p, v in (ont.get("required_steps") or {}).items())
+        pats = sorted(declared)
+        if not pats:
+            bad_exact.append("%s: declares no required_steps" % oid)
+            continue
+        forb = set(ont.get("forbidden_actions") or [])
+        for p in pats:
+            if declared[p] & forb:
+                overlaps.append("%s/%s" % (oid, p))
+        for p in pats:
+            full = sorted(declared[p])
+            wrong = pats[(pats.index(p) + 1) % len(pats)]
+            a_wrong, a_own = art_for(sorted(declared[wrong])), art_for(full)
+            configs = (("blind", blind, None, {}),
+                       ("wrong", a_wrong, "i0xp0", {"0": wrong}),
+                       ("own", a_own, "i0xp0", {"0": p}))
+            for seq in [full] + [sorted(declared[p] - {a}) for a in full]:
+                n_case += 1
+                present = set(seq)
+                want = not any(v <= present for v in declared.values())
+                tag = "%s/%s/%s" % (oid, p, "-".join(sorted(present)))
+                outs = []
+                for name, art, cell, binding in configs:
+                    st = detect.l4_contract(feats_for(seq), art, cell, ont, binding)
+                    outs.append((name, st))
+                    if st["unfulfilled"] != want:
+                        bad_exact.append("%s %s want=%s got=%s" % (tag, name, want,
+                                                                   st["unfulfilled"]))
+                    if st["unfulfilled"] and not st["hard"]:
+                        bad_hard.append("%s %s unfulfilled but not hard" % (tag, name))
+                    if name == "blind" and st["hard"] != st["unfulfilled"]:
+                        bad_hard.append("%s blind hard=%s unfulfilled=%s"
+                                        % (tag, st["hard"], st["unfulfilled"]))
+                if len(set(o[1]["unfulfilled"] for o in outs)) != 1:
+                    bad_indep.append("%s %s" % (tag, [(o[0], o[1]["unfulfilled"]) for o in outs]))
+                st = dict((o[0], o[1]) for o in outs)["own"]
+                bound_missing = sorted(declared[p] - present)
+                if st["missing_actions"] != bound_missing:
+                    bad_add.append("%s bound shortfall rewritten: %s != %s"
+                                   % (tag, st["missing_actions"], bound_missing))
+                if bound_missing and st["unfulfilled_against"] is not None:
+                    bad_add.append("%s fallback fired over a bound shortfall (%s)"
+                                   % (tag, st["unfulfilled_against"]))
+                if not bound_missing and want:
+                    q = st["unfulfilled_against"]
+                    bestq = min(pats, key=lambda z: (len(declared[z] - present), z))
+                    if q != bestq or sorted(declared[q] - present) != st["missing_actions"]:
+                        bad_add.append("%s attributed to %s (closest is %s) missing=%s"
+                                       % (tag, q, bestq, st["missing_actions"]))
+                    want_frac = len(declared[q] - present) / float(len(declared[q]))
+                    if abs(st["missing_frac"] - want_frac) > 1e-12:
+                        bad_add.append("%s missing_frac=%s want=%s"
+                                       % (tag, st["missing_frac"], want_frac))
+    check("detect.unfulfilled_is_exact_set_cover", not bad_exact and not overlaps,
+          "cases=%d ontologies=%d declared_required_also_forbidden=%s violations=%s"
+          % (n_case, len(ONTOLOGY_IDS), overlaps or "none", bad_exact[:3] or "none"))
+    check("detect.unfulfilled_needs_no_binding", not bad_indep,
+          "cases=%d x 3 bindings violations=%s" % (n_case, bad_indep[:3] or "none"))
+    check("detect.unfulfilled_is_categorical", not bad_hard,
+          "violations=%s" % (bad_hard[:3] or "none",))
+    check("detect.unfulfilled_attribution_additive", not bad_add,
+          "violations=%s" % (bad_add[:3] or "none",))
+
+
 def i_no_hardcoded_actions():
     names = set()
     for oid in ONTOLOGY_IDS:
@@ -361,7 +462,8 @@ def main():
     for fn in (i_zero_residual, i_perfect_score, i_single_dim_collapse, i_gates_multiply,
                i_anchor_monotone, i_pooling_limits, i_consensus_threshold_semantics,
                i_cluster_determinism, i_calibration_monotone, i_bh_fdr_under_null,
-               i_point_adjust_banned, i_slo_anchors_contract, i_no_hardcoded_actions):
+               i_point_adjust_banned, i_slo_anchors_contract, i_unfulfilled_predicate,
+               i_no_hardcoded_actions):
         try:
             fn()
         except Exception as exc:

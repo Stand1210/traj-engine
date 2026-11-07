@@ -118,14 +118,14 @@ TRACE R4-00000   [intent0: 按严重级别排序输出 NE-0274-44 的当前告�
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=204  cache_write_true=287  system_prompt_ratio_true=0.1189  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=89.3100  G=1.00  grade_abs=B  grade_rel=C  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
     dims    : O=1.000  P=1.000  L=0.906  C=0.520  R=1.000
     contrib : O=+0.000  P=+0.000  L=-1.404  C=-9.286  R=+0.000   sum=-10.6900
     zero-residual: S-100G=-10.6900  |diff|=3.30e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.2301  a_cal=0.1182  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.2301  a_cal=0.1183  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
     evidence (3 items, drill-down order):
       - [trace] cost_total               span=R4-00000-s01   value=0.0213      cell_median=0.0111      z=  +1.90 dev=0.2258
       - [trace] tokens_total             span=R4-00000-s01   value=5440.0000   cell_median=3002.0000   z=  +1.67 dev=0.2105
@@ -194,7 +194,7 @@ TRACE R4-00002   [intent1: find the degradation root cause for NE-F691-48]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=618  cache_write_true=0  system_prompt_ratio_true=0.3312  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=90.2248  G=1.00  grade_abs=A  grade_rel=C  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i2xp2
     dims    : O=1.000  P=1.000  L=0.520  C=0.968  R=1.000
@@ -276,19 +276,19 @@ TRACE R4-01191   [intent1: trace the degradation root cause for NE-FDF2-36 over 
     citation_reachable_true=0.3333  contradiction_true=0.4000  contradicted_count=2  fabricated_citation_count=2
     cache_read_true=373  cache_write_true=160  system_prompt_ratio_true=0.1114  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=38.1873  G=0.60  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp2
     dims    : O=0.457  P=1.000  L=0.698  C=0.568  R=1.000
     contrib : O=-15.115  P=+0.000  L=-2.601  C=-4.097  R=+0.000   sum=-21.8127
     zero-residual: S-100G=-21.8127  |diff|=4.90e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9281  a_cal=0.9608  conf=0.9717  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.9281  a_cal=0.9607  conf=0.9717  anchor=anchor-R4-5188fdfc219089b9
     gates: {"t2_untraceable_number": 0.6}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.5, "untraceable": 2}
       - [trace] traceable_number_ratio   span=-              value=0.5000      cell_median=1.0000      z= -50.00 dev=0.3817
       - [trace] branch_factor            span=-              value=5.0000      cell_median=4.0000      z=  +0.67 dev=0.2108
-      - [span ] tok                      span=R4-01191-s02   value=679.0000    peer_median=356.5000    z=  +1.60 dev=0.2344 (L3/L3span action=approve)
 ```
 
 ### 样本 D：loop —— R4-00062
@@ -370,19 +370,19 @@ TRACE R4-00062   [intent0: show the current alarm list of NE-F3C0-10]
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=423  cache_write_true=160  system_prompt_ratio_true=0.2568  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=70.7143  G=0.80  grade_abs=C  grade_rel=A  tier=0  novelty=True
     alert=False (rule=False stat=False)  cold_start=False  cell=None
     dims    : O=1.000  P=0.900  L=1.000  C=0.400  R=0.850
     contrib : O=+0.000  P=-1.934  L=+0.000  C=-6.307  R=-1.044   sum=-9.2857
     zero-residual: S-100G=-9.2857  |diff|=3.40e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.2198  a_cal=0.1105  conf=0.3500  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.2190  a_cal=0.1100  conf=0.3500  anchor=anchor-R4-5188fdfc219089b9
     gates: {"novelty": 0.8}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "loop_count": 2, "rule": "runaway_loop", "span_id": null}
       - [trace] branch_factor            span=-              value=8.0000      cell_median=4.0000      z=  +2.70 dev=0.3911
       - [trace] loop_count               span=-              value=2.0000      cell_median=0.0000      z= +50.00 dev=0.3686
-      - [span ] tok                      span=R4-00062-s06   value=443.0000    peer_median=339.0000    z=  +0.57 dev=0.1136 (L3/L1span action=approve)
 ```
 
 ### 样本 E：token_bloat —— R4-00047
@@ -447,7 +447,7 @@ TRACE R4-00047   [intent0: NE-1FDB-15 在 5m 内的当前告警清单是什么]
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=511  cache_write_true=0  system_prompt_ratio_true=0.1493  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=87.8500  G=1.00  grade_abs=B  grade_rel=C  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
     dims    : O=1.000  P=1.000  L=0.612  C=0.689  R=1.000
@@ -537,19 +537,19 @@ TRACE R4-00085   [intent1: trace the degradation root cause for NE-A9DC-51 over 
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=612  cache_write_true=0  system_prompt_ratio_true=0.1970  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=4.0113  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp2
     dims    : O=1.000  P=0.700  L=1.000  C=0.748  R=1.000
     contrib : O=+0.000  P=-0.303  L=+0.000  C=-0.185  R=+0.000   sum=-0.4887
     zero-residual: S-100G=-0.4887  |diff|=3.60e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9082  a_cal=0.9548  conf=0.9567  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.9082  a_cal=0.9546  conf=0.9567  anchor=anchor-R4-5188fdfc219089b9
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
     evidence (3 items, drill-down order):
+      - {"actions": ["force_delete"], "kind": "rule", "rule": "forbidden_action", "span_id": null}
       - [trace] guard_hits               span=-              value=1.0000      cell_median=0.0000      z= +50.00 dev=0.3817
       - [trace] n_spans                  span=-              value=8.0000      cell_median=5.0000      z=  +2.02 dev=0.3536
-      - [span ] tok                      span=R4-00085-s05   value=657.0000    peer_median=458.5000    z=  +0.83 dev=0.1607 (L3/L3span action=retrieve_kb)
 ```
 
 ### 样本 G：truncation（带 golden） —— R4-00636
@@ -626,19 +626,19 @@ TRACE R4-00636   [intent2: write the configuration change plan for NE-7D22-11 an
     citation_reachable_true=0.3333  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=2
     cache_read_true=568  cache_write_true=0  system_prompt_ratio_true=0.1727  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=19.3362  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=0.729  P=1.000  L=0.575  C=0.730  R=1.000
     contrib : O=-2.793  P=+0.000  L=-1.829  C=-1.042  R=+0.000   sum=-5.6638
     zero-residual: S-100G=-5.6638  |diff|=2.30e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9249  a_cal=0.9599  conf=0.9600  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.9249  a_cal=0.9597  conf=0.9600  anchor=anchor-R4-5188fdfc219089b9
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.75, "untraceable": 1}
       - [trace] traceable_number_ratio   span=-              value=0.7500      cell_median=1.0000      z= -50.00 dev=0.3746
-      - [trace] branch_factor            span=-              value=6.0000      cell_median=4.0000      z=  +1.35 dev=0.2112
-      - [span ] dur                      span=R4-00636-s04   value=7.3764      peer_median=2.8723      z=  +2.35 dev=0.2697 (L3/L3span action=approve)
 ```
 
 ### 样本 H：missing_step —— R4-00024
@@ -699,19 +699,19 @@ TRACE R4-00024   [intent0: what is the current alarm list for NE-ABDD-19 over th
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=557  cache_write_true=0  system_prompt_ratio_true=0.2865  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
-    S=77.9704  G=0.80  grade_abs=B  grade_rel=A  tier=0  novelty=True
+  PIPELINE OUTPUT (slice6-v0.6.0)
+    S=76.1443  G=0.80  grade_abs=B  grade_rel=A  tier=0  novelty=True
     alert=False (rule=False stat=False)  cold_start=False  cell=None
-    dims    : O=1.000  P=0.900  L=1.000  C=1.000  R=1.000
-    contrib : O=+0.000  P=-2.030  L=+0.000  C=+0.000  R=+0.000   sum=-2.0296
-    zero-residual: S-100G=-2.0296  |diff|=2.50e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.817  L=1.000  C=1.000  R=1.000
+    contrib : O=+0.000  P=-3.856  L=+0.000  C=+0.000  R=+0.000   sum=-3.8557
+    zero-residual: S-100G=-3.8557  |diff|=1.90e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.1095  a_cal=0.0517  conf=0.3500  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.1537  a_cal=0.0706  conf=0.3500  anchor=anchor-R4-5188fdfc219089b9
     gates: {"novelty": 0.8}
     evidence (3 items, drill-down order):
+      - {"declared_pattern": "p1", "frac": 0.333, "kind": "rule", "missing": ["sql_query"], "rule": "missing_step", "span_id": null}
       - [trace] tokens_total             span=R4-00024-s03   value=2795.0000   cell_median=3224.0000   z=  -0.28 dev=0.0542
       - [trace] cost_total               span=R4-00024-s03   value=0.0099      cell_median=0.0116      z=  -0.30 dev=0.0505
-      - [span ] tok                      span=R4-00024-s00   value=553.0000    peer_median=449.0000    z=  +0.53 dev=0.1173 (L3/L1span action=agent_run)
 ```
 
 ## 六、v3 共生缺陷样本（附录 A 新增特征的原始证据）
@@ -784,14 +784,14 @@ TRACE R4-00007   [intent0: 请列出网元 NE-8F31-31 当前告警清单中的�
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=157  cache_write_true=537  system_prompt_ratio_true=0.4469  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=95.5290  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
     dims    : O=1.000  P=1.000  L=0.825  C=0.894  R=1.000
     contrib : O=+0.000  P=+0.000  L=-2.830  C=-1.641  R=+0.000   sum=-4.4710
     zero-residual: S-100G=-4.4710  |diff|=4.60e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.1684  a_cal=0.0780  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.1684  a_cal=0.0781  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
     evidence (3 items, drill-down order):
       - [trace] retry_count              span=-              value=1.0000      cell_median=0.0000      z= +50.00 dev=0.1855
       - [trace] branch_factor            span=-              value=4.0000      cell_median=3.2500      z=  +0.67 dev=0.0837
@@ -856,19 +856,19 @@ TRACE R4-00024   [intent0: what is the current alarm list for NE-ABDD-19 over th
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=557  cache_write_true=0  system_prompt_ratio_true=0.2865  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
-    S=77.9704  G=0.80  grade_abs=B  grade_rel=A  tier=0  novelty=True
+  PIPELINE OUTPUT (slice6-v0.6.0)
+    S=76.1443  G=0.80  grade_abs=B  grade_rel=A  tier=0  novelty=True
     alert=False (rule=False stat=False)  cold_start=False  cell=None
-    dims    : O=1.000  P=0.900  L=1.000  C=1.000  R=1.000
-    contrib : O=+0.000  P=-2.030  L=+0.000  C=+0.000  R=+0.000   sum=-2.0296
-    zero-residual: S-100G=-2.0296  |diff|=2.50e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.817  L=1.000  C=1.000  R=1.000
+    contrib : O=+0.000  P=-3.856  L=+0.000  C=+0.000  R=+0.000   sum=-3.8557
+    zero-residual: S-100G=-3.8557  |diff|=1.90e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.1095  a_cal=0.0517  conf=0.3500  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.1537  a_cal=0.0706  conf=0.3500  anchor=anchor-R4-5188fdfc219089b9
     gates: {"novelty": 0.8}
     evidence (3 items, drill-down order):
+      - {"declared_pattern": "p1", "frac": 0.333, "kind": "rule", "missing": ["sql_query"], "rule": "missing_step", "span_id": null}
       - [trace] tokens_total             span=R4-00024-s03   value=2795.0000   cell_median=3224.0000   z=  -0.28 dev=0.0542
       - [trace] cost_total               span=R4-00024-s03   value=0.0099      cell_median=0.0116      z=  -0.30 dev=0.0505
-      - [span ] tok                      span=R4-00024-s00   value=553.0000    peer_median=449.0000    z=  +0.53 dev=0.1173 (L3/L1span action=agent_run)
 ```
 
 ### v3 样本 C：invalid_tool_arg —— R4-00011
@@ -929,14 +929,14 @@ TRACE R4-00011   [intent0: 我需要 NE-BA00-59 的当前告警清单，若存�
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=303  cache_write_true=157  system_prompt_ratio_true=0.2951  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=98.8636  G=1.00  grade_abs=A  grade_rel=A  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
     dims    : O=1.000  P=1.000  L=1.000  C=0.927  R=1.000
     contrib : O=+0.000  P=+0.000  L=+0.000  C=-1.136  R=+0.000   sum=-1.1364
     zero-residual: S-100G=-1.1364  |diff|=1.90e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.1114  a_cal=0.0524  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.1114  a_cal=0.0525  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
     evidence (3 items, drill-down order):
       - [trace] cost_total               span=R4-00011-s01   value=0.0078      cell_median=0.0111      z=  -0.61 dev=0.0377
       - [trace] tokens_total             span=R4-00011-s01   value=2065.0000   cell_median=3002.0000   z=  -0.64 dev=0.0337
@@ -1001,19 +1001,19 @@ TRACE R4-00056   [intent0: which alarms are still active in the current alarm li
     citation_reachable_true=0.0000  contradiction_true=0.3333  contradicted_count=1  fabricated_citation_count=2
     cache_read_true=534  cache_write_true=0  system_prompt_ratio_true=0.2087  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=16.4107  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.440  P=1.000  L=0.766  C=0.704  R=1.000
     contrib : O=-6.701  P=+0.000  L=-0.814  C=-1.075  R=+0.000   sum=-8.5893
     zero-residual: S-100G=-8.5893  |diff|=1.40e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9298  a_cal=0.9613  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.9298  a_cal=0.9611  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.5, "untraceable": 1}
       - [trace] traceable_number_ratio   span=-              value=0.5000      cell_median=1.0000      z= -50.00 dev=0.3684
-      - [trace] cost_total               span=R4-00056-s03   value=0.0145      cell_median=0.0111      z=  +0.64 dev=0.1367
-      - [span ] dur                      span=R4-00056-s03   value=1.2691      peer_median=0.4515      z=  +2.12 dev=0.2388 (L3/L3span action=summarize)
 ```
 
 ### v3 样本 E：fabricated_citation —— R4-00056
@@ -1074,19 +1074,19 @@ TRACE R4-00056   [intent0: which alarms are still active in the current alarm li
     citation_reachable_true=0.0000  contradiction_true=0.3333  contradicted_count=1  fabricated_citation_count=2
     cache_read_true=534  cache_write_true=0  system_prompt_ratio_true=0.2087  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=16.4107  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.440  P=1.000  L=0.766  C=0.704  R=1.000
     contrib : O=-6.701  P=+0.000  L=-0.814  C=-1.075  R=+0.000   sum=-8.5893
     zero-residual: S-100G=-8.5893  |diff|=1.40e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9298  a_cal=0.9613  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.9298  a_cal=0.9611  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.5, "untraceable": 1}
       - [trace] traceable_number_ratio   span=-              value=0.5000      cell_median=1.0000      z= -50.00 dev=0.3684
-      - [trace] cost_total               span=R4-00056-s03   value=0.0145      cell_median=0.0111      z=  +0.64 dev=0.1367
-      - [span ] dur                      span=R4-00056-s03   value=1.2691      peer_median=0.4515      z=  +2.12 dev=0.2388 (L3/L3span action=summarize)
 ```
 
 ### v3 样本 F：contradicted_evidence —— R4-00056
@@ -1147,17 +1147,17 @@ TRACE R4-00056   [intent0: which alarms are still active in the current alarm li
     citation_reachable_true=0.0000  contradiction_true=0.3333  contradicted_count=1  fabricated_citation_count=2
     cache_read_true=534  cache_write_true=0  system_prompt_ratio_true=0.2087  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=16.4107  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.440  P=1.000  L=0.766  C=0.704  R=1.000
     contrib : O=-6.701  P=+0.000  L=-0.814  C=-1.075  R=+0.000   sum=-8.5893
     zero-residual: S-100G=-8.5893  |diff|=1.40e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9298  a_cal=0.9613  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
+    a_raw=0.9298  a_cal=0.9611  conf=0.9809  anchor=anchor-R4-5188fdfc219089b9
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.5, "untraceable": 1}
       - [trace] traceable_number_ratio   span=-              value=0.5000      cell_median=1.0000      z= -50.00 dev=0.3684
-      - [trace] cost_total               span=R4-00056-s03   value=0.0145      cell_median=0.0111      z=  +0.64 dev=0.1367
-      - [span ] dur                      span=R4-00056-s03   value=1.2691      peer_median=0.4515      z=  +2.12 dev=0.2388 (L3/L3span action=summarize)
 ```

@@ -18,6 +18,7 @@ Layers
                   produces the responsible span id, so an alert can be drilled into.
   L4 contract   : ontology validators (numeric answer traceability), declared required-step
                   coverage via the fitted pattern binding, learned required-step coverage,
+                  whole-inventory fulfilment (no declared workflow fully implemented),
                   dominant-terminal (unfinished), forbidden actions, runaway loops,
                   truncated generation, unrecovered errors. Deterministic: no statistics.
   L5 sequential : first-order Markov log-likelihood of the action sequence under the cell
@@ -244,6 +245,41 @@ def l4_contract(feats, art, cell, ontology, binding):
     missing_frac = (len(missing) / float(len(required))) if required else 0.0
     missing_declared = [a for a in declared if a not in present]
 
+    # slice6: whole-inventory fulfilment. `missing` above is measured against the required
+    # steps of *the cell this trace was bound to*, so it is only ever as good as that binding.
+    # Two measured failure modes leave it blind (probe over all 22,800 bench_v1 traces, 76 of
+    # the 192 `missing_step` traces reach the scorer with missing_frac == 0):
+    #   - the cell binds no declared pattern at all (60 of 76). `bind_patterns` intersects the
+    #     per-cell required sets of a pattern cluster to get its core; over-segmented fragment
+    #     cells (cell_n 5-10) that mix two true patterns intersect to nothing, so the cluster
+    #     is never scored and never bound, and `required_for` falls back to a learned
+    #     prevalence profile degenerate to e.g. [agent_run, plan];
+    #   - the cell binds the WRONG declared pattern (16 of 76): plain clustering impurity -- a
+    #     1510-trace cell bound to its majority pattern still holds the minority's traces.
+    # The falsified alternative, measured first and deliberately NOT implemented: teach the
+    # baseline a per-action *count* distribution so a repeated required action cannot be
+    # deleted unnoticed. Every declared-required action has min count 1 among normals, in all
+    # 81 (regime, pattern, action) pairs, so a count floor is identically equal to the set test
+    # already here -- same 192 hits, 0/20897 false positives, i.e. it buys exactly nothing.
+    # What does work needs no binding at all. The ontology declares the entire workflow
+    # inventory, so "this trace fully implements none of the declared workflows" is a
+    # proposition about the trace alone: against its true pattern it misses the deleted step,
+    # against every other pattern it misses several.
+    # Measured over all 22,800: false positives on normals 0/20897 = 0.0000%. Fires on 175/192
+    # `missing_step`, every one with a single-action shortfall, and on 206/206 `unfinished`;
+    # on nothing else -- `error` / `hallucinated_number` / `illegal_step` / `latency_spike` /
+    # `loop` / `token_bloat` / `truncation` are all 0/132, 0/246, 0/131, 0/320, 0/178, 0/276,
+    # 0/222. It therefore satisfies the P-dimension admission rule: 0 firings on the 1196
+    # anomalies whose truth dimP is 1.0.
+    # The 17 it cannot see are unrecoverable by construction, not by tuning: each of them fully
+    # implements a *different* declared workflow than its true one, so it is a legal execution
+    # of that workflow and no binding-free test can distinguish it. That is the honest ceiling
+    # of this predicate -- 175/192 = 91.15% of the class, up from 116/192 = 60.42%.
+    declared_all = dict((p, set(v)) for p, v in
+                        ((ontology or {}).get("required_steps") or {}).items())
+    unfulfilled = bool(declared_all) and not any(v <= present for v in declared_all.values())
+    unfulfilled_against = None
+
     forbidden = set((ontology or {}).get("forbidden_actions") or [])
     illegal_actions = sorted(set(a for a in seq if a in forbidden))
     illegal = min(1.0, len(illegal_actions) / 2.0) if illegal_actions else 0.0
@@ -295,6 +331,24 @@ def l4_contract(feats, art, cell, ontology, binding):
 
     truncated = 1.0 if any(s.get("finish_reason") == "length" for s in spans) else 0.0
 
+    # Attribution is strictly additive, never a replacement, and is placed *after* the
+    # `unfinished` block on purpose: `short` reads `bool(missing)`, so rewriting `missing`
+    # earlier would move slice5's escalation boundary. Measured, it would not move it -- all
+    # 206 `unfinished`-class traces are already hard via `unfinished >= 1.0` and the 70 newly
+    # hard traces are all `missing_step` -- but independence by construction beats independence
+    # by coincidence. Additive because of the 116 `missing_step` traces the bound-cell path
+    # already sees, 115 also satisfy `unfulfilled` and 1 does not (its cell's learned profile
+    # demands an action no declared workflow contains): swapping the paths would lose one
+    # detection and gain none. The shortfall is reported against the declared workflow the
+    # trace came closest to completing, which is the only non-arbitrary choice available once
+    # the binding is known to be unusable.
+    if unfulfilled and not missing:
+        best = min(sorted(declared_all), key=lambda p: (len(declared_all[p] - present), p))
+        gap = sorted(declared_all[best] - present)
+        unfulfilled_against = best
+        missing = gap
+        missing_frac = len(gap) / float(len(declared_all[best]))
+
     # An errored step the agent never retried successfully. A recovered error is a blemish,
     # not an incident - flagging both is what turns an alert queue into noise.
     unrecovered = []
@@ -324,9 +378,16 @@ def l4_contract(feats, art, cell, ontology, binding):
         if tr < min_ratio - 1e-9:
             traceable_viol = min(1.0, (min_ratio - tr) / max(min_ratio, 1e-9) + 0.4)
 
+    # `unfulfilled` is categorical for the same reason `missing_declared` is, and is strictly
+    # stronger evidence: not one particular bound workflow went unfinished, but no declared
+    # workflow at all was completed. Predicted delta, measured on the replicated stage of all 8
+    # regimes before implementing: 311 of the 381 firing traces are already hard, the 70 new
+    # ones are all `missing_step` with zero normals among them, and 37 of those 70 are
+    # non-novelty so they flip `alert_rule` False -> True (R3 +7, R4 +4, R5 +15, R7 +11).
+    # R1/R2/R6/R8 gain nothing because their misses are all the 17 unrecoverable ones.
     hard = bool(illegal_actions) or unfinished >= 1.0 or truncated > 0 \
-        or bool(missing_declared) or missing_frac >= MISSING_HARD or bool(unrecovered) \
-        or loop >= LOOP_HARD or traceable_viol > 0
+        or bool(missing_declared) or unfulfilled or missing_frac >= MISSING_HARD \
+        or bool(unrecovered) or loop >= LOOP_HARD or traceable_viol > 0
     if hard:
         # A deterministic contract breach is categorical, not graded: there is no "how much"
         # to a forbidden tool call, a generation cut off by the token limit, or an answer
@@ -343,6 +404,7 @@ def l4_contract(feats, art, cell, ontology, binding):
                   + 0.55 * traceable_viol)
     return {"missing_frac": missing_frac, "missing_actions": missing,
             "missing_declared": missing_declared, "required": required,
+            "unfulfilled": unfulfilled, "unfulfilled_against": unfulfilled_against,
             "required_source": req["source"], "pattern_id": req["pattern"],
             "illegal": illegal, "illegal_actions": illegal_actions,
             "unfinished": unfinished, "terminal": term, "truncated": truncated,
@@ -481,17 +543,23 @@ def detect_all(features, assigns, art, ontology, binding=None, bh_alpha=BH_ALPHA
         d2 = max(devs2.values()) if devs2 else 0.0
         layers = {"L1": d1, "L2": d2, "L3": l3["dev"], "L4": struct["dev"], "L5": dev5}
 
-        evidence = [ev for _, ev in worst[:2]]
+        stat_evidence = [ev for _, ev in worst[:2]]
         if l3["evidence"] and l3["dev"] > 0:
-            evidence.append(l3["evidence"])
+            stat_evidence.append(l3["evidence"])
+        rules = []
+        ev_missing = {"missing": struct["missing_actions"],
+                      "frac": round(struct["missing_frac"], 3)}
+        if struct.get("unfulfilled_against"):
+            # Audit trail: this shortfall was attributed against a declared workflow, not
+            # against the trace's cell binding, and the operator is told which one.
+            ev_missing["declared_pattern"] = struct["unfulfilled_against"]
         for rule, cond, extra in (
                 ("forbidden_action", struct["illegal_actions"],
                  {"actions": struct["illegal_actions"]}),
                 ("missing_declared_step", struct["missing_declared"],
                  {"missing": struct["missing_declared"]}),
                 ("missing_step", struct["missing_frac"] > 0 and not struct["missing_declared"],
-                 {"missing": struct["missing_actions"],
-                  "frac": round(struct["missing_frac"], 3)}),
+                 ev_missing),
                 ("unfinished", struct["unfinished"] > 0,
                  {"expected_terminal": struct["terminal"]}),
                 ("truncated_generation", struct["truncated"] > 0, {}),
@@ -507,7 +575,36 @@ def detect_all(features, assigns, art, ontology, binding=None, bh_alpha=BH_ALPHA
             if cond:
                 item = {"kind": "rule", "rule": rule, "span_id": None}
                 item.update(extra)
-                evidence.append(item)
+                rules.append(item)
+        # Categorical breaches go first, ahead of the statistical items. This is an ordering
+        # fix, not a cosmetic one: `bench/runner.py::write_report` persists `evidence[:3]`, and
+        # the rule items used to be appended last, behind two trace metrics and one span, so no
+        # deterministic contract breach ever reached scores.jsonl on any trace that had two
+        # deviant metrics at all. Measured on the committed 22,800 records before this change:
+        # every one of them held exactly 3 items, 2 `metric` + 1 `span`, and the census of
+        # persisted `kind == "rule"` items was 0 out of 68,400. All 192 `missing_step` traces
+        # -- including the 143 that alert -- shipped nothing but latency and token z-scores.
+        # `gates` cannot substitute for it: the veto set is guard_violation / forbidden_action /
+        # t0_result_broken / t2_untraceable_number / t1_unfinished / loop_runaway /
+        # drift_suspect / novelty, and "a declared step never ran" is not in it, so the only
+        # field able to answer *which* step was the one being truncated away.
+        # Ordering by severity instead of by construction order is also the cheaper of the two
+        # trades at a fixed cap of 3. A statistical finding stays readable from the persisted
+        # `dims` plus the zero-residual LMDI `contrib`, which together say exactly which
+        # dimension lost how much; a rule item's payload -- the missing action names, the
+        # forbidden tool, the untraceable count, the declared workflow a shortfall was
+        # attributed against -- has no other home anywhere in the record.
+        # Measured after, on R5: metrics.json differs in 0 numeric leaves, so the reorder
+        # touches no number and no gate; 224 of 3000 records (7.47%) now carry a rule item and
+        # it is first in all 224; 303 rule items persisted where there were 0, census
+        # unfinished 80 / untraceable_answer_number 64 / truncated_generation 38 /
+        # missing_declared_step 35 / missing_step 27 / runaway_loop 24 / forbidden_action 21 /
+        # unrecovered_error 14; and 26 items carry the `declared_pattern` audit key below.
+        # The cap itself stays at 3 on purpose -- raising it would grow every scores.jsonl by
+        # roughly a third to buy back items that `dims`+`contrib` already summarise. What was
+        # wrong was the order and the fact that the cap was undocumented, and
+        # contracts/schemas.md now records both.
+        evidence = rules + stat_evidence
         if dev5 > 0:
             evidence.append({"kind": "sequence", "rule": "markov_low_likelihood",
                              "z": round(z5, 3) if z5 is not None else None, "span_id": None})

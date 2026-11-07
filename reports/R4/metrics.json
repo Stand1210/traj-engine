@@ -1,35 +1,35 @@
 {
   "all_pass": true,
   "calibration": {
-    "auc_cal": 0.6657692307692308,
+    "auc_cal": 0.6653846153846154,
     "available": true,
-    "ece_oof": 0.020025652461382992,
-    "ece_raw": 0.10150100942972476,
+    "ece_oof": 0.020005407583748434,
+    "ece_raw": 0.10142190830612925,
     "kind": "platt",
     "n_labels": 150,
     "reliability": [
       {
         "acc": 0.075,
         "bin": 0,
-        "conf": 0.06843724504893534,
+        "conf": 0.06846874323054518,
         "n": 80
       },
       {
         "acc": 0.10909090909090909,
         "bin": 1,
-        "conf": 0.13317099685630235,
+        "conf": 0.13321860025370635,
         "n": 55
       },
       {
         "acc": 0.125,
         "bin": 2,
-        "conf": 0.23399211584989774,
+        "conf": 0.23352973328503865,
         "n": 8
       },
       {
         "acc": 1.0,
         "bin": 9,
-        "conf": 0.9596448972533622,
+        "conf": 0.9595643263183257,
         "n": 7
       }
     ]
@@ -195,7 +195,7 @@
     "purity_intent": 1.0,
     "purity_pattern": 0.9970617042115573
   },
-  "code_hash": "83503393771d2a04",
+  "code_hash": "2064664e6aa5fb46",
   "cold_start": false,
   "data_quality": {
     "conf_downgrade_rate": 1.0,
@@ -229,30 +229,30 @@
       "L5"
     ],
     "n": 1200,
-    "n_alert": 62,
-    "n_alert_rule": 56,
+    "n_alert": 66,
+    "n_alert_rule": 60,
     "n_alert_stat": 6,
     "n_bound_patterns": 3,
     "n_novelty": 179
   },
   "detection": {
-    "alerts_per_day": 31.0,
+    "alerts_per_day": 33.0,
     "all": {
-      "f1": 0.7011494252873562,
-      "fn": 51,
+      "f1": 0.7303370786516855,
+      "fn": 47,
       "fp": 1,
       "fpr": 0.0009191176470588235,
       "n_neg": 1088,
       "n_pos": 112,
-      "precision": 0.9838709677419355,
-      "recall": 0.5446428571428571,
+      "precision": 0.9848484848484849,
+      "recall": 0.5803571428571429,
       "tn": 1087,
-      "tp": 61
+      "tp": 65
     },
-    "auc_a_raw": 0.9384652106456618,
+    "auc_a_raw": 0.9568206229860365,
     "baseline_fallback_ratio": 0.7692307692307693,
-    "below_rule_base_rate": 0.03626943005181347,
-    "below_rule_lift": 7.7200000000000015,
+    "below_rule_base_rate": 0.03225806451612903,
+    "below_rule_lift": 8.680000000000001,
     "bh_alpha": 0.2,
     "binding": {
       "0": "p1",
@@ -293,8 +293,8 @@
     "cold_start": false,
     "days": 2.0,
     "fallback_share": 0.23083333333333333,
-    "n_alert": 62,
-    "n_alert_rule": 56,
+    "n_alert": 66,
+    "n_alert_rule": 60,
     "n_alert_stat": 6,
     "per_anomaly_type": {
       "error": {
@@ -333,10 +333,10 @@
         "stat": 0
       },
       "missing_step": {
-        "alert": 6,
+        "alert": 10,
         "n": 11,
-        "recall": 0.5454545454545454,
-        "rule": 6,
+        "recall": 0.9090909090909091,
+        "rule": 10,
         "stat": 0
       },
       "normal": {
@@ -369,23 +369,23 @@
       }
     },
     "pool": {
-      "f1": 0.8026315789473685,
-      "fn": 29,
+      "f1": 0.8333333333333333,
+      "fn": 25,
       "fp": 1,
       "fpr": 0.0010741138560687433,
       "n_neg": 931,
       "n_pos": 90,
-      "precision": 0.9838709677419355,
-      "recall": 0.6777777777777778,
+      "precision": 0.9848484848484849,
+      "recall": 0.7222222222222222,
       "tn": 930,
-      "tp": 61
+      "tp": 65
     },
-    "pr_auc": 0.8271762799323863,
+    "pr_auc": 0.863200819834304,
     "precision_at_50": 0.98,
     "precision_at_50_below_rule": 0.28,
     "precision_at_budget": 1.0,
     "recall_at_50": 0.5444444444444444,
-    "rule_findings_per_day": 28.0,
+    "rule_findings_per_day": 30.0,
     "span_localization": {
       "fn": 37,
       "fp": 19,
@@ -395,9 +395,9 @@
       "tp": 33
     },
     "tier_mix": {
-      "0": 959,
+      "0": 955,
       "1": 6,
-      "2": 56
+      "2": 60
     }
   },
   "drift": {
@@ -441,7 +441,7 @@
       "want": "<=0.12"
     },
     "f1": {
-      "got": "0.8026",
+      "got": "0.8333",
       "ok": true,
       "want": ">=0.50"
     },
@@ -524,7 +524,7 @@
   },
   "n": 1200,
   "n_pool": 1021,
-  "pipeline_version": "slice5b-v0.5.1",
+  "pipeline_version": "slice6-v0.6.0",
   "regime_id": "R4",
   "scoring": {
     "gate_hits": {
@@ -537,20 +537,20 @@
       "t2_untraceable_number": 6
     },
     "grade_abs": {
-      "A": 673,
-      "B": 298,
+      "A": 672,
+      "B": 299,
       "C": 25,
       "D": 204
     },
     "grade_rel": {
-      "A": 309,
-      "B": 420,
+      "A": 308,
+      "B": 421,
       "C": 295,
       "D": 176
     },
-    "grade_separation": 37.72957712678274,
-    "kendall_vs_oracle": 0.6433749498276956,
-    "mean_S_anomaly": 53.59619790615929,
+    "grade_separation": 37.830335630325486,
+    "kendall_vs_oracle": 0.6434671384726034,
+    "mean_S_anomaly": 53.49543940261655,
     "mean_S_normal": 91.32577503294203,
     "mean_conf": 0.8544247407252928,
     "per_dim": {
@@ -573,10 +573,10 @@
         "spearman": 0.9604362026295239
       },
       "P": {
-        "mean_anomaly": 0.9137500000000003,
+        "mean_anomaly": 0.9063425925925929,
         "mean_normal": 1.0,
-        "pearson": 0.9814408306480968,
-        "spearman": 0.9539144220244906
+        "pearson": 0.9833901206604574,
+        "spearman": 0.9999588590977959
       },
       "R": {
         "mean_anomaly": 0.9502292768959433,
@@ -585,18 +585,18 @@
         "spearman": 0.9999920781807428
       }
     },
-    "score_auc": 0.85765604487409,
-    "spearman_vs_oracle": 0.8258124152687736,
+    "score_auc": 0.8612244897959184,
+    "spearman_vs_oracle": 0.8257790534637498,
     "zero_residual_max": 9.414691248821327e-14
   },
   "spec_hash": "5188fdfc219089b9",
   "timings": {
-    "baseline": 0.1345500946044922,
-    "cluster": 82.2916030883789,
-    "detect": 0.34353160858154297,
-    "ingest_features": 1.098886489868164,
-    "score": 0.0361790657043457
+    "baseline": 0.18336033821105957,
+    "cluster": 80.92992568016052,
+    "detect": 0.2847561836242676,
+    "ingest_features": 1.0646553039550781,
+    "score": 0.04146885871887207
   },
   "title": "extremely sparse cells",
-  "wall_s": 84.3284318447113
+  "wall_s": 82.95542097091675
 }

@@ -122,7 +122,7 @@ TRACE R8-00001   [intent0: 给我 NE-87F6-25 的指标劣化分析报告，并�
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=148  cache_write_true=270  system_prompt_ratio_true=0.2861  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=98.4029  G=1.00  grade_abs=A  grade_rel=A  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp0
     dims    : O=1.000  P=1.000  L=0.953  C=0.942  R=1.000
@@ -198,7 +198,7 @@ TRACE R8-00006   [intent1: does the topology impact scope of NE-9912-25 reach th
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=270  cache_write_true=548  system_prompt_ratio_true=0.2787  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=50.4264  G=1.00  grade_abs=D  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp2
     dims    : O=1.000  P=1.000  L=0.000  C=0.800  R=1.000
@@ -272,7 +272,7 @@ TRACE R8-00335   [intent2: NE-4026-16 的变更评审结论是否需要附加条
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=1
     cache_read_true=419  cache_write_true=0  system_prompt_ratio_true=0.2033  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=17.3431  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp0
     dims    : O=0.446  P=1.000  L=0.883  C=0.850  R=1.000
@@ -282,9 +282,9 @@ TRACE R8-00335   [intent2: NE-4026-16 的变更评审结论是否需要附加条
     a_raw=0.9069  a_cal=0.9796  conf=0.9043  anchor=anchor-R8-469f903d257a4288
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.3333333333333333, "untraceable": 2}
       - [trace] traceable_number_ratio   span=-              value=0.3333      cell_median=1.0000      z= -50.00 dev=0.4377
       - [trace] tokens_total             span=R8-00335-s03   value=2733.0000   cell_median=3091.0000   z=  -0.24 dev=0.0790
-      - [span ] dur                      span=R8-00335-s03   value=36.2606     peer_median=19.8221     z=  +0.88 dev=0.2141 (L3/L3span action=draft_rca)
 ```
 
 ### 样本 D：loop —— R8-00066
@@ -374,7 +374,7 @@ TRACE R8-00066   [intent0: write the kpi degradation analysis for NE-A80E-27 and
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=1267  cache_write_true=0  system_prompt_ratio_true=0.0741  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=16.1765  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=True)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=0.850  L=0.744  C=0.000  R=0.700
@@ -384,9 +384,9 @@ TRACE R8-00066   [intent0: write the kpi degradation analysis for NE-A80E-27 and
     a_raw=0.9936  a_cal=0.9910  conf=0.9151  anchor=anchor-R8-469f903d257a4288
     gates: {"loop_runaway": 0.35}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "loop_count": 4, "rule": "runaway_loop", "span_id": null}
       - [trace] cost_total               span=R8-00066-s04   value=0.1351      cell_median=0.0192      z= +11.73 dev=0.6078
       - [trace] tokens_total             span=R8-00066-s04   value=27051.0000  cell_median=4027.5000   z= +11.23 dev=0.6069
-      - [span ] tok                      span=R8-00066-s04   value=5814.0000   peer_median=1118.5000   z=  +7.90 dev=0.5023 (L3/L3span action=correlate_events)
 ```
 
 ### 样本 E：token_bloat —— R8-00091
@@ -452,7 +452,7 @@ TRACE R8-00091   [intent0: what belongs in the kpi degradation analysis of NE-03
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=555  cache_write_true=0  system_prompt_ratio_true=0.0681  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=41.2193  G=1.00  grade_abs=D  grade_rel=D  tier=1  novelty=False
     alert=True (rule=False stat=True)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=1.000  L=0.000  C=0.237  R=1.000
@@ -538,7 +538,7 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=688  cache_write_true=0  system_prompt_ratio_true=0.2139  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=3.9840  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=0.700  L=0.873  C=0.818  R=1.000
@@ -548,9 +548,9 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     a_raw=0.9279  a_cal=0.9833  conf=0.9674  anchor=anchor-R8-469f903d257a4288
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
     evidence (3 items, drill-down order):
+      - {"actions": ["purge_logs"], "kind": "rule", "rule": "forbidden_action", "span_id": null}
       - [trace] guard_hits               span=-              value=1.0000      cell_median=0.0000      z= +50.00 dev=0.3778
       - [trace] branch_factor            span=-              value=6.0000      cell_median=4.0000      z=  +1.35 dev=0.2387
-      - [span ] dur                      span=R8-00044-s06   value=0.7025      peer_median=0.2798      z=  +1.97 dev=0.2521 (L3/L3span action=draft_rca)
 ```
 
 ### 样本 G：truncation（带 golden） —— R8-01223
@@ -617,7 +617,7 @@ TRACE R8-01223   [intent0: 出具 NE-4FC0-07 的指标劣化分析报告]
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=146  cache_write_true=390  system_prompt_ratio_true=0.1616  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=18.8842  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp0
     dims    : O=0.640  P=1.000  L=0.811  C=0.625  R=1.000
@@ -627,9 +627,9 @@ TRACE R8-01223   [intent0: 出具 NE-4FC0-07 的指标劣化分析报告]
     a_raw=0.9351  a_cal=0.9843  conf=0.9907  anchor=anchor-R8-469f903d257a4288
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.6666666666666666, "untraceable": 1}
       - [trace] traceable_number_ratio   span=-              value=0.6667      cell_median=1.0000      z= -50.00 dev=0.3068
-      - [trace] cost_total               span=R8-01223-s04   value=0.0221      cell_median=0.0142      z=  +1.13 dev=0.1575
-      - [span ] dur                      span=R8-01223-s02   value=0.3310      peer_median=0.1149      z=  +2.28 dev=0.2221 (L3/L3span action=peer_review)
 ```
 
 ### 样本 H：missing_step —— R8-00126
@@ -694,7 +694,7 @@ TRACE R8-00126   [intent1: compute the topology impact scope around NE-763A-20 i
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=522  cache_write_true=0  system_prompt_ratio_true=0.3940  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=94.0151  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
     dims    : O=1.000  P=0.900  L=0.807  C=0.946  R=1.000
@@ -782,7 +782,7 @@ TRACE R8-00002   [intent0: collect the metrics of NE-C88D-34 first, then form th
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=754  cache_write_true=0  system_prompt_ratio_true=0.1418  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=83.6029  G=1.00  grade_abs=B  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp0
     dims    : O=1.000  P=1.000  L=0.752  C=0.403  R=1.000
@@ -858,7 +858,7 @@ TRACE R8-00126   [intent1: compute the topology impact scope around NE-763A-20 i
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=522  cache_write_true=0  system_prompt_ratio_true=0.3940  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=94.0151  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp0
     dims    : O=1.000  P=0.900  L=0.807  C=0.946  R=1.000
@@ -944,7 +944,7 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=688  cache_write_true=0  system_prompt_ratio_true=0.2139  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=3.9840  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=0.700  L=0.873  C=0.818  R=1.000
@@ -954,9 +954,9 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     a_raw=0.9279  a_cal=0.9833  conf=0.9674  anchor=anchor-R8-469f903d257a4288
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
     evidence (3 items, drill-down order):
+      - {"actions": ["purge_logs"], "kind": "rule", "rule": "forbidden_action", "span_id": null}
       - [trace] guard_hits               span=-              value=1.0000      cell_median=0.0000      z= +50.00 dev=0.3778
       - [trace] branch_factor            span=-              value=6.0000      cell_median=4.0000      z=  +1.35 dev=0.2387
-      - [span ] dur                      span=R8-00044-s06   value=0.7025      peer_median=0.2798      z=  +1.97 dev=0.2521 (L3/L3span action=draft_rca)
 ```
 
 ### v3 样本 D：verifier_fail —— R8-00044
@@ -1031,7 +1031,7 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=688  cache_write_true=0  system_prompt_ratio_true=0.2139  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=3.9840  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=0.700  L=0.873  C=0.818  R=1.000
@@ -1041,9 +1041,9 @@ TRACE R8-00044   [intent0: 出具 NE-C8A9-44 的指标劣化分析报告]
     a_raw=0.9279  a_cal=0.9833  conf=0.9674  anchor=anchor-R8-469f903d257a4288
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
     evidence (3 items, drill-down order):
+      - {"actions": ["purge_logs"], "kind": "rule", "rule": "forbidden_action", "span_id": null}
       - [trace] guard_hits               span=-              value=1.0000      cell_median=0.0000      z= +50.00 dev=0.3778
       - [trace] branch_factor            span=-              value=6.0000      cell_median=4.0000      z=  +1.35 dev=0.2387
-      - [span ] dur                      span=R8-00044-s06   value=0.7025      peer_median=0.2798      z=  +1.97 dev=0.2521 (L3/L3span action=draft_rca)
 ```
 
 ### v3 样本 E：fabricated_citation —— R8-00123
@@ -1104,7 +1104,7 @@ TRACE R8-00123   [intent1: output the topology impact scope list of NE-5B32-51 w
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=2
     cache_read_true=646  cache_write_true=0  system_prompt_ratio_true=0.4050  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=36.8012  G=0.60  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp0
     dims    : O=0.440  P=1.000  L=0.378  C=0.908  R=1.000
@@ -1114,9 +1114,9 @@ TRACE R8-00123   [intent1: output the topology impact scope list of NE-5B32-51 w
     a_raw=0.9374  a_cal=0.9847  conf=0.9614  anchor=anchor-R8-469f903d257a4288
     gates: {"t2_untraceable_number": 0.6}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.5, "untraceable": 2}
       - [trace] traceable_number_ratio   span=-              value=0.5000      cell_median=1.0000      z= -50.00 dev=0.4065
       - [trace] latency_total            span=R8-00123-s00   value=25.1771     cell_median=11.9784     z=  +2.01 dev=0.2791
-      - [span ] dur                      span=R8-00123-s02   value=10.1461     peer_median=2.5047      z=  +3.79 dev=0.3025 (L3/L3span action=query_metrics)
 ```
 
 ### v3 样本 F：contradicted_evidence —— R8-00172
@@ -1177,7 +1177,7 @@ TRACE R8-00172   [intent0: what belongs in the kpi degradation analysis of NE-61
     citation_reachable_true=n/a  contradiction_true=0.3333  contradicted_count=1  fabricated_citation_count=0
     cache_read_true=271  cache_write_true=149  system_prompt_ratio_true=0.4117  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=82.1038  G=1.00  grade_abs=B  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp0
     dims    : O=0.800  P=1.000  L=0.757  C=0.921  R=0.583
@@ -1186,7 +1186,7 @@ TRACE R8-00172   [intent0: what belongs in the kpi degradation analysis of NE-61
                    exact identity asserted in bench/runner.py)
     a_raw=0.9126  a_cal=0.9807  conf=0.9553  anchor=anchor-R8-469f903d257a4288
     evidence (3 items, drill-down order):
+      - {"count": 1, "kind": "rule", "rule": "unrecovered_error", "span_id": "R8-00172-s03"}
       - [trace] error_ratio              span=R8-00172-s03   value=0.2500      cell_median=0.0000      z= +50.00 dev=0.3752
       - [trace] missing_field_ratio      span=-              value=0.0714      cell_median=0.0000      z= +50.00 dev=0.2634
-      - [span ] dur                      span=R8-00172-s02   value=0.4900      peer_median=0.2409      z=  +1.31 dev=0.1770 (L3/L3span action=query_metrics)
 ```

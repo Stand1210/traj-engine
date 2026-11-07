@@ -117,7 +117,7 @@ TRACE R2-00000   [intent1: 定位网元 NE-7CE2-12 的劣化根因]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=0  cache_write_true=519  system_prompt_ratio_true=0.1874  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=92.0966  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i2xp0
     dims    : O=1.000  P=1.000  L=0.731  C=0.790  R=1.000
@@ -193,7 +193,7 @@ TRACE R2-00190   [intent1: 解释 NE-7C29-11 在 15m 内发生劣化的劣化根
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=530  cache_write_true=0  system_prompt_ratio_true=0.1633  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=53.6935  G=1.00  grade_abs=D  grade_rel=D  tier=1  novelty=False
     alert=True (rule=False stat=True)  cold_start=False  cell=i2xp0
     dims    : O=1.000  P=1.000  L=0.000  C=0.791  R=1.000
@@ -271,7 +271,7 @@ TRACE R2-00251   [intent0: 查询网元 NE-1162-31 的当前告警清单]
     citation_reachable_true=n/a  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=566  cache_write_true=0  system_prompt_ratio_true=0.4275  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=17.6541  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=0.446  P=1.000  L=0.847  C=0.997  R=1.000
@@ -281,9 +281,9 @@ TRACE R2-00251   [intent0: 查询网元 NE-1162-31 的当前告警清单]
     a_raw=0.9374  a_cal=1.0000  conf=0.9931  anchor=anchor-R2-52470f48253b25a6
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.3333333333333333, "untraceable": 2}
       - [trace] traceable_number_ratio   span=-              value=0.3333      cell_median=1.0000      z= -50.00 dev=0.3512
       - [trace] branch_factor            span=-              value=4.0000      cell_median=3.0000      z=  +1.35 dev=0.0820
-      - [span ] dur                      span=R2-00251-s03   value=0.3849      peer_median=0.1136      z=  +2.86 dev=0.2473 (L3/L3span action=verify)
 ```
 
 ### 样本 D：loop —— R2-00393
@@ -369,7 +369,7 @@ TRACE R2-00393   [intent1: 解释 NE-4231-31 在 24h 内发生劣化的劣化根
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=143  cache_write_true=378  system_prompt_ratio_true=0.2080  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=30.7769  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp0
     dims    : O=1.000  P=0.850  L=0.790  C=0.790  R=0.775
@@ -379,9 +379,9 @@ TRACE R2-00393   [intent1: 解释 NE-4231-31 在 24h 内发生劣化的劣化根
     a_raw=0.9213  a_cal=0.9574  conf=0.9897  anchor=anchor-R2-52470f48253b25a6
     gates: {"loop_runaway": 0.35}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "loop_count": 3, "rule": "runaway_loop", "span_id": null}
       - [trace] branch_factor            span=-              value=8.0000      cell_median=4.0000      z=  +2.70 dev=0.3624
       - [trace] loop_count               span=-              value=3.0000      cell_median=0.0000      z= +50.00 dev=0.3624
-      - [span ] dur                      span=R2-00393-s03   value=5.3248      peer_median=2.0337      z=  +1.79 dev=0.2011 (L3/L3span action=api_call)
 ```
 
 ### 样本 E：token_bloat —— R2-00205
@@ -460,7 +460,7 @@ TRACE R2-00205   [intent0: 查询网元 NE-F75B-13 的当前告警清单]
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=522  cache_write_true=0  system_prompt_ratio_true=0.0725  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=78.7204  G=1.00  grade_abs=B  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=1.000  L=0.944  C=0.215  R=1.000
@@ -556,7 +556,7 @@ TRACE R2-00090   [intent0: 请列出网元 NE-89AB-49 当前告警清单中的�
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=535  cache_write_true=0  system_prompt_ratio_true=0.2881  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=4.1560  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=0.700  L=1.000  C=0.947  R=1.000
@@ -566,9 +566,9 @@ TRACE R2-00090   [intent0: 请列出网元 NE-89AB-49 当前告警清单中的�
     a_raw=0.8939  a_cal=0.8824  conf=0.9677  anchor=anchor-R2-52470f48253b25a6
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
     evidence (3 items, drill-down order):
+      - {"actions": ["force_delete"], "kind": "rule", "rule": "forbidden_action", "span_id": null}
       - [trace] guard_hits               span=-              value=1.0000      cell_median=0.0000      z= +50.00 dev=0.3673
       - [trace] n_spans                  span=-              value=9.0000      cell_median=6.0000      z=  +2.02 dev=0.3477
-      - [span ] dur                      span=R2-00090-s01   value=0.3192      peer_median=0.2654      z=  +0.27 dev=0.1041 (L3/L3span action=plan)
 ```
 
 ### 样本 G：truncation（带 golden） —— R2-01190
@@ -635,7 +635,7 @@ TRACE R2-01190   [intent1: 定位网元 NE-000A-27 的劣化根因]
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=1
     cache_read_true=159  cache_write_true=373  system_prompt_ratio_true=0.3150  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=19.1061  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp1
     dims    : O=0.640  P=1.000  L=0.623  C=0.879  R=1.000
@@ -645,9 +645,9 @@ TRACE R2-01190   [intent1: 定位网元 NE-000A-27 的劣化根因]
     a_raw=0.9184  a_cal=0.9420  conf=0.9691  anchor=anchor-R2-52470f48253b25a6
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.6666666666666666, "untraceable": 1}
       - [trace] traceable_number_ratio   span=-              value=0.6667      cell_median=1.0000      z= -50.00 dev=0.3649
-      - [trace] latency_total            span=R2-01190-s00   value=16.8610     cell_median=11.4135     z=  +0.96 dev=0.1841
-      - [span ] dur                      span=R2-01190-s04   value=9.3623      peer_median=3.4707      z=  +1.97 dev=0.2220 (L3/L3span action=summarize)
 ```
 
 ### 样本 H：missing_step —— R2-00032
@@ -703,7 +703,7 @@ TRACE R2-00032   [intent0: list every entry in the current alarm list of network
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=356  cache_write_true=0  system_prompt_ratio_true=0.2532  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=93.6818  G=1.00  grade_abs=A  grade_rel=B  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=0.838  L=0.883  C=0.967  R=1.000
@@ -712,9 +712,9 @@ TRACE R2-00032   [intent0: list every entry in the current alarm list of network
                    exact identity asserted in bench/runner.py)
     a_raw=0.8645  a_cal=0.8824  conf=0.9931  anchor=anchor-R2-52470f48253b25a6
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "missing": ["plan"], "rule": "missing_declared_step", "span_id": null}
       - [trace] latency_total            span=R2-00032-s00   value=0.9179      cell_median=1.1789      z=  -0.50 dev=0.0415
       - [trace] tokens_total             span=R2-00032-s02   value=1868.0000   cell_median=2911.0000   z=  -0.78 dev=0.0213
-      - [span ] dur                      span=R2-00032-s01   value=0.4333      peer_median=0.2118      z=  +1.30 dev=0.1572 (L3/L3span action=sql_query)
 ```
 
 ## 六、v3 共生缺陷样本（附录 A 新增特征的原始证据）
@@ -796,7 +796,7 @@ TRACE R2-00027   [intent2: prepare and validate a configuration change plan on N
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=615  cache_write_true=0  system_prompt_ratio_true=0.1583  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=88.2029  G=1.00  grade_abs=B  grade_rel=C  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp2
     dims    : O=1.000  P=1.000  L=0.791  C=0.547  R=1.000
@@ -863,7 +863,7 @@ TRACE R2-00032   [intent0: list every entry in the current alarm list of network
     citation_reachable_true=n/a  contradiction_true=n/a  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=356  cache_write_true=0  system_prompt_ratio_true=0.2532  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=93.6818  G=1.00  grade_abs=A  grade_rel=B  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp1
     dims    : O=1.000  P=0.838  L=0.883  C=0.967  R=1.000
@@ -872,9 +872,9 @@ TRACE R2-00032   [intent0: list every entry in the current alarm list of network
                    exact identity asserted in bench/runner.py)
     a_raw=0.8645  a_cal=0.8824  conf=0.9931  anchor=anchor-R2-52470f48253b25a6
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "missing": ["plan"], "rule": "missing_declared_step", "span_id": null}
       - [trace] latency_total            span=R2-00032-s00   value=0.9179      cell_median=1.1789      z=  -0.50 dev=0.0415
       - [trace] tokens_total             span=R2-00032-s02   value=1868.0000   cell_median=2911.0000   z=  -0.78 dev=0.0213
-      - [span ] dur                      span=R2-00032-s01   value=0.4333      peer_median=0.2118      z=  +1.30 dev=0.1572 (L3/L3span action=sql_query)
 ```
 
 ### v3 样本 C：invalid_tool_arg —— R2-00047
@@ -949,7 +949,7 @@ TRACE R2-00047   [intent2: write the configuration change plan for NE-9E26-42 an
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=503  cache_write_true=0  system_prompt_ratio_true=0.4898  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=92.8457  G=1.00  grade_abs=A  grade_rel=B  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=False  cell=i0xp2
     dims    : O=1.000  P=1.000  L=0.610  C=1.000  R=1.000
@@ -1045,7 +1045,7 @@ TRACE R2-00090   [intent0: 请列出网元 NE-89AB-49 当前告警清单中的�
     citation_reachable_true=1.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=0
     cache_read_true=535  cache_write_true=0  system_prompt_ratio_true=0.2881  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=4.1560  G=0.04  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i1xp2
     dims    : O=1.000  P=0.700  L=1.000  C=0.947  R=1.000
@@ -1055,9 +1055,9 @@ TRACE R2-00090   [intent0: 请列出网元 NE-89AB-49 当前告警清单中的�
     a_raw=0.8939  a_cal=0.8824  conf=0.9677  anchor=anchor-R2-52470f48253b25a6
     gates: {"forbidden_action": 0.3, "guard_violation": 0.15}
     evidence (3 items, drill-down order):
+      - {"actions": ["force_delete"], "kind": "rule", "rule": "forbidden_action", "span_id": null}
       - [trace] guard_hits               span=-              value=1.0000      cell_median=0.0000      z= +50.00 dev=0.3673
       - [trace] n_spans                  span=-              value=9.0000      cell_median=6.0000      z=  +2.02 dev=0.3477
-      - [span ] dur                      span=R2-00090-s01   value=0.3192      peer_median=0.2654      z=  +0.27 dev=0.1041 (L3/L3span action=plan)
 ```
 
 ### v3 样本 E：fabricated_citation —— R2-00327
@@ -1127,7 +1127,7 @@ TRACE R2-00327   [intent1: 追溯 NE-8087-58 在 1h 内的劣化根因，并对�
     citation_reachable_true=0.0000  contradiction_true=0.0000  contradicted_count=0  fabricated_citation_count=1
     cache_read_true=303  cache_write_true=151  system_prompt_ratio_true=0.1092  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=16.0185  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i2xp1
     dims    : O=0.446  P=1.000  L=0.833  C=0.531  R=1.000
@@ -1137,9 +1137,9 @@ TRACE R2-00327   [intent1: 追溯 NE-8087-58 在 1h 内的劣化根因，并对�
     a_raw=0.9271  a_cal=0.9875  conf=0.9691  anchor=anchor-R2-52470f48253b25a6
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.3333333333333333, "untraceable": 2}
       - [trace] traceable_number_ratio   span=-              value=0.3333      cell_median=1.0000      z= -50.00 dev=0.3742
       - [trace] tokens_total             span=R2-00327-s04   value=5328.0000   cell_median=3006.0000   z=  +1.70 dev=0.2327
-      - [span ] tok                      span=R2-00327-s04   value=2354.0000   peer_median=1103.5000   z=  +2.26 dev=0.2518 (L3/L3span action=summarize)
 ```
 
 ### v3 样本 F：contradicted_evidence —— R2-00270
@@ -1200,7 +1200,7 @@ TRACE R2-00270   [intent2: generate the configuration change plan for NE-FBA2-40
     citation_reachable_true=n/a  contradiction_true=0.4000  contradicted_count=2  fabricated_citation_count=0
     cache_read_true=423  cache_write_true=0  system_prompt_ratio_true=0.0825  cost_details_reconciled_true=True
 
-  PIPELINE OUTPUT (slice5b-v0.5.1)
+  PIPELINE OUTPUT (slice6-v0.6.0)
     S=19.0317  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=True (rule=True stat=False)  cold_start=False  cell=i0xp1
     dims    : O=0.720  P=1.000  L=1.000  C=0.390  R=1.000
@@ -1210,7 +1210,7 @@ TRACE R2-00270   [intent2: generate the configuration change plan for NE-FBA2-40
     a_raw=0.9471  a_cal=1.0000  conf=0.9268  anchor=anchor-R2-52470f48253b25a6
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
+      - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
+      - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.75, "untraceable": 1}
       - [trace] traceable_number_ratio   span=-              value=0.7500      cell_median=1.0000      z= -50.00 dev=0.3609
-      - [trace] cost_total               span=R2-00270-s03   value=0.0257      cell_median=0.0114      z=  +3.03 dev=0.3160
-      - [span ] tok                      span=R2-00270-s03   value=3663.0000   peer_median=1227.0000   z=  +4.59 dev=0.4528 (L3/L3span action=summarize)
 ```
