@@ -308,6 +308,75 @@ RATIO_FEATURES = ("llm_time_ratio", "tool_time_ratio", "guard_time_ratio", "wait
                   "bottleneck_share", "parallelism_ratio")
 
 
+def o_faithful_blind(feat, gt):
+    """True when a trace carries a degraded-O truth that no O channel can possibly read.
+
+    O has four channels (`kernel/score.py::score_one`): `g_num` <- `traceable_number_ratio`,
+    `f_prec` <- `fact_precision`, `x_exec` <- `error_ratio`, `x_comp` <- `detect.struct.unfinished`.
+    Only the first two speak about *faithfulness* - whether the numbers and facts in the answer
+    are supported by the retrieved evidence. The other two speak about execution failure and
+    incompleteness, and a fabricated number is neither. Both faithfulness channels are
+    conditional by construction: `traceable_number_ratio` is None exactly when
+    `answer_number_count == 0` (`kernel/features.py:596`) and `fact_precision` is None exactly
+    when there is no golden fact set. When both are None, the claim "this answer contains a
+    number that cannot be traced" has no observable left to stand on, so the label is
+    unlearnable - not for this kernel, for anything reading this feature space.
+
+    Deliberately a pure function of (feature dict, ground-truth dict) so its truth table can be
+    asserted without a dataset. `unlearnable_selftest` does that; the real-data half of the
+    evidence is the gap line, which Gate 3 recomputes over all 22,800 traces on every run.
+    """
+    if "hallucinated_number" not in (gt.get("anomaly_types") or []):
+        return False
+    dd = (gt.get("dim_dev") or {}).get("O")
+    if dd is None or dd >= 1.0:
+        return False
+    return feat.get("traceable_number_ratio") is None and feat.get("fact_precision") is None
+
+
+def unlearnable_selftest():
+    """Truth table for `o_faithful_blind`, on synthetic (feature, gt) pairs. Returns failures.
+
+    House rule: a new check ships with a negative test, and the near-misses are the part that
+    matters. A predicate that quietly degenerated into "traceable_number_ratio is None" would
+    fire on 12.94% of clean traffic (2,704 of 20,897 normals legitimately have no answer
+    number); one that degenerated into "no golden facts" would fire on 76.8% of the class (189 of
+    246). Either
+    would look like a finding and is not one. The `truncation` case is the sharpest: it has the
+    *same* feature shape and is still not a defect, because its claim is about completeness and
+    the `t0_result_broken` veto already owns that evidence - 31 of 31 such O misses carry the
+    veto, land in grade D and average S 22.118, so the verdict is not blind even though the
+    dimension score is.
+    """
+    hn = {"anomaly_types": ["hallucinated_number"], "dim_dev": {"O": 0.15}}
+    blind = {"traceable_number_ratio": None, "fact_precision": None}
+    cases = [
+        ("fires: both channels undefined, O degraded, class claims a fabricated number",
+         blind, hn, True),
+        ("near-miss: traceability is defined (0.5), so the claim is checkable",
+         {"traceable_number_ratio": 0.5, "fact_precision": None}, hn, False),
+        ("near-miss: no answer numbers, but a golden fact set exists to check against",
+         {"traceable_number_ratio": None, "fact_precision": 0.8}, hn, False),
+        ("near-miss: both undefined but O truth is 1.0, so nothing is claimed",
+         blind, {"anomaly_types": ["hallucinated_number"], "dim_dev": {"O": 1.0}}, False),
+        ("near-miss: identical feature shape under `truncation` - completeness claim, owned by "
+         "the t0_result_broken veto", blind,
+         {"anomaly_types": ["truncation"], "dim_dev": {"O": 0.35}}, False),
+        ("clean trace: 12.94% of normals have no answer number and must not fire",
+         blind, {"anomaly_types": [], "dim_dev": {"O": 1.0}}, False),
+        ("malformed gt: dim_dev missing entirely must not raise",
+         blind, {"anomaly_types": ["hallucinated_number"]}, False),
+    ]
+    fails = []
+    for name, feat, gt, want in cases:
+        got = o_faithful_blind(feat, gt)
+        print("  [%s] fires=%-5s want=%-5s  %s" % ("PASS" if got == want else "FAIL",
+                                                   got, want, name))
+        if got != want:
+            fails.append(name)
+    return fails
+
+
 def truth_agreement(regimes=None):
     """Label <-> truth <-> feature agreement, over every trace of every regime.
 
@@ -317,13 +386,21 @@ def truth_agreement(regimes=None):
     labelled `loop` had no parameter-identical repeat in them at all - `gt.loop_true` was
     False on a trace whose `anomaly_types` said `loop`. Every check below is a two-sided
     equivalence wherever the generator promises one.
+
+    Returns (bad, counts, gaps). The split matters. `bad` is fatal - any non-zero entry exits
+    non-zero, because it means the dataset contradicts itself and every number downstream is
+    uninterpretable. `gaps` is not fatal: it reports a defect whose only fix is upstream in the
+    generator, so it is listed next to audit()'s gaps and left standing in the tree with its
+    disposition attached (see GAP_DISPOSITIONS). Keeping the two apart is what lets "DATASET
+    READY" stay honest in both directions - a known hole is stated in the report, and stating it
+    does not silently turn a green build red, or a red build green.
     """
     regimes = regimes or REGIMES
     bad = collections.Counter()
     counts = {"n": 0, "golden": 0, "feedback": 0, "loop": 0, "plan_revision": 0,
               "goal_drift": 0, "contradiction": 0, "fabricated_citation": 0,
               "arg_invalid_span": 0, "verifier_fail": 0, "cache_hit_span": 0,
-              "multi_turn": 0}
+              "multi_turn": 0, "hallucinated_number": 0, "o_faithful_blind": 0}
     for rid in regimes:
         traces = _load(rid)
         gts = dict((g["trace_id"], g) for g in _gt(rid))
@@ -364,11 +441,18 @@ def truth_agreement(regimes=None):
             if f["has_feedback"]:
                 counts["feedback"] += 1
             if "hallucinated_number" in types:
+                counts["hallucinated_number"] += 1
                 r = f["traceable_number_ratio"]
                 if r is not None and r >= 1.0:
                     bad["hallucination_not_visible_in_traceability"] += 1
                 if g["has_golden"] and (f["fact_precision"] or 1.0) >= 1.0:
                     bad["hallucination_not_visible_in_precision"] += 1
+                # The third case, and the one both checks above skip by construction: the two
+                # O faithfulness channels are not merely silent, they are *undefined*. See
+                # o_faithful_blind() for why that is a dataset defect rather than a kernel gap,
+                # and why it is counted as a gap and never as `bad`.
+                if o_faithful_blind(f, g):
+                    counts["o_faithful_blind"] += 1
             if "illegal_step" in types and not (seq & forbidden):
                 bad["illegal_step_without_forbidden_action"] += 1
             if "truncation" in types and not any(
@@ -474,7 +558,16 @@ def truth_agreement(regimes=None):
                 v = f[k]
                 if v is not None and (v < -1e-9 or v > 1.0 + 1e-9):
                     bad["ratio_out_of_range:%s" % k] += 1
-    return bad, counts
+    gaps = []
+    if counts["o_faithful_blind"]:
+        gaps.append(
+            "unlearnable label: %d of %d `hallucinated_number` traces (%.1f%%) carry a "
+            "degraded dim_dev.O while both O faithfulness channels are undefined "
+            "(answer_number_count == 0, no golden facts) -- nothing in the feature space "
+            "separates them from clean traces"
+            % (counts["o_faithful_blind"], counts["hallucinated_number"],
+               100.0 * counts["o_faithful_blind"] / max(1, counts["hallucinated_number"])))
+    return bad, counts, gaps
 
 
 def audit(regimes=None, sample=SAMPLE_N):
@@ -576,6 +669,36 @@ GAP_DISPOSITIONS = [
 改写追问是唯一真修，代价是新 `GEN_VERSION` + 全量重生成 + 全矩阵重跑，只为修一个 7/8 regime
 已覆盖的特征。逐 regime 实测表见 `kernel/features.py::_band_membership` 的 docstring。
 gap 不进退出码，本条不影响 DATASET READY。"""),
+    (u"unlearnable label", u"""处置：**量清并记录，不在审计侧修**——根因在生成器，修它是一次数据集换版决定，需要单独授权。
+机制：`bench/generate.py:1071` 抽 `numeric = rng.random() > 0.10`，注入假数字的分支（`:1078-1080`）
+**嵌在 `if numeric and pool:` 里面**，而 `dim["O"] = 0.15`（`:908`）在**外层无条件**写下。于是
+38/246 = 15.4% 的 `hallucinated_number` 轨迹答案里一个数字都没有（`answer_number_count == 0`、
+`traceable_number_ratio` 为 None、`has_golden` 为 False、`fact_precision` 为 None），却背着
+「答案含不可溯源数字」的真值——**不可学习的标签**：任何算法、任何人工复核都无法从这条轨迹里
+找到那个不存在的数字。
+后果实测（联结 `reports/*/scores.jsonl` 与 `gt.jsonl`，全量 22,800 条）：O 维非 novelty 漏检恰为
+**36 + 28 = 64** 条、P 维 **9** 条、R 维 **1** 条，与已发布台账逐位吻合。那 36 条零门禁、零告警、
+`contrib.O` 全 0.0000、27 条 A 档（另 8 B / 1 C）、`S` 均值 91.713（区间 71.523–99.656）。
+**O 维现值 +0.956381 就是这份数据集上的有效上界**，残余由这批不可学习标签钉住，不是算法缺口。
+为什么记为「缺口」而不是「失败」：同一形状的另外三类**都有别的通道或门禁认领**，只有这一类无处可看。
+`truncation` 32/222 = 14.4% 同样两条忠实性通道皆空，但它的 31 条 O 维漏检**全部**带
+`t0_result_broken` 门禁、全部 D 档、`S` 均值 22.118（区间 8.913–24.617）、27 条告警——维度分漏了、
+最终判决一点没漏，这正是归因门的设计意图；`unfinished` 53/206 = 25.7% 由 O 的完整性通道 `x_comp`
+认领，`error` 17/132 = 12.9% 由执行通道 `error_ratio` 认领。
+否决的替代通道：`citation_reachability`（v3 已发射、未接线）是这批轨迹上唯一有读数的，36 条里
+可得 23 条、均值 0.2826（13 条恰为 0.0 / 7 条 0.5 / 3 条 1.0），但它在**正常流量上就有
+290/20,897 = 1.3878% 的 `< 1.0` 触发率**，而 O 的两条现役通道在正常流量上都是
+**0/20,788 = 0.0000%**；按 slice2 准入表 contam = 0.0012、nz@ok = 0.08%，落在 `goal_drift_max`
+（0.001 / 0.13%）那一档，即**只配挂在归因门后**——而这批轨迹恰恰零门禁，门后无处可挂。再收窄成
+`citation_reachability == 0.0 且 answer_number_count == 0`：命中 13/36（36.1%），正常误触仍有
+**28/20,897 = 0.1340%**。用 0.1340% 的正常误扣换 36.1% 的召回，在两条现役通道都是 0.0000% 的
+维度上不成立，**否决**。`answer_number_count == 0` 单独更不是信号：正常流量里有
+**2,704/20,897 = 12.94%** 的答案本来就不含数字。
+真修法与其代价：把 `dim["O"]` 的写入挪进 `if numeric and pool:`，或在 `atype ==
+"hallucinated_number"` 时强制 `numeric = True`。两者都改发射字节 → `GEN_VERSION` 与全部 8 个
+`spec_hash` 变动 → 240 MB 重生成 → 所有跑分、8 份 `SAMPLE.md`、`COVERAGE.md`、README 五个区块
+全部移动，**并让两份冻结交付物里引用的每个数字失效**。
+gap 不进退出码，本条不影响 DATASET READY。"""),
 ]
 
 
@@ -654,7 +777,7 @@ NARRATIVE = u"""# bench_v1 \u6570\u636e\u96c6\u8986\u76d6\u5ea6\u5ba1\u8ba1
 - **\u6210\u672c\u7ec4**\uff1aSpan \u5e26 `model`\uff08\u542b\u4ef7\u683c\u500d\u7387\uff09\u3001`ttft`\u3001`prompt_version`\uff08\u7ea6 10~12%% \u6302\u5728 canary \u7248\u672c\u4e0a\uff09\uff0c\u771f\u503c\u5e26 `model_mix_true`\uff0c`model_mix_cost_index` \u5df2\u975e\u9000\u5316
 - **\u5de5\u5177\u8eab\u4efd\u4e0e\u53c2\u6570**\uff1aSpan \u5e26 `tool_name` / `tool_params`\uff0c`loop_count` \u6309\u5408\u540c A.1 #10 \u7528 `(parent_id, action, \u53c2\u6570\u54c8\u5e0c)` \u5206\u7ec4\uff0c\u4e0d\u518d\u662f\u52a8\u4f5c\u8fde\u8dd1\u8fd1\u4f3c\uff1b\u771f\u503c\u5e26 `loop_true`\uff0c\u5168\u6570\u636e\u96c6 201 \u6761\u771f\u5faa\u73af\uff0c\u6807\u7b7e\u4e0e\u771f\u503c 0 \u5904\u4e0d\u4e00\u81f4
 - **\u5f31\u76d1\u7763\uff08Tier-6\uff09**\uff1a5760 \u6761\uff0825.3%%\uff09\u5e26 `user_feedback`\uff08thumbs / retry / abandoned / human_takeover\uff09\u4e0e `turn_index`\uff0c\u53cd\u9988\u6309\u6f5c\u6807\u7b7e\u52a0\u566a\u91c7\u6837\uff0c\u771f\u503c\u5e26 `feedback_available`
-- **\u6570\u636e\u8d28\u91cf\u4f4d**\uff1a`missing_field_ratio` \u5728\u4fee\u590d**\u4e4b\u524d**\u6d4b\u91cf\uff0c\u6309 Span \u7c7b\u578b\u7684\u6761\u4ef6\u53ef\u5f97\u5b57\u6bb5\u96c6\u7edf\u8ba1\uff1bR1 p50=0.0000 / p99=0.1000\uff0cR5\uff0845%% \u6b8b\u7f3a\u6ce8\u5165\uff09p50=0.0250 / p99=0.2000\uff0c`kernel/score.py:130` \u7684 `mfr > 0.20` \u5206\u652f\u88ab\u771f\u5b9e\u89e6\u53d1
+- **\u6570\u636e\u8d28\u91cf\u4f4d**\uff1a`missing_field_ratio` \u5728\u4fee\u590d**\u4e4b\u524d**\u6d4b\u91cf\uff0c\u6309 Span \u7c7b\u578b\u7684\u6761\u4ef6\u53ef\u5f97\u5b57\u6bb5\u96c6\u7edf\u8ba1\uff1bR1 p50=0.0000 / p99=0.1000\uff0cR5\uff0845%% \u6b8b\u7f3a\u6ce8\u5165\uff09p50=0.0250 / p99=0.2000\uff0c`kernel/score.py:667` \u7684 `mfr > 0.20` \u5206\u652f\u88ab\u771f\u5b9e\u89e6\u53d1
 - **\u672c\u4f53\u5fc5\u987b\u6b65\u9aa4 + \u7981\u6b62\u52a8\u4f5c** \u2192 A.6 \u8fc7\u7a0b\u4e00\u81f4\u6027\u7ec4\uff088 \u4e2a\u7279\u5f81\uff09\u53ef\u76f4\u63a5\u5b9e\u73b0
 
 **\u4ecd\u7136\u4e0d\u8db3\u3001\u5f00\u5de5\u65f6\u5fc5\u987b\u77e5\u9053\u7684**
@@ -667,7 +790,7 @@ NARRATIVE = u"""# bench_v1 \u6570\u636e\u96c6\u8986\u76d6\u5ea6\u5ba1\u8ba1
 ## \u4e09\u3001\u5ba1\u8ba1\u53d1\u73b0\u7684\u786c\u95ee\u9898\uff08\u5747\u5df2\u4fee\u590d\uff0c\u9644\u5b9e\u6d4b\u8bc1\u636e\uff09
 
 **1. `missing_field_ratio` \u7ed3\u6784\u6027\u6052\u4e3a 0\u3002**
-`kernel/ingest.py` \u539f\u5148\u5148\u4fee\u590d\u7f3a\u5931\u5b57\u6bb5\u518d\u7edf\u8ba1\u7f3a\u5931\u6570\uff0c\u6240\u4ee5\u5305\u62ec R5\uff08\u6ce8\u5165 45%% \u6b8b\u7f3a\uff09\u5728\u5185\u7684\u6240\u6709 regime \u4e0a\u5b83\u90fd\u662f 0\uff1adistinct=1\u3001\u503c\u6052 0.0\u3002\u540e\u679c\u662f `kernel/score.py:130` \u7684 `if mfr > 0.20` \u662f\u6b7b\u5206\u652f\uff0c\u9644\u5f55 A.7 \u8981\u6c42\u7684\u201c\u7f3a\u5931\u6bd4\u4f8b\u53c2\u4e0e\u5168\u5c40\u7f6e\u4fe1\u5ea6\u201d\u4ece\u672a\u88ab\u9a8c\u8bc1\u3002
+`kernel/ingest.py` \u539f\u5148\u5148\u4fee\u590d\u7f3a\u5931\u5b57\u6bb5\u518d\u7edf\u8ba1\u7f3a\u5931\u6570\uff0c\u6240\u4ee5\u5305\u62ec R5\uff08\u6ce8\u5165 45%% \u6b8b\u7f3a\uff09\u5728\u5185\u7684\u6240\u6709 regime \u4e0a\u5b83\u90fd\u662f 0\uff1adistinct=1\u3001\u503c\u6052 0.0\u3002\u540e\u679c\u662f `kernel/score.py:667` \u7684 `if mfr > 0.20` \u662f\u6b7b\u5206\u652f\uff0c\u9644\u5f55 A.7 \u8981\u6c42\u7684\u201c\u7f3a\u5931\u6bd4\u4f8b\u53c2\u4e0e\u5168\u5c40\u7f6e\u4fe1\u5ea6\u201d\u4ece\u672a\u88ab\u9a8c\u8bc1\u3002
 \u4fee\u6cd5\uff1a\u5728\u4fee\u590d**\u4e4b\u524d**\u5148\u91cf\u4e00\u6b21\u539f\u59cb\u7f3a\u5931\u7387\uff0c\u5e76\u6309 Span \u7c7b\u578b\u7ed9\u6761\u4ef6\u53ef\u5f97\u5b57\u6bb5\u96c6 `EXPECTED_FIELDS`\uff08\u5de5\u5177 Span \u5408\u6cd5\u5730\u4e0d\u5e26 token\uff0c\u6df7\u8fdb\u53bb\u91cf\u7684\u5c31\u662f Span \u7c7b\u578b\u914d\u6bd4\u800c\u4e0d\u662f\u9065\u6d4b\u4e22\u5931\uff09\uff1b\u4fee\u590d\u540e\u7684\u503c\u53e6\u5b58\u4e3a `missing_field_ratio_post`\uff0c\u4e0d\u8986\u76d6\u539f\u503c\u3002
 \u5b9e\u6d4b\uff1aR1 p50=0.0000 / p99=0.1000\uff0cR5 p50=0.0250 / p99=0.2000\u3002
 
@@ -970,8 +1093,12 @@ def main(argv):
         print("  all %d regimes match the live GEN_VERSION" % len(prows))
     print("")
     res = audit()
+    # truth_agreement() runs before report() so its dataset-level findings land in the same gap
+    # list as audit()'s, and the report prints one list instead of two. Section order on the
+    # console is unchanged: coverage audit, gaps, then the agreement block below.
+    bad, counts, tgaps = truth_agreement()
+    res["gaps"].extend(tgaps)
     report(res)
-    bad, counts = truth_agreement()
     print("")
     print("=== label <-> truth <-> feature agreement (%d traces) ===" % counts["n"])
     print("  golden available on %d (%.1f%%), feedback on %d (%.1f%%), true loops %d"
@@ -987,6 +1114,9 @@ def main(argv):
             print("  [FAIL] %s: %d" % (k, bad[k]))
     else:
         print("  [PASS] all agreement checks clean")
+    print("")
+    print("=== negative test: o_faithful_blind truth table (synthetic, no dataset) ===")
+    stfail = unlearnable_selftest()
     ca = contract_audit()
     report_contract(*ca)
     cc = crosscheck()
@@ -1013,7 +1143,10 @@ def main(argv):
     print("  blockers: %d   fidelity failures: %d   stale regimes: %d   -> %s"
           % (nblock, nfid, len(pstale),
              "DATASET READY" if not (nblock or nfid or pstale) else "DATASET NOT READY"))
-    return 1 if (bad or ndis or worst > 1e-9 or nblock or nfid or pstale) else 0
+    # stfail is in the exit code on purpose: a gap predicate that stops describing what it claims
+    # to describe is a broken check, and a broken check that still prints DATASET READY is worse
+    # than no check at all.
+    return 1 if (bad or ndis or worst > 1e-9 or nblock or nfid or pstale or stfail) else 0
 
 
 if __name__ == "__main__":

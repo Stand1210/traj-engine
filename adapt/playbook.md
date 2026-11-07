@@ -89,7 +89,7 @@ R3 是活教材：门槛表写 `ari_intent ≥ 0.55`，而该 regime **全量数
 
 > **红线：`slo_anchors` 只接受「有消费者」的键，不可兑现即报错（slice5b 起；此前是静默失效）。**
 > 四档锚点在整个内核里**只剩一个消费者**——`kernel/score.py::_anch`，slice3 之后它只被
-> `latency_total`（L，`score.py:605`）/ `cost_total`（C，`:612`）/ `tokens_total`（C，`:613`）
+> `latency_total`（L，`score.py:628`）/ `cost_total`（C，`:635`）/ `tokens_total`（C，`:636`）
 > 三处调用。所以可接受键集就是 `{L, latency_total, C, cost_total, tokens_total}`。
 > **修之前实测到三条静默失效路径**（用**方向感知**的档位探 `_apply_slo` 真值表，即档位在该指标
 > 自己的 `DIRECTION` 下严格于学到的分位锚点，这样「没动」就不可能是「不够严」造成的假象）：

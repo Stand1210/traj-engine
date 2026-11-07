@@ -154,12 +154,40 @@ tokens_total_contract(附录 A #24)  =  tokens_prompt + tokens_completion
 
 ## 2. 特征宽表（全量 77 特征命名契约见方法论文档附录 A）
 
-**v1 冻结（21 个标量 + 2 个序列，定义与命名不再变更）**——`kernel/baseline.py:METRICS`
-的 12 个指标全部取自这一组，因此门槛表里的历史数字只对这组可比：
+**v1 冻结（定义与命名不再变更）**——权威清单是 `kernel/features.py:578` 的
+`# ---- v1 (frozen)` 块，它发射 **25 个键**，分四类：
 
-`latency_total, n_spans, depth, branch_factor, n_llm, n_tool, n_guard, tokens_total,
-prompt_token_ratio, cost_total, retry_count, error_ratio, loop_count, guard_hits,
-answer_number_count, traceable_number_ratio, action_seq:[str], embedding:[float]`
+- **17 个数值标量特征**：`latency_total, n_spans, depth, branch_factor, n_llm,
+  n_tool, n_guard, tokens_total, prompt_token_ratio, cost_total, retry_count, error_ratio,
+  loop_count, guard_hits, answer_number_count, traceable_number_ratio,
+  missing_field_ratio`
+- **2 个非特征标量键**：`trace_id`（标识符）与 `ts_start`（属
+  `bench/coverage.py:33` 的 `NON_FEATURES`，按构造恒定，不当特征审计）
+- **3 个序列**：`action_seq:[str]`、`action_kinds:[str]`、`embedding:[float]`
+- **3 个容器**：`flags`、`spans`、`by_id`
+
+`kernel/baseline.py:METRICS` 的 **12 个指标全部取自那 17 个数值标量**（差集恰好是
+`n_llm, n_tool, n_guard, prompt_token_ratio, answer_number_count` 五项），因此门槛表里的
+历史数字只对这组可比。
+
+**本节此前写成「21 个标量 + 2 个序列」，列举里只有 16 个标量、漏掉
+`missing_field_ratio`**，于是紧邻那句「`METRICS` 的 12 个指标全部取自这一组」
+**按字面是假的**——12 个里有 1 个不在列举中。**是文档漏写，不是接线漏做**：
+`missing_field_ratio` 自 slice1 起就在 `HIGHER_WORSE` 里（`kernel/baseline.py:63`），
+而 `METRICS = HIGHER_WORSE + LOWER_WORSE`（`:67`）；它归 `FAMILIES["quality"]`（`:77`）、
+`MIN_GAP` 给它 0.10（`:83`），即它一直参与条件基线与检测门槛；
+`kernel/score.py:667` 的 `if mfr > 0.20` 分支也被真实触发（R5 的 45% 残缺注入下
+p50=0.0250 / p99=0.2000，见 `data/bench_v1/COVERAGE.md`）。那个 21 沿用自
+`kernel/features.py:5` 的 "the 21 scalars"：**v1 块去掉 3 个容器、再去掉归到下面
+v3 名下的 `action_kinds`，正好 21 个键（19 标量 + 2 序列）**——它数的是键总数，
+不是标量数。`action_kinds` 物理上发射在 v1 块内（`kernel/features.py:598`）
+而下面按 v3 归类，**这一归类分歧没有任何可观测后果**：它既不在 `METRICS` 里
+也不进打分，三态里属「只发射」。`kernel/features.py:5` 的措辞**故意不改**，
+理由与代价见 README 的「开发纪律」。
+
+复核只需两条命令、不需要真值：
+`python -c "import kernel.baseline as B; print(len(B.METRICS), B.METRICS)"`，
+以及数 `kernel/features.py` 里 `# ---- v1 (frozen)` 到 `# ---- v2: structure` 之间的键。
 
 **接线状态分三态，不要混。**「进 `METRICS`」= 参与条件基线与检测门槛；「进打分」=
 参与 `kernel/score.py` 某一个维度；「只发射」= `extract()` 产出但两者都不进。

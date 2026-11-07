@@ -215,7 +215,7 @@ Python 3.11.17 / GCC 13.3.0 对 Windows 产的基线，3334 个 metrics 叶子�
   连 `scores.jsonl` 的 sha256 都两侧相同，被吸收的 4 处全在 R8（2 个 metrics 叶子 +
   2 行 `report.md`，都是那同一个零残差噪声地板）。
   而这 58 个**全是同一个字段 `a_cal`**（等渗校准后的异常概率），因果链已完全定位：
-  `math.erfc`（`kernel/baseline.py:543`，流水线独有；生成器用的是 `math.erf`，
+  `math.erfc`（`kernel/baseline.py:625`，流水线独有；生成器用的是 `math.erf`，
   `bench/generate.py:553`）→ `stage` 里**未取整**的 `a_raw` → `IsotonicCalibrator._one`
   在结点之间做**线性插值**（`kernel/calib.py:93`）。落在结点上或落在区间外的 trace
   原样返回结点值、逐位相同，只有严格落在两结点之间的才继承那 1 ulp——
@@ -681,7 +681,7 @@ R3 重造、Span/Trace/GT/本体全面扩容），两个版本的 F1 / AUC / ARI
 ## 前轮修复（`bench-gen-v1` → `v2.2.0`，附实测证据）
 
 1. **`missing_field_ratio` 结构性恒为 0**。`kernel/ingest.py` 原先先修复缺失字段再统计缺失数，
-   所以包括 R5（45% 残缺注入）在内的 8 个 regime 上它 distinct=1、值恒 0.0，`kernel/score.py:130`
+   所以包括 R5（45% 残缺注入）在内的 8 个 regime 上它 distinct=1、值恒 0.0，`kernel/score.py:667`
    的 `if mfr > 0.20` 是死分支。修法：在修复**之前**测量，并按 Span 类型给条件可得字段集
    `EXPECTED_FIELDS`（工具 Span 合法地不带 token，混进去量到的是 Span 类型配比而不是遥测丢失）。
    修复后 R1 p50=0.0000 / p99=0.1000，**R5 p50=0.0250 / p99=0.2000**，分支被真实触发。
@@ -808,7 +808,7 @@ slice1 的公式是 `s_o = (0.70*tr_score + 0.30*(1-err_r)) * (1 - 0.40*trunc)`�
 `1 - struct.unfinished` 在 100% 的流量上说的是同一件事。
 
 判别器是真的、不是拟合出来的：生成器的 `unfinished` 弹出的是**尾部** Span，
-所以最后一个动作不再是该格子的主导终结动作，`detect.py:259` 给 **1.0**；
+所以最后一个动作不再是该格子的主导终结动作，`detect.py:330` 给 **1.0**；
 `missing_step` 删的是**中间**的必需步骤，终结动作还在，给 **0.0**。
 因此只取 `unfinished >= 1.0`：0.35 的软判例是「终结在了不寻常的步骤上」，那是 P 的事，
 否则会让 O 为一个恰好排在最后的 `illegal_step` 扣分。
@@ -1464,8 +1464,8 @@ slice4 在 P 维留了一条明确记名的债：弃用 `unfinished == 0.35` 软
 ### 5b.1 问题：广告面比消费面大，而且不止一处
 
 四档锚点（`ideal/good/warn/bad`）在整个内核里**只剩一个消费者**——`kernel/score.py::_anch`，
-而它只被三处调用：`score.py:605` 的 `latency_total`（L 维）、`:612` 的 `cost_total`（C 维）、
-`:613` 的 `tokens_total`（C 维）。但旧的 `DIM_METRIC` 对外**广告了四个维度**
+而它只被三处调用：`score.py:628` 的 `latency_total`（L 维）、`:635` 的 `cost_total`（C 维）、
+`:636` 的 `tokens_total`（C 维）。但旧的 `DIM_METRIC` 对外**广告了四个维度**
 （`L→latency_total`、`C→cost_total`、`R→retry_count`、`O→traceable_number_ratio`）。
 
 用**方向感知**的档位去探 `_apply_slo` 的真值表——即档位在该指标自己的 `DIRECTION` 下严格于
@@ -1476,9 +1476,9 @@ slice4 在 P 维留了一条明确记名的债：弃用 `unfinished == 0.35` 软
 
 | `slo_anchors` 的键 | 能否收紧制品里的锚点 | 有没有消费者 | 结论 |
 |---|---|---|---|
-| `L` / `latency_total` | 能 | 有（`score.py:605`） | 正常兑现 |
-| `C` / `cost_total` | 能 | 有（`score.py:612`） | 正常兑现 |
-| `tokens_total`（**任何拼法**） | **不能** | **有**（`score.py:613`） | **活的通道，表达不出来** |
+| `L` / `latency_total` | 能 | 有（`score.py:628`） | 正常兑现 |
+| `C` / `cost_total` | 能 | 有（`score.py:635`） | 正常兑现 |
+| `tokens_total`（**任何拼法**） | **不能** | **有**（`score.py:636`） | **活的通道，表达不出来** |
 | `R` / `retry_count` | 能 | 无 | 死写：进了制品，无人读取 |
 | `O` / `traceable_number_ratio` | 能 | 无 | 死写：进了制品，无人读取 |
 | `P` 及其余任意键 | 不能 | 无 | 静默丢弃 |
@@ -1970,5 +1970,38 @@ slice5 的升级边界。实测确实不会挪（206 条 `unfinished` 类轨迹*
   把人支去找一场并不存在的全面崩塌。通过数、逐字节相同数、被容差吸收的差异数分开报
 - **跨平台断言要连因果链一起量下来**。第 13 条那句「58 个叶子全是 `a_cal`」不是靠读代码
   猜的：先由 `reprocheck` 的 `0.000e+00` 排除生成器，再由「只有 `erfc` 是流水线独有」
-  缩小到 `kernel/baseline.py:543`，最后由「只有严格落在两个结点之间的 trace 才动、
+  缩小到 `kernel/baseline.py:625`，最后由「只有严格落在两个结点之间的 trace 才动、
   每个 regime 4~18 条」反证出 `kernel/calib.py:93` 的线性插值。三条独立证据对上了才算定位
+- **行号引用会腐烂，腐烂了就一次性量清，不要路过时顺手改一个**。本轮把七份文件
+  （README、`adapt/playbook.md`、`contracts/schemas.md`、`bench/coverage.py` 的 `NARRATIVE`、
+  `bench/reprocheck.py`、`bench/matrixcheck.py`、`bench/show.py`）里全部
+  **27 个不同的 `文件:行号` 目标、52 处提及**逐条对着源码核验：
+  **21 个目标正确、6 个过期，过期的一共 18 处提及**，全部已订正。
+  - `if mfr > 0.20` 在 `kernel/score.py:667` 而不是 `:130`——3 处（README 1 +
+    `bench/coverage.py` 的 `NARRATIVE` 2，后者会渲染进 COVERAGE.md）
+  - `_anch` 的三次调用在 `kernel/score.py:628 / :635 / :636` 而不是 `:605 / :612 / :613`
+    ——9 处（README 6 + `adapt/playbook.md` 3）
+  - `unfinished = 1.0 if (aborted or short or absent)` 在 `kernel/detect.py:330` 而不是
+    `:259`——1 处
+  - 流水线独有的 `math.erfc` 在 `kernel/baseline.py:625` 而不是 `:543`——5 处
+    （README 2 + `bench/reprocheck.py` 1 + `bench/matrixcheck.py` 2）
+  **过期行号比没有行号更坏**：它把人支到一段无关代码上，而那段代码通常也确实存在、
+  读起来还像那么回事——`:543` 上真的有一行 `if direction == "higher_worse":`，
+  `:130` 上真的有一段讲 `unfinished` 的 docstring。引用时一律带上符号名或代码原文，
+  就是为了让下一个人能机械地判定它是否已经过期；上面四个目标也都能一条 `rg` 复核。
+- **同一轮还查出两处「数字过期」，它们比行号过期更容易骗人**，因为看起来像实测结论：
+  `bench/matrixcheck.py` 与 `bench/reprocheck.py` 的模块 docstring 都写着跨 libc 有
+  「58 个 `a_cal` 叶子、最差偏差 `4.441e-16` = 2 ulp」，而 slice6 那轮实测是
+  **55 个叶子、`1.110e-16`**。已改成**不写死数值**的形式，并把规律写进打印它的那个模块：
+  每处差异都是**它自己数量级的 1–2 ulp**，所以「最差相对偏差」不是常数、也不能当常数
+  做回归门槛——`1.110e-16` 是 [0.5, 1) 的 ulp，正如 `2.776e-17` 是 [0.125, 0.25) 的
+  ulp，最差叶子换一次二进制区间这个数就跳 4 倍。逐轮实测表在本文的
+  「持续集成」一节。
+- **但不是每一处过期都值得付代价去修**。`kernel/features.py:5` 把 v1 冻结组叫做
+  "the 21 scalars"，实际是 **21 个键（19 标量 + 2 序列）**而不是 21 个标量，
+  且它把归在 v3 名下的 `action_kinds` 排除在外、把 `trace_id` / `ts_start` 计进标量。
+  **故意不改**：`kernel/` 与 `ontology/` 整个目录在 `code_hash` 闭包里
+  （`bench/runner.py:60` 的 `CODE_DIRS`），改一个注释就会让 8 份
+  `reports/*/metrics.json` 的溯源全部失效，需重跑约 905s 的全矩阵并连带移动全部
+  派生文档，代价与收益不成比例。对账写在 `contracts/schemas.md §2`（不在闭包内，
+  随时可改），两处读法在那里合一。

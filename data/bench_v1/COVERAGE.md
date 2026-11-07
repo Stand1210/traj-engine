@@ -20,7 +20,7 @@
 - **成本组**：Span 带 `model`（含价格倍率）、`ttft`、`prompt_version`（约 10~12% 挂在 canary 版本上），真值带 `model_mix_true`，`model_mix_cost_index` 已非退化
 - **工具身份与参数**：Span 带 `tool_name` / `tool_params`，`loop_count` 按合同 A.1 #10 用 `(parent_id, action, 参数哈希)` 分组，不再是动作连跑近似；真值带 `loop_true`，全数据集 201 条真循环，标签与真值 0 处不一致
 - **弱监督（Tier-6）**：5760 条（25.3%）带 `user_feedback`（thumbs / retry / abandoned / human_takeover）与 `turn_index`，反馈按潜标签加噪采样，真值带 `feedback_available`
-- **数据质量位**：`missing_field_ratio` 在修复**之前**测量，按 Span 类型的条件可得字段集统计；R1 p50=0.0000 / p99=0.1000，R5（45% 残缺注入）p50=0.0250 / p99=0.2000，`kernel/score.py:130` 的 `mfr > 0.20` 分支被真实触发
+- **数据质量位**：`missing_field_ratio` 在修复**之前**测量，按 Span 类型的条件可得字段集统计；R1 p50=0.0000 / p99=0.1000，R5（45% 残缺注入）p50=0.0250 / p99=0.2000，`kernel/score.py:667` 的 `mfr > 0.20` 分支被真实触发
 - **本体必须步骤 + 禁止动作** → A.6 过程一致性组（8 个特征）可直接实现
 
 **仍然不足、开工时必须知道的**
@@ -33,7 +33,7 @@
 ## 三、审计发现的硬问题（均已修复，附实测证据）
 
 **1. `missing_field_ratio` 结构性恒为 0。**
-`kernel/ingest.py` 原先先修复缺失字段再统计缺失数，所以包括 R5（注入 45% 残缺）在内的所有 regime 上它都是 0：distinct=1、值恒 0.0。后果是 `kernel/score.py:130` 的 `if mfr > 0.20` 是死分支，附录 A.7 要求的“缺失比例参与全局置信度”从未被验证。
+`kernel/ingest.py` 原先先修复缺失字段再统计缺失数，所以包括 R5（注入 45% 残缺）在内的所有 regime 上它都是 0：distinct=1、值恒 0.0。后果是 `kernel/score.py:667` 的 `if mfr > 0.20` 是死分支，附录 A.7 要求的“缺失比例参与全局置信度”从未被验证。
 修法：在修复**之前**先量一次原始缺失率，并按 Span 类型给条件可得字段集 `EXPECTED_FIELDS`（工具 Span 合法地不带 token，混进去量的就是 Span 类型配比而不是遥测丢失）；修复后的值另存为 `missing_field_ratio_post`，不覆盖原值。
 实测：R1 p50=0.0000 / p99=0.1000，R5 p50=0.0250 / p99=0.2000。
 
@@ -309,6 +309,37 @@ implemented **56**｜implemented_elsewhere **13**｜derivable **4**｜blocked_fi
   `novelty_rate` 掉到 0.0063（低于 0.03 下限），而 R3 本来只剩 4.4% 的上限余量；生成器主动发射
   改写追问是唯一真修，代价是新 `GEN_VERSION` + 全量重生成 + 全矩阵重跑，只为修一个 7/8 regime
   已覆盖的特征。逐 regime 实测表见 `kernel/features.py::_band_membership` 的 docstring。
+  gap 不进退出码，本条不影响 DATASET READY。
+- unlearnable label: 38 of 246 `hallucinated_number` traces (15.4%) carry a degraded dim_dev.O while both O faithfulness channels are undefined (answer_number_count == 0, no golden facts) -- nothing in the feature space separates them from clean traces
+  处置：**量清并记录，不在审计侧修**——根因在生成器，修它是一次数据集换版决定，需要单独授权。
+  机制：`bench/generate.py:1071` 抽 `numeric = rng.random() > 0.10`，注入假数字的分支（`:1078-1080`）
+  **嵌在 `if numeric and pool:` 里面**，而 `dim["O"] = 0.15`（`:908`）在**外层无条件**写下。于是
+  38/246 = 15.4% 的 `hallucinated_number` 轨迹答案里一个数字都没有（`answer_number_count == 0`、
+  `traceable_number_ratio` 为 None、`has_golden` 为 False、`fact_precision` 为 None），却背着
+  「答案含不可溯源数字」的真值——**不可学习的标签**：任何算法、任何人工复核都无法从这条轨迹里
+  找到那个不存在的数字。
+  后果实测（联结 `reports/*/scores.jsonl` 与 `gt.jsonl`，全量 22,800 条）：O 维非 novelty 漏检恰为
+  **36 + 28 = 64** 条、P 维 **9** 条、R 维 **1** 条，与已发布台账逐位吻合。那 36 条零门禁、零告警、
+  `contrib.O` 全 0.0000、27 条 A 档（另 8 B / 1 C）、`S` 均值 91.713（区间 71.523–99.656）。
+  **O 维现值 +0.956381 就是这份数据集上的有效上界**，残余由这批不可学习标签钉住，不是算法缺口。
+  为什么记为「缺口」而不是「失败」：同一形状的另外三类**都有别的通道或门禁认领**，只有这一类无处可看。
+  `truncation` 32/222 = 14.4% 同样两条忠实性通道皆空，但它的 31 条 O 维漏检**全部**带
+  `t0_result_broken` 门禁、全部 D 档、`S` 均值 22.118（区间 8.913–24.617）、27 条告警——维度分漏了、
+  最终判决一点没漏，这正是归因门的设计意图；`unfinished` 53/206 = 25.7% 由 O 的完整性通道 `x_comp`
+  认领，`error` 17/132 = 12.9% 由执行通道 `error_ratio` 认领。
+  否决的替代通道：`citation_reachability`（v3 已发射、未接线）是这批轨迹上唯一有读数的，36 条里
+  可得 23 条、均值 0.2826（13 条恰为 0.0 / 7 条 0.5 / 3 条 1.0），但它在**正常流量上就有
+  290/20,897 = 1.3878% 的 `< 1.0` 触发率**，而 O 的两条现役通道在正常流量上都是
+  **0/20,788 = 0.0000%**；按 slice2 准入表 contam = 0.0012、nz@ok = 0.08%，落在 `goal_drift_max`
+  （0.001 / 0.13%）那一档，即**只配挂在归因门后**——而这批轨迹恰恰零门禁，门后无处可挂。再收窄成
+  `citation_reachability == 0.0 且 answer_number_count == 0`：命中 13/36（36.1%），正常误触仍有
+  **28/20,897 = 0.1340%**。用 0.1340% 的正常误扣换 36.1% 的召回，在两条现役通道都是 0.0000% 的
+  维度上不成立，**否决**。`answer_number_count == 0` 单独更不是信号：正常流量里有
+  **2,704/20,897 = 12.94%** 的答案本来就不含数字。
+  真修法与其代价：把 `dim["O"]` 的写入挪进 `if numeric and pool:`，或在 `atype ==
+  "hallucinated_number"` 时强制 `numeric = True`。两者都改发射字节 → `GEN_VERSION` 与全部 8 个
+  `spec_hash` 变动 → 240 MB 重生成 → 所有跑分、8 份 `SAMPLE.md`、`COVERAGE.md`、README 五个区块
+  全部移动，**并让两份冻结交付物里引用的每个数字失效**。
   gap 不进退出码，本条不影响 DATASET READY。
 
 ## 十、数据集新鲜度与溯源

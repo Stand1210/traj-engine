@@ -56,20 +56,27 @@ would quietly defeat it. The one special case is NaN, which is not equal to itse
 reason. The committed baseline was produced on Windows/MSVC. IEEE-754 does not require `exp`,
 `log`, `erf`, `erfc` or `pow` to be correctly rounded, and this codebase calls `math.log` 17
 times, `math.exp` 7 times, `math.erfc` once and uses `**` 107 times -- including
-`bench/generate.py:765`'s `lat = math.exp(math.log(med) + sig * z_l)` and `kernel/baseline.py:543`'s
+`bench/generate.py:765`'s `lat = math.exp(math.log(med) + sig * z_l)` and `kernel/baseline.py:625`'s
 erfc-based normal CDF. glibc and the MSVC CRT are different implementations, so a run on Linux may
 differ in the last bit.
 
 MEASURED, not assumed. Run 40995616332 of `.github/workflows/matrix.yml` re-ran the whole
 8-regime pipeline on ubuntu-24.04 (Python 3.11.17 / GCC 13.3.0) and diffed it against this
-Windows-produced baseline: 3334 metric leaves, of which 58 differ, in 5 of 8 regimes.
+Windows-produced baseline: 3334 metric leaves, of which 58 differed when this was written
+(55 as of slice6), in 5 of 8 regimes.
 
   * The *dataset* is bit-identical. `bench.reprocheck --numeric-tol 1e-12` on the same runner
     reported a worst deviation of `0.000e+00`, so glibc's exp/log agree with the MSVC CRT to the
     last bit for every value `bench/generate.py` feeds them. The tolerance was never used.
-  * The *pipeline* is not, and the divergence is confined to one leaf: every one of the 58 is
-    `a_cal`, the isotonic-calibrated anomaly probability, worst deviation `4.441e-16` = 2 ulp.
-    The causal chain is fully identified -- `math.erfc` at `kernel/baseline.py:543` is the only
+  * The *pipeline* is not, and the divergence is confined to one leaf: every differing leaf is
+    `a_cal`, the isotonic-calibrated anomaly probability, and every difference is 1-2 ulp of that
+    leaf's *own* binade. So the relative number printed as "worst deviation" is not a constant and
+    must not be regression-tested as one: it moves by 4x whenever a change pushes the worst leaf
+    into the next binary interval (58 leaves / `4.441e-16` when this was written, 55 leaves /
+    `1.110e-16` as of slice6 -- `1.110e-16` is the ulp of [0.5, 1) exactly as `2.776e-17` is the
+    ulp of [0.125, 0.25)). The per-round table is in README's CI section. A moved floor is a moved
+    leaf, not a regression.
+    The causal chain is fully identified -- `math.erfc` at `kernel/baseline.py:625` is the only
     transcendental the pipeline calls that the generator does not (the generator uses `math.erf`,
     `generate.py:553`), it perturbs the *unrounded* `a_raw` held in `stage`, and
     `IsotonicCalibrator._one` at `kernel/calib.py:93` interpolates linearly between knots, so a

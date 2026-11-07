@@ -46,7 +46,7 @@ MEASURED, and for the dataset it did not happen. On ubuntu-24.04 (Python 3.11.17
 deviation of `0.000e+00`: glibc's exp/log agree with the MSVC CRT to the last bit for every value
 this generator feeds them, so the tolerance was never used. The fallback stays as insurance rather
 than because it is needed, and it is *not* dead weight one level up -- the pipeline does diverge on
-that same runner (58 `a_cal` leaves at 2 ulp, traced to the `math.erfc` in `kernel/baseline.py:543`
+that same runner (55 `a_cal` leaves at 1-2 ulp, traced to the `math.erfc` in `kernel/baseline.py:625`
 that the generator never calls); `bench.matrixcheck` documents that chain in full. What the zero
 here buys is a tripwire: a generator edit that starts exercising a transcendental the dataset did
 not previously touch would move this measurement off 0.000e+00, which is exactly why the number is
