@@ -87,6 +87,16 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
      （`misrouted` 栏已删除，依据见 `DESIGN.md` §6.5.2 / `MODULES.md` F4）
   4. `F3` **弃权桶是一等公民**（R3 的 `novelty_rate=0.2867` 不能被藏起来读成 100% 覆盖）
   5. `F5` **门禁与维度分分区显示**（28 条 `truncation` 轨迹 `dims.O=1.0` 却是 D 级，不分区看起来自相矛盾）
+  6. **★★R1 真的冻结了结构（待决 U，load-bearing）**：**R1 不得调用 `cluster_views`**，
+     只走「贴标签 + 刷基线」路径（`MODULES.md` B3/B4）。验收判据 = 移植 `platform/freezeexp.py`
+     的强制自检：把持久化的冻结结构在**同一批 learn 特征**上重放，必须**逐 trace、逐 key**
+     复现内核 `cluster_views` 自己产出的 `assigns`（实测 **2000 traces x 10 keys PASS**）。
+     为什么它必须是一条硬门禁而不是一句提醒：`DESIGN.md` §6.5.8 结论 5 ——
+     上面所有「噪声无害 / 外来流量 100% 自我隔离」的结论**都以冻结为前提**；
+     内核今天**不支持**冻结（`bench/runner.py:210` 永远从零聚类，`kernel/` 里没有
+     `structure_version`），所以若 B3/B4 图省事每天直接重跑，**每一天都是一次 R2**：
+     塌缩每天发生一次、lineage 每天报一堆「合并」、趋势图跨版本不可比、校准每天作废。
+     ★失败模式是静默的（功能全部「正常」，只是语义全错），所以只能靠这条自检拦住。
 - **可并行**：M0 完成后，前端 F0/F2~F5 与后端 B2~B5/B9 **完全并行**。
 - **这一阶段同时是比赛/专利的演示台**，且不阻塞在「拿到 key」这件事上。
 
@@ -177,10 +187,21 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
   **租户内噪声不清理、不隔离、不排除、不度量、不告知**；违反契约的后果**完全由业务方自己承担**。
   ★原句「只度量+隔离」与 v2 的「预检告知」均已作废（同上）。
 - **★不做 `foreign_ratio` 的任何形态**（2026-11-11 新增本条）：不进内核、不进 B1 预检、
-  不进前端。参考实现只留在 `platform/mixexp.py` / `platform/slimcap.py` 两个 post-hoc 实验脚本里。
-  **唯一的替代护栏是零成本的那个**：F3 显示 `cell_size_min` / `cell_size_max` 的跨 run 趋势
-  （`DESIGN.md` 待决 **T** 项）—— 删掉归因手段后，「外来范式压扁分类学」在 M2 的 R 项落地前
-  是**静默**失真，跳变本身就是信号，不需要知道原因。
+  不进前端。参考实现只留在 `platform/mixexp.py` / `platform/slimcap.py` / `platform/freezeexp.py`
+  三个 post-hoc 实验脚本里。
+  ~~**唯一的替代护栏是零成本的那个**：F3 显示 `cell_size_min` / `cell_size_max` 的跨 run 趋势
+  （`DESIGN.md` 待决 **T** 项）。~~
+  **★T 项已否决（`platform/freezeexp.py` 实测，`DESIGN.md` §6.5.8）**：R1 冻结结构下外来流量
+  **100% 进弃权桶**（`nov_B = 1.0000`、`B_absorbed = 0/1333`），`n_cells` 六臂恒 **8**、
+  `cell_size_min/max` 恒 **29/630** ⟹ 趋势线是一条**恒定平线**，没有可守的东西。
+  **「静默失真」这个前提是假的**：20% 污染会显示为 `novelty_rate = 0.2088`，
+  而弃权桶本来就是 F3 的一等公民 —— **可见性早就有了**。
+- **★★R1 必须真的冻结结构（load-bearing，待决 U 项，排进 M1 出口验收）**：
+  `bench/runner.py:210` 今天永远从头调 `cluster_views`，`kernel/` 里没有 `structure_version`。
+  若 B3/B4 图省事每天直接重跑，**每一天都是一次 R2** —— 塌缩每天发生一次、
+  lineage 每天报「合并」、趋势图跨版本不可比、校准每天作废。
+  上面所有「噪声无害」的结论**都以冻结为前提**。详见 `DESIGN.md` §6.5.8 结论 5、
+  `MODULES.md` B3 / B4。
 - **不重打分历史轨迹**。审计不可变。
 - **前端首版不做用户管理与权限**，复用 Langfuse 原生 RBAC。
 

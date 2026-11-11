@@ -14,10 +14,19 @@
 > **`platform/slimcap.py`（★2026-11-11：SLIM 本体 × cap ∈ {8,5} × 污染 ∈ {0%,5%,20%}，6 arm / 565 s。
 > 补上 `tierexp.py:113` 混淆掉的那一格 —— 它从本体推导 cap，所以「slim」臂一次改了两个变量。
 > 结论：六臂 `topk(15) precision` 恒为 1.0 ⟹ 运行期 misrouted 隔离失去依据，
-> 详见 `DESIGN.md` §6.5）**。
+> 详见 `DESIGN.md` §6.5）** ·
+> **`platform/freezeexp.py`（★2026-11-11：**R1 冻结结构**下的 hold-out 实验，6 arm / 365 s。
+> `sys.settrace` 抓取真实内核 `cluster_views` 的帧局部量作为冻结状态（不重算任何聚类），
+> `frozen_assign()` 逐字复现 `cluster.py:852-875`，并**强制自检**：在学结构那批数据上重放
+> 必须逐条逐键复现内核输出（实测 2000 条 × 10 键 PASS）。
+> 结论：外来流量 **100% 进弃权桶**（`nov_B = 1.0`、`B_absorbed = 0/1333`），`n_cells` 六臂恒 8
+> ⟹ §3.1 的「R1 cell 定义不变」**是 load-bearing 的**，且「污染静默压扁分类学」被证伪。
+> 详见 `DESIGN.md` §6.5.8）**。
 > 汇总表：`platform/capreport.py`（cap 5 vs 8 逐档 + 门禁核对）·
 > `platform/asymreport.py`（cap 2→8 全曲线 + 门禁破口普查 + 否决记录）·
-> `platform/slimcap-results.json`（6 arm 原始指标，含 A/B 双侧 census 与 tier 直方）。
+> `platform/slimcap-results.json`（6 arm 原始指标，含 A/B 双侧 census 与 tier 直方）·
+> `platform/freezeexp-results.json`（6 arm：`nov_all/A/B`、R2 是否触发、B 吸收普查、
+> A/B 双侧 `post_margin` 分位、冻结量 `geo_cut`/`sigma2`/`flag_rate`、学结构时的 cell 规模）。
 
 ---
 
@@ -393,7 +402,7 @@ R2 基线等级 `{L3:9}` → `{L2:5, L3:16}`、R8 `{L3:9}` → `{L2:7, L3:11}`�
 
 | 档 | 动作 | 触发 | 成本 | 版本影响 | 分数可比性 |
 |---|---|---|---|---|---|
-| **R1 基线刷新** | 只重跑 `baseline.build`，**cell 定义不变** | 定时（每日）/ 滚动窗 | 极低，O(n) 统计 | bump `anchor_version` | **可比** |
+| **R1 基线刷新** | 只重跑 `baseline.build`，**cell 定义不变**（★**load-bearing，不是措辞**：`bench/runner.py:210` 今天永远从头调 `cluster_views`、`kernel/` 里没有 `structure_version`，所以 B3 必须持久化冻结状态、B4 必须提供「只贴标签」路径，**R1 不得调 `cluster_views`**。实测后果见 `DESIGN.md` §6.5.8 结论 3/5：`geo_cut` 在 R2 语义下是**当前池的 `flag_rate` 分位数**（率匹配、自归一，最多标记 0.5%），在 R1 语义下是**干净时代的绝对边界**（把 100% 外来流量挡进弃权桶，geo 零重叠）—— 同一个量、两种语义、行为完全相反。不冻结 ⟹ 每天都是一次 R2 ⟹ 塌缩每天发生一次） | 定时（每日）/ 滚动窗 | 极低，O(n) 统计 | bump `anchor_version` | **可比** |
 | **R2 结构重聚类** | 重跑 `cluster_views` + `bind_patterns` + `baseline.build` | 见 §3.3 门槛 | **对 n 是 O(1)**（结构只从 `EVAL_M=400` 采样学）+ O(n·k) 贴标签 | bump **`structure_version`** + `anchor_version` | **跨版本不可比** |
 | **R3 本体升版** | 业务改 L1 → 新 `ontology@version` | 业务方主动 | 同 R2 | bump 本体版本 + `anchor_version` | 跨版本不可比 |
 
@@ -436,6 +445,12 @@ kmeans + silhouette 全部只在 ≤400 个采样点上跑；过程视图先把�
 
 ### 3.3 R2 的触发门槛（可测量，不靠感觉；**四个信号，盲区互不重叠**）
 - **`novelty_rate` 超出 `[0.00, 0.25]` 带** → 抓的是**新出现的小子群体**（无法归入现有 cell）。
+  **★2026-11-11 实测补充（`platform/freezeexp.py`，`DESIGN.md` §6.5.8 结论 4）**：
+  这个带同时也是**租户内噪声的悬崖**。R1 冻结结构下外来流量 100% 落进弃权桶，
+  所以 `nov_all` 有闭式 `(k + 0.011·N_A)/(N_A + k)`；令它 = 0.25 ⟹ **污染率 ~24.2% 触发 R2**。
+  悬崖以下完全良性（`n_cells` 恒 8、`nov_A` 恒 0.0110、基线零污染）；
+  悬崖以上 R2 会在脏流量上从零重聚类，**这才是 `n_cells` 8 → 4 真正发生的时刻** ——
+  但每次 R2 必产 lineage 并报「合并」（§3.2-a），**所以不是静默的，无需额外护栏**。
 - **`drift.detect_drift` 触发**（`DRIFT_ALPHA=.01`，`DEFAULT_DELTA=.10` = 「超过漂移前中位数的
   流量占比从 50% 移到 55% 并停在那里」）→ 抓的是**主体流量整体位移**。
 - **★为什么两个都要**：`kernel/drift.py:77-81` 明写代价 ——
@@ -595,6 +610,17 @@ cap 2 → 8 让 `n_cells` 均值 5.0 → 12.6（2.5 倍）、`f1_pool` 均值 0.
 > **复现了它**：20% 污染 × cap5 下 A 的 `n_cells` 从干净的 8 压到 **4**、`cell_size_min` 从 8 涨到 **349**。
 > **摘除删了不等于这个问题消失了** —— 它现在的表现形式是「任务分类学被压扁」（§6.5.5），
 > 而不是「告警风暴」。仍然**不得**把「重污染更安全」当成可依赖的性质。
+>
+> **★2026-11-11 补充边界条件（`platform/freezeexp.py`，`DESIGN.md` §6.5.8）**：上面那个塌缩
+> **只在 R2 语义（从零重聚类）下发生**。R1 冻结结构、之后逐日只贴标签时，六臂
+> （污染 0 / 5 / 20 / 25 / 30 / 40%）的 `n_cells` **恒 8**、`cell_size_min/max` **恒 29/630**、
+> `nov_A` **恒 0.0110**，外来轨迹 **100% 进弃权桶**（`nov_B = 1.0000`、`B_absorbed = 0/1333`）
+> ⟹ **塌缩压根不发生**。
+> **但这不等于问题被解决了**，只是把它挪到了一个点上：污染越过 **~24.2%** 时
+> `novelty_rate > 0.25` → **R2 触发** → 从零重聚类 —— 而那正是塌缩发生的时刻。
+> ⟹ 本节的告诫**继续有效**（「A 的意图簇为什么随污染加重而塌缩」仍未解释），
+> 而**「R1 必须真的冻结」升级为 load-bearing 工程要求**（待决 U，已排进
+> `ROADMAP.md` §2 M1 出口验收第 6 条）。
 
 ### 4.4 待决策：`structure_version` 与 lineage 的存储形态
 lineage 是「旧 cell → 新 cell 的关系图」，跨 run 累积。是存成每 run 一张边表，
