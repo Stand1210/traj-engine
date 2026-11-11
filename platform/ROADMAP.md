@@ -63,8 +63,10 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
   2. **持久化 schema（DDL）**：runs / cells / **cell lineage 边表** / scores / evidence / tenants / ontologies。
      **★lineage 与 `structure_version` 必须在 M0 就进 schema**，即使功能到 M4 才做——
      否则 M4 要做破坏性迁移，而分数记录是审计不可变的，迁移不了。
-  3. **配置文件 schema**：`endpoints.yaml` · `profiles/{cloud-v4,selfhosted-v3,selfhosted-v4}.yaml` ·
-     `tenants/<id>.yaml`（L0，**gitignored**）· 本体 YAML（L1，Tier 0/1 分档）。
+  3. **配置文件 schema**：**`platform.yaml`（部署级单值：`base_url` / `active_profile` / 探测周期）** ·
+     `endpoints.yaml` · `profiles/{cloud-v4,selfhosted-v3,selfhosted-v4}.yaml` ·
+     `tenants/<id>.yaml`（L0，**gitignored**；**只含** `org_id` / `project_id` / `keys` / `queue_id` /
+     默认本体 —— **不含 `host` 与 `profile`**）· 本体 YAML（L1，Tier 0/1 分档）。
   4. **`TraceSource` 接口定义**：`list_traces(window, sampling) -> Iterator[RawTrace]`，
      输出符合 `contracts/schemas.md` 的 **19 键 trace / 29 键 span**，拿不到的字段**诚实置 None**。
   5. **前端路由与页面清单**：F0~F9 哪些进 M1、哪些推后；每页的数据来自哪个端点。
@@ -188,7 +190,15 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
   (`GET /api/public/observations`) instead」
 
 **⟹ 「不适配 v1 API」与「支持自托管 v3」互相矛盾，不能分开选。v3 适配器就是 v1 映射器。**
-「适配 v3 和 v4」的真实含义是**两套读取映射器**：
+
+**★「适配 v3 和 v4」的精确含义（2026-11-11 前提澄清后重写）**：
+不是「同一套运行中的平台同时服务 v3 租户和 v4 租户」——**一套部署只对接一个 Langfuse 实例**，
+所有业务方共用。真实含义是：**平台制品支持两种部署形态，每次部署选定其一，整体切换只改配置文件名。**
+⟹ 推论：**任一部署里两套读取映射器只有一个会被执行到**，
+在 Cloud v4 开发环境中 **v1 映射器是不可达代码**，无法靠「跑起来试试」验证 ——
+这就是下面 fixture 行动项从「顺手做」变成 **M0 强制入口条件**的根本原因。
+
+两套映射器的逐端点差异：
 
 | | 自托管 **v3** | **v4**（Cloud + 新自托管） | 出处 |
 |---|---|---|---|
@@ -217,9 +227,19 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
 ⟹ 探测能拿到**精确服务端版本号**，能力由「版本→能力表」**确定性推导**，
 逐端点试错退化为**校核**（并把表未覆盖的新版本暴露出来，而不是猜）。
 另实测该 spec 的 **120 个 operation 中只有 `health_health` 一个没有 `security` 块**
-⟹ **探测可在录入 key 之前先跑**，注册表单能预填 profile。
+⟹ **探测完全不依赖任何租户凭据**，平台刚部署、一个业务方都没接入时就能跑完。
 §1.5 已改写为**三层探测**（声明 → 推断 → 实证），并新增 §1.6 对照表
 区分**能力探测 vs 适配度预检**（此前二者在文档里紧挨着出现，极易混淆）。
+
+**★2026-11-11 前提纠正（上一条里「注册表单能预填 profile」的说法已作废，不要再引用）**：
+用户澄清「一套部署只对接一个 Langfuse 实例」⟹ profile 是**部署级**属性，不是租户级。连带 5 处修改：
+1. 新增 **`platform.yaml`**（`base_url` / `active_profile` / 探测周期）；`tenants/<id>.yaml` **移除 `host` 与 `profile`**。
+2. **能力探测从 B1（每租户注册时）移回 B0（平台启动时一次）** —— 我上一轮刚把它挪到 B1，是基于误解，已纠正。
+3. **接入流程 9 步 → 8 步**（删掉原第 4 步能力探测，后续顺延）。
+4. **注册表单里没有 profile 选项、也没有 Langfuse 地址输入框**（原「预填下拉框」设计作废）。
+5. 探测结果改存**一份平台级 capability snapshot**（带 `snapshot_id`），每个 Run 只引用 id，不再各存一份；
+   **snapshot 变化 = 平台级事件**（实例被升级会同时影响全部租户）。
+**但双映射器的成本一分没省**，反而更硬：见上面「v1 映射器是不可达代码」。
 
 
 ---
