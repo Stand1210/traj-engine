@@ -57,18 +57,91 @@ v1 已解析 JSON + 无字段组）。这是"兼容两种部署形态"的**真�
 之后 v3 映射器对着 fixture 做契约测试。
 **不做的话，v3 适配器会是整条链路上唯一无法在开发期验证的代码路径，而生产环境恰恰就是自托管 v3。**
 
-### 1.5 注册时探测，不要靠人声明
-`GET /api/public/health` 存在。注册租户时应**主动探测**：
-`health` → `observations v2 是否 200`（404 则回落 v1）→ `v3/scores 是否可用` →
-`annotation-queues 是否可用`，把**探测结果写进 Run 溯源**。
-**★新增利好**（`public-api.md:23`）：「Self-hosted: every instance running Langfuse **v4.36.0
-or later** serves its own spec at `/api/openapi.yaml`」⟹ 自托管 v4 上探测可以从
-「按 profile 硬编码开关」升级为「**拉取实例自述的 spec 并与 profile 对账**」，
-不符时直接给出**逐端点**差异清单，而不是一个笼统的「profile 不匹配」。
-自托管 v3 无此端点，仍走逐项探测。
-**探测结果与声明的 profile 不符 = 注册期硬失败**，而不是运行期静默截断
-（静默截断有两个已知来源：老 SDK 在 v2 端点上最多延迟 15 分钟；游标分页**可能返回空页而
-`meta.cursor` 仍在**，"页空就停"会截掉整个 cohort）。
+### 1.5 ★注册时的「能力探测」：三层，缺一层就会静默走错代码路径
+
+**能力探测回答的是「这个 Langfuse 实例能提供哪些 API」**，与「适配度预检」
+（问「你的埋点数据质量够不够我们的算法用」）是相邻但完全不同的两道闸，对照见 §1.6。
+
+**为什么必须有它**：§1.2 的两层配置里，`profiles/*.yaml` 的 `capabilities` 开关**决定走哪条代码路径**
+（`observations_api: v2 | v1` 选哪个 Observation 映射器），`endpoints.yaml` 只决定打哪个 URL。
+capabilities 填错 → 代码**静默**走错分支 → 字段大面积缺席但 HTTP 全 200，
+下游表现是 `missing_field_ratio` 接近 1.0（触发 `score.py` 的 `mfr > 0.20` 降级，
+**置信度维退化成常数**），全程不报错。
+所以 capabilities **不能靠人在注册表单里勾选**，必须由平台实测。
+
+**三层探测（自上而下，后一层校核前一层）：**
+
+| 层 | 做什么 | 数据来源 | 产出 |
+|---|---|---|---|
+| **L1 声明** | 注册表单里由人选一个 profile | 人 | `cloud-v4` / `selfhosted-v4` / `selfhosted-v3` |
+| **L2 推断** | 读服务端**自报的精确版本号**，查「版本→能力表」 | `GET /api/public/health` | 期望的 capabilities 集合 |
+| **L3 实证** | 对关键端点各打一次最小请求，看 HTTP 状态码 | 实例本身 | 实测的 capabilities 集合 |
+
+**★L2 是本轮新增的关键发现**（`_tmp_lfdocs/openapi_api.yml:12611`-`:12622`，Cloud 自述 spec 原文）：
+
+```yaml
+HealthResponse:
+  properties:
+    version: {type: string, description: Langfuse server version}
+    status:  {type: string}
+  required: [version, status]
+```
+
+`version` 与 `status` **都是 required** ⟹ 一次 `health` 调用就拿到**精确版本号**，不是靠试探猜大版本。
+这把 L3 从「逐端点试错」降级为**校核**：能力主要由 `version` 查表**确定性推导**，
+L3 只负责验证推导结果，并把「版本→能力表」尚未覆盖的新版本**暴露出来**而不是猜。
+两个附带利好：
+- `health` 在不健康时返回 **503**（`openapi_api.yml:2470`）⟹ 它同时充当连通性 + 依赖（数据库）健康探针。
+- **它是全套 API 里唯一免鉴权的端点**：实测统计 Cloud 自述 spec 的 **120 个 operation 中，
+  只有 `health_health` 一个没有 `security` 块**（其余 118 个是 `security: *ref_0`）。
+  ⟹ 探测可以在**拿到 key 之前**就先验一次「这个地址活着吗、是什么版本」，
+  注册表单能在用户填凭据前就把 profile 下拉框预填对。
+  （注意 spec 仍为它声明了 401/403，疑为生成器样板；实现上按「先无凭据试，401 则带 Basic Auth 重试」处理。）
+
+**L3 有两种精度**（`public-api.md:23` 原文）：「Self-hosted: every instance running Langfuse
+**v4.36.0 or later** serves its own spec at `/api/openapi.yaml` and an interactive reference at
+`/api/docs`」（`openapi_api.yml:39`-`:40` 同样记载）：
+- **v4.36.0+**：拉取实例**自述的 spec**，与 profile **逐端点对账** →
+  差异清单精确到端点与字段，而不是一个笼统的「profile 不匹配」。
+- **v3 与 v4.36.0 以下**：无此端点，只能逐项试调（`observations v2` 是否 200 → 否则回落 v1；
+  `v3/scores`；`annotation-queues`）。
+
+**★三层必须互相一致，任一不符 = 注册期硬失败，绝不进入运行期静默降级。**
+三种不符各有明确含义，报错时必须区分：
+
+| 不符 | 含义 | 最常见成因 |
+|---|---|---|
+| **L1 ≠ L2** | 人选错了 profile | 自托管 v3 被当成 v4（本项目的头号风险，见 §1.4） |
+| **L2 ≠ L3** | 实例被裁剪过，或「版本→能力表」需要更新 | 反代挡了端点；灰度版本；表滞后于新版本 |
+| **限流数值与实测不符** | 预算算错 | Cloud 按 **Org** 分桶而非按 project，见 §1.2 |
+
+探测结果（**三层各自的原始证据** + 最终 capabilities）**写进 Run 溯源**，
+这样任一次 run 的分数都能回答「当时是按哪套能力假设读的数据」——审计要求，不是调试便利。
+
+**与「静默截断」的关系**：探测挡住的是**能力层**的静默截断。
+另有两个**运行期**静默截断源探测挡不住，必须在 B2 适配层用不变量测试兜住：
+① 老 SDK（Python <4.7.0 / JS <5.4.0）或 OTel 未发 `x-langfuse-ingestion-version: 4` →
+v2 端点**最多延迟 15 分钟**；② 游标分页**可能返回空页而 `meta.cursor` 仍在**，
+「页空就停」会截掉整个 cohort。
+
+### 1.6 ★能力探测 vs 适配度预检：两个相邻但完全不同的闸
+
+这两步在接入流程里紧挨着（第 2 步、第 3 步），极易混为一谈。区别如下：
+
+| | **能力探测**（§1.5，注册第 2 步） | **适配度预检**（B1 / `LIFECYCLE.md` §1.2，注册第 3 步） |
+|---|---|---|
+| 问的对象 | **Langfuse 实例**：「你能提供哪些 API」 | **业务的数据**：「你的埋点够不够我们的算法用」 |
+| 关心的层次 | 平台 ↔ Langfuse **兼容性** | 业务侧 **数据质量** |
+| 结果形态 | **二元**、**逐端点**（有 / 没有） | **分级**、**逐字段**（0~1 比率 + 是否达标） |
+| 典型条目 | observations v2 / v1、`v3/scores`、`annotation-queues`、`/api/openapi.yaml`、限流桶 | `kind_map` 命中率、`isRootObservation` 唯一性、`usageDetails` 键名、`expandMetadata` 必要性、`golden_facts` 是否有值 |
+| 决定了什么 | **走哪条代码路径** | **是否允许发布本体** + **L2 映射如何自动生成** |
+| 不通过的后果 | **注册期硬失败**，租户建不起来 | **阻断发布**，但给出「补哪个字段」的处方 |
+| 能否在拿到 key 前跑 | **能**（`health` 免鉴权） | 不能（要拉真实样本 trace） |
+| 换个业务方要重跑吗 | 换**实例**才重跑（同实例下所有租户共享） | **每个租户都要跑**（数据各不相同） |
+
+**一句话记法**：能力探测问「**这台机器能不能对话**」，适配度预检问「**对话内容有没有营养**」。
+两道闸都过了，才谈得上首跑。
+
 
 ---
 
@@ -80,11 +153,13 @@ or later** serves its own spec at `/api/openapi.yaml`」⟹ 自托管 v4 上探�
 - **输出**：解析后的**不可变**配置对象 + 启动自检结果
 - **约束**：`kernel/` **不得** import 本层；只有适配层可以。所有 Langfuse 字面量收敛于此。
   profile 与探测结果不符 → 启动失败。
+- **与 B1 的分工**：B0 只做**平台自身启动自检**（配置能否解析、profile 与 endpoints 是否自洽）；
+  **每租户的能力探测发生在注册期、归 B1**（§1.5），B0 只负责把探测结果**存成不可变档案**并供 B2 读。
 
 ### B1 租户与本体注册中心
 - **输入**：注册请求（租户、Langfuse 连接、本体 YAML）
 - **输出**：`tenant_id` · `ontology@version`（**发布即不可变**）· project↔ontology 1:1 绑定 ·
-  适配度预检报告
+  **有效 capabilities（能力探测结果）** · 适配度预检报告
 - **保存时校验清单**（Python dict 时代靠"同一个文件"隐式保证，YAML 化后必须显式做）：
   `slo_anchors` 键集 ⊆ `{L, latency_total, C, cost_total, tokens_total}`（否则 `baseline.build` 抛
   `ValueError`）· `validators[].kind` 在白名单内且**不得含生成式判官**（锁定项）·
@@ -93,7 +168,11 @@ or later** serves its own spec at `/api/openapi.yaml`」⟹ 自托管 v4 上探�
   见 `LIFECYCLE.md` §2.3/§2.4）· `validators` 只暴露 `number_traceable.min_ratio` 一个旋钮
   （`min_chars`/`max_hits` 内核零引用，不得渲染成可填项）·
   `pattern_count` 走「**平台提案 → 业务确认**」，不是填空
-- **适配度预检（9 项，逐项给「达标/不达标 + 不达标的具体后果」）**：清单见 `LIFECYCLE.md` §1.2。
+- **★能力探测（注册第 4 步，先于预检）**：§1.5 的三层（人选 profile → `health.version`
+  查表推断 → 逐端点实证）。产出「有效 capabilities」，**决定 B2 走 v2 还是 v1 映射器**；
+  三层任一不符 → 注册期硬失败。`health` 是全套 API 中**唯一免鉴权**的端点
+  ⟹ 探测可在录入 key **之前**先跑一次。
+- **适配度预检（注册第 5 步，9 项，逐项给「达标/不达标 + 不达标的具体后果」）**：清单见 `LIFECYCLE.md` §1.2。
   其中 **3 项是静默失败源**（不检就会运行期算错而不报错）：
   ① `metadata` 默认截断 200 字符 → `traceable_number_ratio` **算错但不报错**；
   ② `usageDetails` 是开放映射 → `tokens_system_prompt`/`cache_read`/`cache_write`
@@ -205,6 +284,11 @@ or later** serves its own spec at `/api/openapi.yaml`」⟹ 自托管 v4 上探�
   → 填 L1 → 保存时校验 → 发布（不可变）→ 建 cohort → 首跑
 - **★预检报告必须是独立一屏**：9 项逐项给「达标/不达标 + 不达标的具体后果」。
   它是业务方**唯一能看懂的「我的埋点够不够」的答案**，藏在向导步骤里等于没有
+- **★能力探测结果与预检报告必须分屏**：探测是**逐端点二元表**
+  （端点 / L1 声明 / L2 推断 / L3 实测 / 是否一致），预检是**逐字段分级表**。
+  混在一屏会让业务方以为「端点不可用」和「埋点缺字段」是同一类问题（对照见 §1.6）。
+  **profile 下拉框可自动预填**：`GET /api/public/health` 免鉴权且返回精确 `version`，
+  填完 host 就能探，不必等 key。
 - **表单按 Tier 分档渲染**：Tier 0 **可以一屏 0 字段**（口径字段标「已自动兜底，可覆盖」）；
   Tier 1 只有 `forbidden_actions` 必填；`validators`（**一个浮点**）/ `pattern_count`
   （**确认提案，不是填空**）/ `slo_anchors` / `models` / `context_window` 全部可选

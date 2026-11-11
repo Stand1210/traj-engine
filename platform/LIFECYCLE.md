@@ -31,8 +31,8 @@
 | 1 | 建 Organization（= 租户边界） | **业务方**（Cloud 上无程序化建 Org 的公开 API；`/api/admin/organizations` **仅自托管**） | `org_id` | — |
 | 2 | 建 Project（= 本体边界，1:1） | 业务方或平台代建（`POST /api/public/projects`，需 **org-scoped key**；body 必填 `name` + `retention`，`retention` 须为 0 或 ≥3 天） | `project_id` | — |
 | 3 | 交凭据 → 平台录 **L0 租户档案** | **业务方** | `tenants/<id>.yaml`：host / profile / keys / project_id / queue_id | — |
-| 4 | **能力探测** | 平台自动 | 探测结果写进 Run 溯源 | **探测结果与声明 profile 不符 → 硬失败**（不静默降级） |
-| 5 | **拉样本 + 适配度预检** | 平台自动 | 预检报告（见 §1.2） | 关键项不达标 → 阻断发布并给出具体原因 |
+| 4 | **能力探测**（**三层**：人选 profile → `health.version` 查表推断 → 逐端点实证；详见 `MODULES.md` §1.5） | 平台自动 | 三层各自的原始证据 + 最终 capabilities，写进 Run 溯源 | **三层任一不符 → 硬失败**（不静默降级） |
+| 5 | **拉样本 + 适配度预检**（问「你的埋点够不够」，与第 4 步问「实例能不能对话」是**两道不同的闸**，对照表见 `MODULES.md` §1.6） | 平台自动 | 预检报告（见 §1.2） | 关键项不达标 → 阻断发布并给出具体原因 |
 | 6 | **自动生成 L2 接入映射** | 平台自动 | `kind_map`（平台常量）/ `root_rule` / `param_paths` / `usage_key_map` / `metadata_keys` / `field_groups` / `expandMetadata` 清单 | — |
 | 7 | **业务方填 L1** | **业务方** | Tier 0：无。Tier 1：`forbidden_actions`（+ 可选 `validators` / `pattern_count`） | 保存时校验（见 §2.3） |
 | 8 | **发布 `ontology@version`** | 平台 | 不可变版本；驱动 `anchor_version` 与每条分数 | — |
