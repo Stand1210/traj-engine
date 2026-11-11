@@ -156,7 +156,12 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
 
 ## 4. 明确不做 / 已冻结（避免开工后反复）
 - **不改 `kernel/`**。它在 `code_hash` 闭包里，改一个字节就要重生成 8 份 `SAMPLE.md`。
-  平台侧需要的新能力（如 `pattern_count`）**一律走 `cluster_views` 已有的形参**，由 B4 传值。
+  平台侧需要的新能力**一律走 `cluster_views` 已有的形参**，由 B4 传值。
+  **★2026-11-11：这条原则刚刚被用上了。** `pattern_count` 作为**业务字段已删除**
+  （`DESIGN.md` §7.6），但 cap 机制保留 —— 平台改为传一个 **L2 常量**
+  `n_declared_patterns = PATTERN_CAP_NDEC_DEFAULT = 3` → cap 5。
+  **走的正是本行说的既有形参，所以零内核改动、`code_hash` 不变、8 份 `SAMPLE.md` 不用重生成、
+  22 条不变量与 8 份 scorecard 全部照旧。** 这是该原则价值的一次实证。
 - **不做 LLM-as-a-Judge**。判别式模型（isotonic / Platt / LogReg）允许，须 cross-fit 并报 ECE。
 - **不做范式扫描 / 自动分桶**（已实测后删除）。噪声靠零阈值 `foreign_ratio` 度量并隔离出告警流。
 - **首版不做「一个 project 混多类 agent」**。`1 project = 1 本体`，租户内噪声不清理、只度量+隔离。
