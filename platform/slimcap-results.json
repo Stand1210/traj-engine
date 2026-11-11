@@ -1,0 +1,407 @@
+{
+  "_note": "SLIM ontology (required_steps DELETED = the real Tier-1-minimal tenant ontology) x cap in {8, 5} x pollution in {0%, 5%, 20%}. One variable at a time: tierexp.py:113 derived the cap FROM the ontology, so its 'slim' arm conflated 'required_steps deleted' with 'cap 5 -> 8'. This isolates the cap. Cohorts are byte-identical to mixexp/tierexp (MX.build, SEED=20261109).",
+  "_wall_secs": 565.4,
+  "arms": [
+    {
+      "A": {
+        "alert_rate": 0.04825,
+        "f1_pool": 0.77576,
+        "fpr_pool": 0.00027,
+        "n": 4000,
+        "n_tier2": 159,
+        "recall_pool": 0.63576
+      },
+      "B": null,
+      "cap_tag": "cap8",
+      "cell_size_max": 1506,
+      "cell_size_min": 8,
+      "census_A": {
+        "credibility_of_largest_cell": 0.9805,
+        "largest_cell": 1506,
+        "n": 4000,
+        "n_cells_occupied": 8,
+        "n_novelty": 321,
+        "novelty_rate": 0.08025,
+        "tier_hist": {
+          "0": 3807,
+          "1": 34,
+          "2": 159
+        }
+      },
+      "frac": 0.0,
+      "kmax_pat": 8,
+      "n": 4000,
+      "n_B": 0,
+      "n_bound_patterns": 0,
+      "n_cells": 8,
+      "n_cells_below_kappa": 2,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 6,
+      "ndec": 0,
+      "novelty_rate_all": 0.08025,
+      "ontology": "slim",
+      "overall": {
+        "alert_rate": 0.05246,
+        "f1_pool": 0.82581,
+        "fpr_pool": 0.00029,
+        "n": 3679,
+        "n_tier2": 159,
+        "recall_pool": 0.70588
+      },
+      "tag": "slim-00pct-cap8",
+      "topk_A_share": 1.0,
+      "topk_precision": 1.0,
+      "topk_tiers": [
+        2
+      ],
+      "wall_s": 111.7
+    },
+    {
+      "A": {
+        "alert_rate": 0.05125,
+        "f1_pool": 0.80473,
+        "fpr_pool": 0.00027,
+        "n": 4000,
+        "n_tier2": 170,
+        "recall_pool": 0.6755
+      },
+      "B": null,
+      "cap_tag": "cap5",
+      "cell_size_max": 1506,
+      "cell_size_min": 8,
+      "census_A": {
+        "credibility_of_largest_cell": 0.9805,
+        "largest_cell": 1506,
+        "n": 4000,
+        "n_cells_occupied": 8,
+        "n_novelty": 32,
+        "novelty_rate": 0.008,
+        "tier_hist": {
+          "0": 3795,
+          "1": 35,
+          "2": 170
+        }
+      },
+      "frac": 0.0,
+      "kmax_pat": 5,
+      "n": 4000,
+      "n_B": 0,
+      "n_bound_patterns": 0,
+      "n_cells": 8,
+      "n_cells_below_kappa": 2,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 5,
+      "ndec": 3,
+      "novelty_rate_all": 0.008,
+      "ontology": "slim",
+      "overall": {
+        "alert_rate": 0.05166,
+        "f1_pool": 0.82424,
+        "fpr_pool": 0.00027,
+        "n": 3968,
+        "n_tier2": 170,
+        "recall_pool": 0.70345
+      },
+      "tag": "slim-00pct-cap5",
+      "topk_A_share": 1.0,
+      "topk_precision": 1.0,
+      "topk_tiers": [
+        2
+      ],
+      "wall_s": 99.4
+    },
+    {
+      "A": {
+        "alert_rate": 0.05184,
+        "f1_pool": 0.80745,
+        "fpr_pool": 0.00057,
+        "n": 3800,
+        "n_tier2": 164,
+        "recall_pool": 0.68182
+      },
+      "B": {
+        "alert_rate": 0.03,
+        "f1_pool": 0.63158,
+        "fpr_pool": 0.0,
+        "n": 200,
+        "n_tier2": 6,
+        "recall_pool": 0.46154
+      },
+      "cap_tag": "cap8",
+      "cell_size_max": 2021,
+      "cell_size_min": 31,
+      "census_A": {
+        "credibility_of_largest_cell": 0.9854,
+        "largest_cell": 2021,
+        "n": 3800,
+        "n_cells_occupied": 6,
+        "n_novelty": 35,
+        "novelty_rate": 0.00921,
+        "tier_hist": {
+          "0": 3603,
+          "1": 33,
+          "2": 164
+        }
+      },
+      "census_B": {
+        "credibility_of_largest_cell": 0.869,
+        "largest_cell": 199,
+        "n": 200,
+        "n_cells_occupied": 1,
+        "n_novelty": 1,
+        "novelty_rate": 0.005,
+        "tier_hist": {
+          "0": 194,
+          "2": 6
+        }
+      },
+      "frac": 0.05,
+      "kmax_pat": 8,
+      "n": 4000,
+      "n_B": 200,
+      "n_bound_patterns": 0,
+      "n_cells": 7,
+      "n_cells_below_kappa": 0,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 4,
+      "ndec": 0,
+      "novelty_rate_all": 0.009,
+      "ontology": "slim",
+      "overall": {
+        "alert_rate": 0.05121,
+        "f1_pool": 0.80885,
+        "fpr_pool": 0.00054,
+        "n": 3964,
+        "n_tier2": 170,
+        "recall_pool": 0.68367
+      },
+      "tag": "slim-05pct-cap8",
+      "topk_A_share": 0.7333,
+      "topk_precision": 1.0,
+      "topk_tiers": [
+        2
+      ],
+      "wall_s": 91.0
+    },
+    {
+      "A": {
+        "alert_rate": 0.05184,
+        "f1_pool": 0.80745,
+        "fpr_pool": 0.00057,
+        "n": 3800,
+        "n_tier2": 164,
+        "recall_pool": 0.68182
+      },
+      "B": {
+        "alert_rate": 0.03,
+        "f1_pool": 0.63158,
+        "fpr_pool": 0.0,
+        "n": 200,
+        "n_tier2": 6,
+        "recall_pool": 0.46154
+      },
+      "cap_tag": "cap5",
+      "cell_size_max": 2021,
+      "cell_size_min": 31,
+      "census_A": {
+        "credibility_of_largest_cell": 0.9854,
+        "largest_cell": 2021,
+        "n": 3800,
+        "n_cells_occupied": 6,
+        "n_novelty": 35,
+        "novelty_rate": 0.00921,
+        "tier_hist": {
+          "0": 3603,
+          "1": 33,
+          "2": 164
+        }
+      },
+      "census_B": {
+        "credibility_of_largest_cell": 0.869,
+        "largest_cell": 199,
+        "n": 200,
+        "n_cells_occupied": 1,
+        "n_novelty": 1,
+        "novelty_rate": 0.005,
+        "tier_hist": {
+          "0": 194,
+          "2": 6
+        }
+      },
+      "frac": 0.05,
+      "kmax_pat": 5,
+      "n": 4000,
+      "n_B": 200,
+      "n_bound_patterns": 0,
+      "n_cells": 7,
+      "n_cells_below_kappa": 0,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 4,
+      "ndec": 3,
+      "novelty_rate_all": 0.009,
+      "ontology": "slim",
+      "overall": {
+        "alert_rate": 0.05121,
+        "f1_pool": 0.80885,
+        "fpr_pool": 0.00054,
+        "n": 3964,
+        "n_tier2": 170,
+        "recall_pool": 0.68367
+      },
+      "tag": "slim-05pct-cap5",
+      "topk_A_share": 0.7333,
+      "topk_precision": 1.0,
+      "topk_tiers": [
+        2
+      ],
+      "wall_s": 82.2
+    },
+    {
+      "A": {
+        "alert_rate": 0.04688,
+        "f1_pool": 0.743,
+        "fpr_pool": 0.00135,
+        "n": 3200,
+        "n_tier2": 131,
+        "recall_pool": 0.60082
+      },
+      "B": {
+        "alert_rate": 0.065,
+        "f1_pool": 0.56911,
+        "fpr_pool": 0.02332,
+        "n": 800,
+        "n_tier2": 31,
+        "recall_pool": 0.49296
+      },
+      "cap_tag": "cap8",
+      "cell_size_max": 1506,
+      "cell_size_min": 8,
+      "census_A": {
+        "credibility_of_largest_cell": 0.9805,
+        "largest_cell": 1506,
+        "n": 3200,
+        "n_cells_occupied": 7,
+        "n_novelty": 157,
+        "novelty_rate": 0.04906,
+        "tier_hist": {
+          "0": 3050,
+          "1": 19,
+          "2": 131
+        }
+      },
+      "census_B": {
+        "credibility_of_largest_cell": 0.9145,
+        "largest_cell": 321,
+        "n": 800,
+        "n_cells_occupied": 3,
+        "n_novelty": 28,
+        "novelty_rate": 0.035,
+        "tier_hist": {
+          "0": 748,
+          "1": 21,
+          "2": 31
+        }
+      },
+      "frac": 0.2,
+      "kmax_pat": 8,
+      "n": 4000,
+      "n_B": 800,
+      "n_bound_patterns": 0,
+      "n_cells": 10,
+      "n_cells_below_kappa": 1,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 10,
+      "ndec": 0,
+      "novelty_rate_all": 0.04625,
+      "ontology": "slim",
+      "overall": {
+        "alert_rate": 0.05295,
+        "f1_pool": 0.72112,
+        "fpr_pool": 0.00597,
+        "n": 3815,
+        "n_tier2": 162,
+        "recall_pool": 0.60333
+      },
+      "tag": "slim-20pct-cap8",
+      "topk_A_share": 0.8667,
+      "topk_precision": 1.0,
+      "topk_tiers": [
+        2
+      ],
+      "wall_s": 89.5
+    },
+    {
+      "A": {
+        "alert_rate": 0.04781,
+        "f1_pool": 0.76768,
+        "fpr_pool": 0.00034,
+        "n": 3200,
+        "n_tier2": 137,
+        "recall_pool": 0.62551
+      },
+      "B": {
+        "alert_rate": 0.04125,
+        "f1_pool": 0.63462,
+        "fpr_pool": 0.0,
+        "n": 800,
+        "n_tier2": 33,
+        "recall_pool": 0.46479
+      },
+      "cap_tag": "cap5",
+      "cell_size_max": 2268,
+      "cell_size_min": 349,
+      "census_A": {
+        "credibility_of_largest_cell": 0.9869,
+        "largest_cell": 2268,
+        "n": 3200,
+        "n_cells_occupied": 2,
+        "n_novelty": 2,
+        "novelty_rate": 0.00063,
+        "tier_hist": {
+          "0": 3047,
+          "1": 16,
+          "2": 137
+        }
+      },
+      "census_B": {
+        "credibility_of_largest_cell": 0.9329,
+        "largest_cell": 417,
+        "n": 800,
+        "n_cells_occupied": 2,
+        "n_novelty": 34,
+        "novelty_rate": 0.0425,
+        "tier_hist": {
+          "0": 767,
+          "2": 33
+        }
+      },
+      "frac": 0.2,
+      "kmax_pat": 5,
+      "n": 4000,
+      "n_B": 800,
+      "n_bound_patterns": 0,
+      "n_cells": 4,
+      "n_cells_below_kappa": 0,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 4,
+      "ndec": 3,
+      "novelty_rate_all": 0.009,
+      "ontology": "slim",
+      "overall": {
+        "alert_rate": 0.04692,
+        "f1_pool": 0.74297,
+        "fpr_pool": 0.00027,
+        "n": 3964,
+        "n_tier2": 170,
+        "recall_pool": 0.59295
+      },
+      "tag": "slim-20pct-cap5",
+      "topk_A_share": 0.8667,
+      "topk_precision": 1.0,
+      "topk_tiers": [
+        2
+      ],
+      "wall_s": 80.0
+    }
+  ]
+}

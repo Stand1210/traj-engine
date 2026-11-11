@@ -3,14 +3,20 @@
 > 回答三个问题：①新业务如何接入 ②最简洁本体 YAML 需要哪些字段 ③运行一段时间后如何重新聚类。
 > 与 `platform/DESIGN.md`（租户/本体/Langfuse 映射）、`platform/MODULES.md`（前后端黑盒模块）配套。
 > **本文所有结论都标注了代码或实测出处**；凡是推测都写明「待实测」。
-> 日期 2026-11-10，**2026-11-11 修订 §2.4 / §2.5 / §4.1 / §4.2 / §5**（删除 L1 `pattern_count`）。
+> 日期 2026-11-10，**2026-11-11 修订 §1.2 / §2.4 / §2.5 / §4.1 / §4.2 / §4.3 / §5**
+> （删除 L1 `pattern_count`；**删除 `foreign_ratio` 运行期隔离，降为 B1 预检的一个建议数字**）。
 > 实测脚本（全部 post-hoc，只读 `data/` 与 `reports/`，不写、不动 `code_hash` 闭包）：
 > `platform/mixexp.py`（arms 1-2，污染）· `platform/tierexp.py`（arms 3-4，分层/告警）·
 > **`platform/capexp.py`（8 干净档 × {cap 5, cap 8}，16 arm）** ·
 > **`platform/asymexp.py`（cap ∈ {2,3,4,6} × 8 档，32 arm，凑成完整 cap 曲线）** ·
-> **`platform/supexp.py`（「支撑度下限」替代方案，已实测否决）**。
+> **`platform/supexp.py`（「支撑度下限」替代方案，已实测否决）** ·
+> **`platform/slimcap.py`（★2026-11-11：SLIM 本体 × cap ∈ {8,5} × 污染 ∈ {0%,5%,20%}，6 arm / 565 s。
+> 补上 `tierexp.py:113` 混淆掉的那一格 —— 它从本体推导 cap，所以「slim」臂一次改了两个变量。
+> 结论：六臂 `topk(15) precision` 恒为 1.0 ⟹ 运行期 misrouted 隔离失去依据，
+> 详见 `DESIGN.md` §6.5）**。
 > 汇总表：`platform/capreport.py`（cap 5 vs 8 逐档 + 门禁核对）·
-> `platform/asymreport.py`（cap 2→8 全曲线 + 门禁破口普查 + 否决记录）。
+> `platform/asymreport.py`（cap 2→8 全曲线 + 门禁破口普查 + 否决记录）·
+> `platform/slimcap-results.json`（6 arm 原始指标，含 A/B 双侧 census 与 tier 直方）。
 
 ---
 
@@ -135,7 +141,7 @@
 | **`usageDetails` 的实际键名** | `tokens_system_prompt`/`tokens_cache_read`/`tokens_cache_write` **不是契约保证的**（`usageDetails` 是开放整数映射，文档示例只有 `input`/`output`）→ 决定 `usage_key_map` | 官方 OpenAPI |
 | **6 个无原生列字段的埋点率**（`subgoal_text`/`arg_valid`/`output_citations`/`verifier`/`output_facts`/`finish_reason`） | 未埋点则恒为 None → `missing_field_ratio` 如实上升 → `kernel/score.py` 的 `mfr>0.20` 置信度降级生效 | `DESIGN.md` §4.3 |
 | metadata 值长度分布 | 默认**截断到 200 字符**，必须传 `expandMetadata` 才返完整值 → 截断会让 `traceable_number_ratio` **算错但不报错** | 官方参数表 |
-| `foreign_ratio` 分布（见 `DESIGN.md` §6.1） | 判断这个 project 是否真的只有一类范式；> 0 说明该拆 project | 实测 A=0.0 / B=1.0，零重叠 |
+| `foreign_ratio` 分布（见 `DESIGN.md` §6.1） | **★2026-11-11 重新定性**：告知业务方是否违反了「1 project = 1 本体」契约。**建议性数字，零运行期效果** —— 不隔离、不排除、不分桶、不影响打分与告警。保留它的**唯一**理由是：外来范式会**压扁任务分类学**（实测 20% 污染 × cap5 下 `n_cells` 8 → 4、`cell_size_min` 8 → 349），而 F3 是要把分类学摆给人看的（`DESIGN.md` §6.5.5）。原理由「不隔离就告警风暴」**已作废**（§6.5.2） | 实测 A=0.0 / B=1.0，零重叠（ROC=1.0，仍然为真）；`platform/slimcap.py` 六臂 |
 | 日均轨迹量与 3 天窗口内的 n | 决定首跑是否冷启动、以及 `EVAL_M` 采样比例（§4.2） | `bench/regime.py:164` |
 
 ### 1.3 接入后的常态运行
@@ -269,9 +275,16 @@ violation and needs no statistics. Learned steps are a prevalence estimate.」
 - **代价**：A 侧 `f1_pool` **0.88142 → 0.80745**（5%）、**0.84634 → 0.74300**（20%）。
 - **★代价与污染无关**：声明版下污染本身只让 A 的 f1 从 0.88931 掉到 0.88142（**−0.008**）。
   ⟹ 这 −0.074 是「放弃 `unfulfilled` 通道」的**通用价格，干净 project 也要付**。
-- **⟹ 但删除字段不能替代 `DESIGN.md` §6.3 的 `foreign_ratio` 摘除。**
+- ~~**⟹ 但删除字段不能替代 `DESIGN.md` §6.3 的 `foreign_ratio` 摘除。**
   摘除是**零成本**的，删字段是**花 0.074 F1 买保险**。二者防的是不同故障：
-  删字段防「业务把 `required_steps` 填漏」，摘除防「外来范式混进 project」。
+  删字段防「业务把 `required_steps` 填漏」，摘除防「外来范式混进 project」。~~
+  > **★已作废，不要再引用（2026-11-11，`platform/slimcap.py` 实测证伪，见 `DESIGN.md` §6.5）。**
+  > 「二者防不同故障、不可互替」是错的：**删字段已经把摘除要防的那个故障防掉了**。
+  > 本轮补测的那一格（SLIM × cap 5，即生产真正跑的组合）显示：
+  > 六臂 `topk(15) precision` **恒为 1.0**；20% 污染下 `novelty_rate` **0.04625 → 0.009**（干净 0.008）、
+  > overall `fpr_pool` **0.00597 → 0.00027**（恰好等于干净对照）。
+  > 而那 −0.074 F1 是**放弃 `unfulfilled` 通道**的通用价格（干净 project 也要付），**与摘除无关**。
+  > ⟹ **`foreign_ratio` 摘除（待决 C2）已作废；`foreign_ratio` 降为本表 §1.2 的一个建议性预检数字。**
 
 ~~**缓解方案（比让业务列步骤清单现实得多）——新增一个整数字段 `pattern_count`：**~~
 
@@ -560,7 +573,12 @@ cap 2 → 8 让 `n_cells` 均值 5.0 → 12.6（2.5 倍）、`f1_pool` 均值 0.
 （`k_cons` 取 R_RUNS 次 k 的中位数，`cluster.py:668-671`），A 内部原本的细分被合并；
 或 `EVAL_M=400` 采样里 A 的占比从 95% 降到 80%，细分簇采不满而并入大簇。
 **⟹ 在查清之前，不得把「重污染更安全」当成可依赖的性质去设计任何东西。**
-这也是 §6.3 的 `foreign_ratio` 摘除必须做**前置**而非**兜底**的又一个理由。
+~~这也是 §6.3 的 `foreign_ratio` 摘除必须做**前置**而非**兜底**的又一个理由。~~
+> **★已作废（2026-11-11，`platform/slimcap.py`，见 `DESIGN.md` §6.5）。** 摘除本身已删除。
+> **但本节的问题（污染变重为什么反而让合法簇塌缩）依然是公开未解问题**，而且 slimcap
+> **复现了它**：20% 污染 × cap5 下 A 的 `n_cells` 从干净的 8 压到 **4**、`cell_size_min` 从 8 涨到 **349**。
+> **摘除删了不等于这个问题消失了** —— 它现在的表现形式是「任务分类学被压扁」（§6.5.5），
+> 而不是「告警风暴」。仍然**不得**把「重污染更安全」当成可依赖的性质。
 
 ### 4.4 待决策：`structure_version` 与 lineage 的存储形态
 lineage 是「旧 cell → 新 cell 的关系图」，跨 run 累积。是存成每 run 一张边表，
