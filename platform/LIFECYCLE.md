@@ -253,6 +253,13 @@ violation and needs no statistics. Learned steps are a prevalence estimate.」
   「你的 agent 看起来有 3~5 种执行模式，对吗？」
 - 一个整数就足以把 `kmax_pat` 从 8 收回到 `pattern_count + 2`，避免碎裂。
 - **提案来源是数据，不是业务的想象** —— 与「根据上报的 trace 规矩去聚类」的原则一致。
+- **★它不是「预设簇数」**（`DESIGN.md` §7.2）：k 仍由数据选 —— 意图视图扫 `k=2..kmax`、
+  过程视图扫 `HEIGHT_GRID`，都用 k-neutral silhouette；最终阶次 = 8 次 bagged run 的 **k 中位数**。
+  `pattern_count` 只喂 `cluster.py:794-795` 的**上限** `kmax_pat = min(8, n+2)`，是**单边正则**。
+- **★失败方向不对称，这才是必须由平台提案、业务只需点头的原因**
+  （`DESIGN.md` §7.4，依据 `cluster.py:468-472` 原文）：
+  **答多了** = 过切分，小 cell 被 credibility 权重往意图层/全局层收缩，**便宜**；
+  **答少了** = 欠切分，一个 cell 静默混两种工作流 → **条件基线双峰 → 下游任何地方都不可恢复**。
 - 仍留空时退到 `K_MAX_PATTERN_ABS = 8`；此时过分裂**会优雅降级**：
   cell 变小 → `credibility(n) = n/(n+KAPPA)`，`KAPPA=30`，`B(30)=0.5` →
   `baseline.build` 的 `level` 从 `"L3"` 落回 `"L2"`，锚点池 `POOL_W=400` 中

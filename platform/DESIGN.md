@@ -654,7 +654,134 @@ V = L2 自动收集的观测 name 词表（接入预检 §1.2 第 2 项那一趟
 
 ---
 
-## 7. 待决清单
+## 7. ★聚类算法：方法论文档与已交付内核的分歧记录（答辩必问）
+
+**分歧是真实存在的，而且此前 `platform/` 四份文档里一个字都没记。本节补上。**
+触发：用户提问「为什么需要业务确认 `pattern_count`，我们用 HDBSCAN 相较于 k-means、GMM
+的优点不就是不需要预设簇数吗」——**这个前提对方法论文档是对的，对已交付内核是错的。**
+
+### 7.1 文档说什么 vs 内核做什么
+
+| | 《方法论设计》文档 | 已交付内核（`kernel/cluster.py`） |
+|---|---|---|
+| 意图视图降维 | §5.2.3：**UMAP 降到 5-15 维**（原文第 726 行：「直接在 1024 维余弦空间上跑 HDBSCAN 效果差（维度灾难 + 密度定义失真）」） | **无降维**，直接在原始句向量上算欧氏距离 |
+| 意图视图聚类 | §5.2.4：**HDBSCAN**，并给了「选 HDBSCAN 而非 K-Means / GMM 的理由」对照表（第 742-748 行：需预设簇数 是/是/**否**） | **k-means++ 播种的 Lloyd 算法**（`cluster.py:217`），k 在 `range(2, kmax+1)` 上扫描（`:762`），由 k-neutral silhouette 选 |
+| 执行视图聚类 | §5.2.5 路线 A：n-gram TF-IDF + **层次聚类** | **average-linkage UPGMA**（`cluster.py:511`）—— **与文档一致** |
+| 融合 | §5.4：**共识聚类**（co-association 矩阵 → 再聚类） | **一致**（`cluster.py:772 _consensus`），8 次 bagged run |
+| 噪声 / 弃权 | HDBSCAN 原生 `label=-1` | novelty 缓冲区（`cluster.py:862`），判据是**共识边际**，不是密度 |
+
+**根本原因是硬约束**：内核是**纯 stdlib Python** —— 全部 import 只有
+`math` `random` `json` `re` `bisect`（实测 `rg "^(import|from) " kernel`），
+装不了 `hdbscan` / `umap-learn` / `sklearn` / `numpy`。**UMAP 与 HDBSCAN 都不可用。**
+
+**这个分歧早就被登记过，但只记在一个不起眼的地方**：`bench/contract.py:59-63` 把它列为
+**SUBSTITUTION** —— 文档契约里的 `cluster_strength`（HDBSCAN 的成员强度）
+「has no analogue in a consensus-partition clustering」，改用 bagged co-association 边际替代。
+
+**辩护要点**：文档自己在 §5.4（第 893 行）就论证了**承重的是共识层，不是 base learner**：
+「T4 拿不到多数票就单独成簇…**这就是"证据不足就不合并"的保守策略，也是它比单次 HDBSCAN
+稳健的根本原因**」。⟹ base learner 换成 k-means + UPGMA 之后，共识层的语义
+（`cons = (a-b)/max(a,b)`、票数下限、弃权缓冲区）**一字未改**。
+
+### 7.2 ★「不需要预设簇数」这个优点我们保留了 —— `pattern_count` 不是 k
+
+**`pattern_count` 喂的是 k 的上限，不是 k 本身。**
+
+- 意图视图：k 在 `range(2, kmax+1)` 上**逐个试**，用 k-neutral silhouette 选（`cluster.py:762-766`）。
+- 执行视图：切高在 `HEIGHT_GRID`（0.05~0.85 共 17 档）上**逐个试**，同一个统计量选
+  （`select_cut_height`，`cluster.py:440`）。
+- 最终模型阶次 = **8 次 bagged run 的 k 中位数**，共识树在**恰好实现该 k** 的高度上切。
+  `cluster.py:13-15` docstring 原文：「the model order is the **median k over the runs** …
+  so `consensus_threshold` does **NOT** decide how many task classes exist」。
+
+`pattern_count` 只出现在**一个地方**：
+
+```python
+n_dec    = n_declared_patterns or K_MAX_PATTERN_ABS                        # cluster.py:794
+kmax_pat = max(2, min(K_MAX_PATTERN_ABS, n_dec + K_MAX_PATTERN_HEADROOM))   # :795, headroom = 2
+```
+
+⟹ 它是**单边正则**：「最多找 n+2 种模式」。数据里真的更少，silhouette 自然会选更少。
+
+### 7.3 ★那为什么这个上限需要业务先验？因为 cap 是 binding constraint（代码原文 + 实测）
+
+`cluster.py:48-54` 的注释是**这个字段存在的全部理由**：
+> 「the cut-selection statistic is **monotone toward finer partitions** once its k-bias is removed
+> (see `silhouette_dm`), which **makes the cap the binding constraint** — leaving it at a loose
+> global 8 let the heavily corrupted and foreign-ontology regimes **shatter 3 declared workflows
+> into 9-12 clusters**.」
+
+**实测确认**（`platform/tierexp.py`，20% 污染档，`n_declared_patterns=0` → cap 落到 8）：
+`n_pattern_clusters` **4 → 10**、`novelty_rate` **0.009 → 0.046（5 倍）**。
+**而 5% 档没有碎裂（4 → 4）** ⟹ **代价只在脏流量上显现**；干净流量上这个字段确实可有可无。
+
+### 7.4 ★为什么是「业务确认」而不是「业务填写」：失败方向不对称
+
+`cluster.py:468-472` 的注释给出了判据：
+> 「Residual ties break toward the **finer** cut: **over-splitting a workflow is cheap**, because a
+> small cell is shrunk toward its intent and global levels by the credibility weight and its
+> baseline stays sound; **under-splitting is not recoverable anywhere downstream**, since a cell
+> that silently mixes two workflows has a **bimodal conditional distribution** — precisely the
+> failure this design exists to avoid.」
+
+| 业务答错的方向 | 后果 | 可恢复吗 |
+|---|---|---|
+| **答多了**（cap 偏高） | 过切分 → 小 cell 被 credibility 权重往意图层 / 全局层收缩 | **便宜**，基线仍然可靠 |
+| **答少了**（cap 偏低） | 欠切分 → 一个 cell 静默混两种工作流 → **条件基线双峰** | **不可恢复**，下游任何地方都救不回来 |
+
+⟹ 风险集中在「答少」这一侧，所以不能让业务方对着空白框猜。
+流程是：**平台先跑一次探索性聚类给出候选**（「你的 agent 看起来有 3~5 种执行模式，对吗？」），
+业务只需**点头或往上纠正**。这也解释了为什么它**发生在首跑之后**，不是接入时填的空。
+
+**另一个理由**：业务方**答不出**「会走哪几步」（那是已删除的 `required_steps` ——
+漏一条合法路径 = 走那条路的所有轨迹无条件告警，实测告警率 0.995），
+但**答得出**「大概几种做法」。前者是路径枚举（组合爆炸、极易漏），后者是粗粒度计数（稳健）。
+
+### 7.5 ★诚实缺口，以及一个由此暴露的生产风险（本轮新发现）
+
+**(a) 我们从未在自家数据上跑过 HDBSCAN 对照基准。**
+`bench/contract.py` 只登记了「概念替换」，**没有**登记「性能对比」。
+答辩被问「为什么不用 HDBSCAN」时，诚实的回答是**「纯 stdlib 依赖约束 + 共识层才是承重结构」**，
+**不是**「我们测过 HDBSCAN 更差」。
+
+**(b) ★更严重：基准数据集的几何被主动调平过，因此它测不出意图视图在生产上的主要风险。**
+`bench/generate.py:117-129` 记录了 v3.0.0 的实测：
+
+| 几何 | `ari_iso`（各向同性 oracle） | `ari_wht`（**白化** oracle） | `ari_km`（**一次朴素 k-means**） |
+|---|---|---|---|
+| v3.0.0，2 意图，overlap 0.88 | 0.4574 | **0.9967** | **0.0974** |
+| v3.0.0，4 意图，overlap 0.30 | 1.0000 | 1.0000 | 0.6970 |
+
+机制写在 `generate.py:121-127`：各维尺度对比 22 倍 ⟹ **参与率 `PR = (Σs²)² / Σs⁴` 只有
+23~32 维（共 384 维）** ⟹ 原文「unwhitened k-means was solving a **~30-dim problem wearing a
+384-dim costume**」。**信息全在（白化 oracle 0.9967），但未白化的欧氏距离读不到（k-means 0.0974）。**
+
+**当时的处置是把数据集调到 k-means 能读的几何**（`generate.py:147`：AMP 10.0 / 对比 3.5 倍 /
+PR ~106-140），而**不是**给内核加白化。这个选择本身站得住，理由写在 `generate.py:62-66`：
+`sigma_e` 驱动的难度是「无监督视图结构上读不到的那种难度」，所以难度改由 `intent_ambiguity` 注入，
+让 oracle 与 k-means **一起**下降，天花板才是诚实的界。
+
+**但副作用是**：shipped 基准上 `ari_km == ari_iso == 1.0000`，
+**白化的收益在当前数据集上恒等于 0** ⟹「要不要加白化」这个问题**在现有基准上无法验证**。
+
+**生产上的真实风险**：真实句向量（384 / 1024 维）的**各维尺度对比是未知的**，
+完全可能落在 v3.0.0 那种 `PR ≈ 30` 的几何上。那时意图视图会**静默退化**到 ARI 0.0974 量级，
+而**表面上看不出问题**：聚类照样出簇、`novelty_rate` 也不报警 ——
+因为它退化的是**划分质量**，不是**稳定性**。而 consensus 层只看稳定性。
+
+**候选缓解（都还没做，M0 未批不动手）**：
+1. **给意图视图加白化**：按维 pooled 标准差归一化后再算欧氏距离。**纯 stdlib 可实现**，
+   而且 `cluster.py:611 pooled_var()` **已经在算逐维 pooled 方差**了 —— 机器已有一半。
+   代价：改内核 ⟹ `code_hash` 变 ⟹ 8 份 `SAMPLE.md` 必须重生成。
+2. **新增一个「敌对几何」regime**（**不替换**现有 8 档）：高对比度、`PR ≈ 30`，
+   期望未白化 k-means 失败、白化后恢复。**这是唯一能验证缓解 1 的办法**，
+   属于 `bench-gen-v4` 级别的数据集改动。
+3. **★M2 真实数据接入后立刻量一次 PR**：一行诊断代码，在真实 embedding 上算 `(Σs²)² / Σs⁴`。
+   **若 `PR ≪` 维度数，缓解 1 从「可选」变成「必须」。**
+   **这是三条里最便宜的，且不依赖任何待决决策 —— 建议排为 M2 的第一件事。**
+
+
+## 8. 待决清单
 
 | # | 议题 | 状态 | 备注 |
 |---|---|---|---|
@@ -672,6 +799,9 @@ V = L2 自动收集的观测 name 词表（接入预检 §1.2 第 2 项那一趟
 | J | 适配器必须处理的四个陷阱 | 待做 | `fields` 字段组 · `isRootObservation` · 两处静默截断 · Legacy API 11-16 下线 |
 | K | ~~部署形态~~ | **已定稿（2026-11-11，两次）** | 一套部署只对接一个 Langfuse 实例 ⟹ `base_url`/`profile` 部署级、接入流程 9 步→8 步、注册表单无 profile 选项。**第二次简化**：profile 由**启动参数 `--profile`** 选定，`platform.yaml` 删除，运行时只做**一次 `health` 版本核对**（不做逐端点探测、不做周期重探）。见 `MODULES.md` §1.2.1 / §1.5 |
 | K2 | ~~「capabilities 填错会静默算错」~~ | **已证伪（2026-11-11）** | 逐个开关推演：能力错配一律表现为 **404**（响亮），不是静默。真正的静默失效来自 `field_groups` / `expandMetadata` / `usage_key_map`，归 **B1 适配度预检**。推演表见 `MODULES.md` §1.5 |
+| M | 意图视图**未白化** k-means 在真实 embedding 几何上的退化风险 | **★新发现，未处置** | §7.5(b)。基准几何被调平过（`ari_km == ari_iso == 1.0000`）⟹ **现有 8 档测不出这个风险**。最便宜的一步：M2 接真实数据后立刻量一次 `PR = (Σs²)²/Σs⁴` |
+| N | 是否给意图视图加**逐维白化** | **待 M 的实测结果** | §7.5 缓解 1。`cluster.py:611 pooled_var()` 已在算逐维 pooled 方差，纯 stdlib 可实现；代价是 `code_hash` 变 + 8 份 `SAMPLE.md` 重生成。**在新增「敌对几何」regime 之前无法验证收益** |
+| O | 方法论文档声明 HDBSCAN + UMAP，内核实为 k-means + UPGMA | **已记录（§7.1），文档不改** | 方法论设计文档属**冻结交付物**不得修改；分歧已由 `bench/contract.py:59` 登记为 SUBSTITUTION。**答辩口径见 §7.1「辩护要点」** |
 | L | v1 映射器在 v4 开发环境里**不可达** ⟹ 只能靠 fixture 验证 | **强制** | §1.2.1 的部署级前提使「另一个映射器是死代码」；fixture 是唯一验证手段，硬截止 11-16 |
 
 **可立即开工、不需要任何用户决策、也不需要 Langfuse key 的第一块代码**：
