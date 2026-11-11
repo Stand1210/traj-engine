@@ -3,7 +3,14 @@
 > 回答三个问题：①新业务如何接入 ②最简洁本体 YAML 需要哪些字段 ③运行一段时间后如何重新聚类。
 > 与 `platform/DESIGN.md`（租户/本体/Langfuse 映射）、`platform/MODULES.md`（前后端黑盒模块）配套。
 > **本文所有结论都标注了代码或实测出处**；凡是推测都写明「待实测」。
-> 日期 2026-11-10。实测脚本：`platform/mixexp.py`（arms 1-2）· `platform/tierexp.py`（arms 3-4）。
+> 日期 2026-11-10，**2026-11-11 修订 §2.4 / §2.5 / §4.1 / §4.2 / §5**（删除 L1 `pattern_count`）。
+> 实测脚本（全部 post-hoc，只读 `data/` 与 `reports/`，不写、不动 `code_hash` 闭包）：
+> `platform/mixexp.py`（arms 1-2，污染）· `platform/tierexp.py`（arms 3-4，分层/告警）·
+> **`platform/capexp.py`（8 干净档 × {cap 5, cap 8}，16 arm）** ·
+> **`platform/asymexp.py`（cap ∈ {2,3,4,6} × 8 档，32 arm，凑成完整 cap 曲线）** ·
+> **`platform/supexp.py`（「支撑度下限」替代方案，已实测否决）**。
+> 汇总表：`platform/capreport.py`（cap 5 vs 8 逐档 + 门禁核对）·
+> `platform/asymreport.py`（cap 2→8 全曲线 + 门禁破口普查 + 否决记录）。
 
 ---
 
