@@ -63,10 +63,13 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
   2. **持久化 schema（DDL）**：runs / cells / **cell lineage 边表** / scores / evidence / tenants / ontologies。
      **★lineage 与 `structure_version` 必须在 M0 就进 schema**，即使功能到 M4 才做——
      否则 M4 要做破坏性迁移，而分数记录是审计不可变的，迁移不了。
-  3. **配置文件 schema**：**`platform.yaml`（部署级单值：`base_url` / `active_profile` / 探测周期）** ·
-     `endpoints.yaml` · `profiles/{cloud-v4,selfhosted-v3,selfhosted-v4}.yaml` ·
+  3. **配置文件 schema**：**启动参数契约（`--profile <name>` · 可选 `--base-url` ·
+     可选 `--skip-version-check`）** · `endpoints.yaml` ·
+     `profiles/{cloud-v4,selfhosted-v3,selfhosted-v4}.yaml`（**出厂固定三份**，各含 `base_url` /
+     capabilities / **`version_constraint`** / throttle）·
      `tenants/<id>.yaml`（L0，**gitignored**；**只含** `org_id` / `project_id` / `keys` / `queue_id` /
      默认本体 —— **不含 `host` 与 `profile`**）· 本体 YAML（L1，Tier 0/1 分档）。
+     **★没有 `platform.yaml`**（原设计已删，见下面第二次简化）。
   4. **`TraceSource` 接口定义**：`list_traces(window, sampling) -> Iterator[RawTrace]`，
      输出符合 `contracts/schemas.md` 的 **19 键 trace / 29 键 span**，拿不到的字段**诚实置 None**。
   5. **前端路由与页面清单**：F0~F9 哪些进 M1、哪些推后；每页的数据来自哪个端点。
@@ -221,6 +224,7 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
 **它自己的** spec ⟹ 能力探测可从「按 profile 硬编码开关」升级为「**拉取实例自述 spec 并对账**」，
 不符时给出**逐端点**差异清单，而不是一个笼统的「profile 不匹配」。
 自托管 v3 无此端点，仍走逐项探测。已写进 `MODULES.md` §1.5。
+（**★此条已被下面「第二次简化」取代**：spec 对账**降级为开发期离线脚本**，不在运行时路径上。）
 
 **★再一个新增利好**（`_tmp_lfdocs/openapi_api.yml:12611`-`:12622`，Cloud 自述 spec 原文）：
 `GET /api/public/health` 返回 `HealthResponse{version, status}`，两字段**都是 required**
@@ -228,8 +232,10 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
 逐端点试错退化为**校核**（并把表未覆盖的新版本暴露出来，而不是猜）。
 另实测该 spec 的 **120 个 operation 中只有 `health_health` 一个没有 `security` 块**
 ⟹ **探测完全不依赖任何租户凭据**，平台刚部署、一个业务方都没接入时就能跑完。
-§1.5 已改写为**三层探测**（声明 → 推断 → 实证），并新增 §1.6 对照表
+§1.5 曾改写为**三层探测**（声明 → 推断 → 实证），并新增 §1.6 对照表
 区分**能力探测 vs 适配度预检**（此前二者在文档里紧挨着出现，极易混淆）。
+（**★「三层探测」已作废，不要再引用**：见下面「第二次简化」——
+只剩「一次 `health` 版本核对」，§1.6 对照表保留但左列改名为**版本核对**。）
 
 **★2026-11-11 前提纠正（上一条里「注册表单能预填 profile」的说法已作废，不要再引用）**：
 用户澄清「一套部署只对接一个 Langfuse 实例」⟹ profile 是**部署级**属性，不是租户级。连带 5 处修改：
@@ -240,6 +246,32 @@ M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfus
 5. 探测结果改存**一份平台级 capability snapshot**（带 `snapshot_id`），每个 Run 只引用 id，不再各存一份；
    **snapshot 变化 = 平台级事件**（实例被升级会同时影响全部租户）。
 **但双映射器的成本一分没省**，反而更硬：见上面「v1 映射器是不可达代码」。
+
+**★★2026-11-11 第二次简化（用户提出，我接受；上面 5 条里的第 1、2、5 条已被取代）**
+
+用户方案：**开发期固定三份 profile 文件**（`cloud-v4` / `selfhosted-v3` / `selfhosted-v4`），
+**后端启动命令增加一个参数指定用哪个**，不必每次启动都探测。
+
+| 上表条目 | 现状 |
+|---|---|
+| 1 `platform.yaml` | **已删除**。`active_profile` → **启动参数 `--profile`**；`base_url` → 移进 profile（可 `--base-url` 覆盖）；`探测周期` → **取消** |
+| 2 能力探测归 B0、启动时一次 | **仍归 B0，但砍成一次 `GET /api/public/health` 的版本核对**（约 50ms，免鉴权）。逐端点实证与 `/api/openapi.yaml` 对账**降级为开发期离线脚本** |
+| 3 接入 9 步 → 8 步 | **不变** |
+| 4 注册表单无 profile 选项 | **不变**（profile 现在是后端启动参数，更不是业务方能选的） |
+| 5 capability snapshot + 周期重探 | **周期重探取消**；snapshot 降级为**一条启动记录**（profile 名 + 内容哈希 + `health.version` + 时刻 + 是否 skip），Run 引用其 id |
+
+**★并且它证伪了我上一轮的核心论据（已作废，不要再引用）**：
+我原先说「capabilities 填错 → **静默**走错分支 → `missing_field_ratio≈1.0` 却不报错」，
+以此论证必须常驻探测。逐个开关推演后发现**是错的**：`observations_api` / `scores_read_api` /
+`annotation_queue_api` / `project_provisioning` 填错**一律 404**（`deprecated-api-migration.md:331`、
+`public-api.md:429`、`openapi_org.yml` 首部），`io_pre_parsed` 与 `field_groups_supported`
+和 `observations_api` **完全耦合、无法独立填错**。
+⟹ **Langfuse 的版本差异是按端点存在与否切的，不是按语义悄悄变的**；能力错配是**响亮**失败。
+真正的静默失效来自 `field_groups` / `expandMetadata` / `usage_key_map`（数据质量），归 **B1 适配度预检**。
+**我把两类风险混为一谈，用不成立的论据支撑了过重的设计。**
+保留那一次 `health` 调用的理由只剩 **fail fast + 报错可读**：
+否则选错 `--profile` 时平台会正常启动、正常接单，直到第一个 run 排到取数才抛一个孤零零的 404。
+推演表与完整论证见 `MODULES.md` §1.5。
 
 
 ---
