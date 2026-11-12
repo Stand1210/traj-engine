@@ -94,6 +94,7 @@ jobs:
               "platform/config/endpoints.yaml",
               "platform/config/profiles/cloud-v4.yaml",
               "platform/config/profiles/selfhosted-v4.yaml",
+              "platform/config/calibration.yaml",
           ]
           for name in yaml_files:
               yaml.safe_load(pathlib.Path(name).read_text(encoding="utf-8"))
@@ -105,7 +106,7 @@ jobs:
           tables = connection.execute(
               "SELECT name FROM sqlite_master WHERE type='table'"
           ).fetchall()
-          assert len(tables) == 17, tables
+          assert len(tables) == 18, tables
 
           spec = yaml.safe_load(
               pathlib.Path("platform/contracts/openapi.yaml").read_text(encoding="utf-8")

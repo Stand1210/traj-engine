@@ -137,6 +137,27 @@ export interface Calibration {
   metrics: Record<string, unknown>;
 }
 
+export interface ReviewCalibration {
+  id: string;
+  tenantId: string;
+  sourceRunId: string;
+  labelCount: number;
+  traceCount: number;
+  verdictCounts: Record<string, number>;
+  alertReviewed: number;
+  alertAgree: number;
+  alertDisagree: number;
+  alertPrecision: number | null;
+  ece: number | null;
+  brier: number | null;
+  metrics: Record<string, unknown>;
+  parameters: Record<string, unknown>;
+  codeHash: string;
+  createdBy: string;
+  createdAt: string;
+  activatedAt: string | null;
+}
+
 export interface RunInput {
   tenantId: string;
   ontologyId: string;
@@ -160,6 +181,15 @@ export interface ReviewQueueResult {
   imported?: number;
   statusUpdates?: number;
   awaitingReview?: number;
+}
+
+export interface Review {
+  id: string;
+  traceScoreId: string;
+  reviewer: string;
+  verdict: string;
+  label: string | null;
+  comment: string | null;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -200,6 +230,18 @@ export const api = {
   alertSummary: (id: string) => request<AlertSummary>(`/api/v1/runs/${id}/alerts/summary`),
   alertConfig: () => request<Record<string, unknown>>("/api/v1/config/alerts"),
   calibration: (id: string) => request<Calibration>(`/api/v1/runs/${id}/calibration`),
+  reviews: (runId: string) => request<Page<Review>>(`/api/v1/reviews?runId=${runId}&limit=100`),
+  reviewCalibrations: (runId: string) =>
+    request<Page<ReviewCalibration>>(`/api/v1/calibrations?runId=${runId}&limit=100`),
+  triggerCalibration: (runId: string, createdBy: string) =>
+    request<ReviewCalibration>(`/api/v1/runs/${runId}/calibration/trigger`, {
+      method: "POST",
+      body: JSON.stringify({ createdBy })
+    }),
+  activateCalibration: (id: string) =>
+    request<ReviewCalibration>(`/api/v1/calibrations/${id}/activate`, {
+      method: "POST"
+    }),
   createRun: (input: RunInput) =>
     request<Run>("/api/v1/runs", { method: "POST", body: JSON.stringify(input) })
   ,

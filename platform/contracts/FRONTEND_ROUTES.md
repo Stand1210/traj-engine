@@ -12,6 +12,7 @@
 | `/runs/:runId/traces` | Trace list | `GET /runs/{runId}/traces` |
 | `/runs/:runId/traces/:traceId` | Trace drilldown | `GET /runs/{runId}/traces/{traceId}` |
 | `/runs/:runId/alerts` | Alert workbench | `GET /runs/{runId}/alerts/summary`, `GET /runs/{runId}/alerts`, `GET /runs/{runId}/alert-candidates` |
+| `/runs/:runId/calibration` | Calibration workbench | `GET /reviews?runId=`, `GET /calibrations?runId=`, `POST /runs/{runId}/calibration/trigger`, `POST /calibrations/{id}/activate` |
 | `/settings` | Effective profile | `GET /config/profile`, `GET /startup-records/current` |
 
 ## M2+ Pages

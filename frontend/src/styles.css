@@ -59,6 +59,7 @@ main { padding: 24px 28px; }
 .group-list { display: grid; gap: 8px; margin-top: 14px; }
 .alert-group { display: grid; gap: 3px; padding: 10px; background: #f7fafc; border-radius: 5px; }
 .alert-group span { font-size: 12px; color: #627d98; }
+.calibration-note { margin-top: 12px; font-size: 12px; color: #627d98; }
 
 .score-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .score-head span:first-child { font-size: 12px; color: #627d98; }

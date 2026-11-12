@@ -53,6 +53,8 @@ Content-Type: application/json
 }
 ```
 
+M3.4 calibration usage: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
+
 ## 3.2 当前 M2 可用能力
 
 - 通过 `POST /api/v1/tenants` 注册 Langfuse Organization/Project 与项目 API key。

@@ -246,6 +246,31 @@ CREATE TABLE IF NOT EXISTS alert_decisions (
     UNIQUE (run_id, trace_score_id)
 );
 
+CREATE TABLE IF NOT EXISTS review_calibrations (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    source_run_id TEXT NOT NULL,
+    label_count INTEGER NOT NULL,
+    trace_count INTEGER NOT NULL,
+    agree_count INTEGER NOT NULL,
+    disagree_count INTEGER NOT NULL,
+    uncertain_count INTEGER NOT NULL,
+    alert_reviewed INTEGER NOT NULL,
+    alert_agree INTEGER NOT NULL,
+    alert_disagree INTEGER NOT NULL,
+    alert_precision REAL,
+    ece REAL,
+    brier REAL,
+    metrics_json TEXT NOT NULL,
+    parameters_json TEXT NOT NULL,
+    code_hash TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    activated_at TEXT,
+    FOREIGN KEY (tenant_id) REFERENCES tenants (id),
+    FOREIGN KEY (source_run_id) REFERENCES cohort_runs (id)
+);
+
 CREATE TABLE IF NOT EXISTS audit_events (
     id TEXT PRIMARY KEY,
     actor TEXT NOT NULL,
@@ -270,3 +295,5 @@ CREATE INDEX IF NOT EXISTS idx_review_queue_items_run
   ON review_queue_items (run_id, status);
 CREATE INDEX IF NOT EXISTS idx_alert_decisions_run_status
   ON alert_decisions (run_id, status, priority_rank);
+CREATE INDEX IF NOT EXISTS idx_review_calibrations_tenant_created
+  ON review_calibrations (tenant_id, created_at DESC);

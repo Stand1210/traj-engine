@@ -9,12 +9,23 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from platform.app import store
-from platform.app.config import load_alert_config, load_endpoints, resolve_profile_from_args
+from platform.app.config import (
+    load_alert_config,
+    load_calibration_config,
+    load_endpoints,
+    resolve_profile_from_args,
+)
 from platform.app.algorithm import load_frozen_state
 from platform.app.alerts import (
     DEFAULT_ALERT_BUDGET,
     compute_alert_decisions,
     summarize_decisions,
+)
+from platform.app.calibration import (
+    activate_review_calibration,
+    active_review_calibration,
+    create_review_calibration,
+    serialize_review_calibration,
 )
 from platform.app.engine import ENGINE
 from platform.app.langfuse_source import LangfuseHttpError, LangfuseTraceSource
@@ -62,6 +73,10 @@ class ReviewQueueInput(BaseModel):
     scope: Literal["alerts", "abstains", "all"] = "all"
     limit: int = Field(default=50, ge=1, le=100)
     queueName: str = Field(default="traj-engine-review", min_length=1, max_length=120)
+
+
+class CalibrationTriggerInput(BaseModel):
+    createdBy: str = Field(default="platform", min_length=1, max_length=120)
 
 
 class TenantInput(BaseModel):
@@ -588,6 +603,86 @@ def get_calibration(run_id: str, connection=Depends(get_connection)) -> dict:
     return serialize_calibration(row)
 
 
+@app.post("/api/v1/runs/{run_id}/calibration/trigger", status_code=201)
+def trigger_review_calibration(
+    run_id: str,
+    input_data: CalibrationTriggerInput,
+    connection=Depends(get_connection),
+) -> dict:
+    try:
+        row = create_review_calibration(
+            connection, run_id, input_data.createdBy, load_calibration_config()
+        )
+    except ValueError as error:
+        if str(error) == "run not found":
+            raise HTTPException(status_code=404, detail={"code": "run_not_found"})
+        counts = connection.execute(
+            """SELECT COUNT(DISTINCT r.trace_score_id) AS traces,
+                      COUNT(*) AS labels
+               FROM human_reviews r
+               JOIN trace_scores s ON s.id = r.trace_score_id
+               WHERE s.run_id = ?""",
+            (run_id,),
+        ).fetchone()
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "calibration_insufficient_labels",
+                "requiredLabels": load_calibration_config()["minimumLabels"],
+                "requiredReviewedAlerts": load_calibration_config()["minimumReviewedAlerts"],
+                "actualLabels": counts["labels"],
+                "actualReviewedTraces": counts["traces"],
+            },
+        )
+    return serialize_review_calibration(row)
+
+
+@app.get("/api/v1/calibrations")
+def list_review_calibrations(
+    tenantId: str | None = None,
+    runId: str | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    cursor: str | None = None,
+    connection=Depends(get_connection),
+) -> dict:
+    clauses, values = [], []
+    if tenantId:
+        clauses.append("tenant_id = ?")
+        values.append(tenantId)
+    if runId:
+        clauses.append("source_run_id = ?")
+        values.append(runId)
+    where = "WHERE " + " AND ".join(clauses) if clauses else ""
+    offset = decode_cursor(cursor)
+    rows = connection.execute(
+        f"SELECT * FROM review_calibrations {where} ORDER BY created_at DESC, id LIMIT ? OFFSET ?",
+        values + [limit, offset],
+    ).fetchall()
+    total = connection.execute(
+        f"SELECT COUNT(*) AS n FROM review_calibrations {where}", values
+    ).fetchone()["n"]
+    return page([serialize_review_calibration(row) for row in rows], limit, offset, total)
+
+
+@app.get("/api/v1/calibrations/{calibration_id}")
+def get_review_calibration(calibration_id: str, connection=Depends(get_connection)) -> dict:
+    row = connection.execute(
+        "SELECT * FROM review_calibrations WHERE id = ?", (calibration_id,)
+    ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail={"code": "calibration_not_found"})
+    return serialize_review_calibration(row)
+
+
+@app.post("/api/v1/calibrations/{calibration_id}/activate")
+def activate_calibration(calibration_id: str, connection=Depends(get_connection)) -> dict:
+    try:
+        row = activate_review_calibration(connection, calibration_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail={"code": "calibration_not_found"})
+    return serialize_review_calibration(row)
+
+
 @app.post("/api/v1/runs/{run_id}/reviews", status_code=201)
 def submit_review(run_id: str, input_data: ReviewInput, connection=Depends(get_connection)) -> dict:
     ensure_run(connection, run_id)
@@ -828,7 +923,9 @@ def _alert_decisions(connection, run_id: str, budget: int | None) -> list[dict]:
             "SELECT * FROM alert_decisions WHERE run_id = ? ORDER BY priority_rank", (run_id,)
         ).fetchall()
     ]
-    if persisted and effective_budget == _effective_budget(None):
+    tenant = _tenant_for_run(connection, run_id)
+    active = active_review_calibration(connection, tenant["id"])
+    if persisted and effective_budget == _effective_budget(None) and active is None:
         return _decode_persisted_decisions(persisted)
 
     score_rows = list(_alert_score_rows(connection, run_id).values())
@@ -843,7 +940,13 @@ def _alert_decisions(connection, run_id: str, budget: int | None) -> list[dict]:
         row["id"]: int(row["size"])
         for row in connection.execute("SELECT id, size FROM cells WHERE run_id = ?", (run_id,)).fetchall()
     }
-    return compute_alert_decisions(score_rows, evidence_rows, cell_sizes, effective_budget)
+    cause_adjustments = None
+    if active is not None:
+        parameters = json.loads(active["parameters_json"] or "{}")
+        cause_adjustments = parameters.get("causeSeverityAdjustments")
+    return compute_alert_decisions(
+        score_rows, evidence_rows, cell_sizes, effective_budget, cause_adjustments
+    )
 
 
 def _decode_persisted_decisions(rows: list[dict]) -> list[dict]:

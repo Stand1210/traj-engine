@@ -25,6 +25,7 @@ def compute_alert_decisions(
     evidence_rows: list[dict],
     cell_sizes: dict[str, int],
     budget: int = DEFAULT_ALERT_BUDGET,
+    cause_adjustments: dict[str, float] | None = None,
 ) -> list[dict]:
     if not score_rows:
         return []
@@ -39,6 +40,12 @@ def compute_alert_decisions(
         if not int(row["is_alert"] or 0):
             continue
         primary = _primary_cause(evidence_by_score.get(row["id"], []))
+        if cause_adjustments:
+            adjustment = float(cause_adjustments.get(primary["cause"], 1.0))
+            primary = {
+                **primary,
+                "severity": _clamp(float(primary["severity"]) * adjustment),
+            }
         priority = _priority(row, primary, cell_sizes.get(row["cell_id"], 0), total_traces)
         candidates.append({
             "trace_score_id": row["id"],

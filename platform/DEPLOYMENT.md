@@ -191,6 +191,8 @@
   - `GET /api/v1/runs/{runId}/alert-candidates`
   - `GET /api/v1/runs/{runId}/alerts/summary`
   - `GET /api/v1/config/alerts`
+
+M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 前端路由：`#/runs/{runId}/alerts`。
 - 1000 条真实 Cloud Run 验证：
   - 原始告警 40

@@ -81,6 +81,8 @@ M0 契约文件已落盘（路径均相对仓库根目录）：
 - `platform/config/profiles/cloud-v4.yaml`
 - `platform/config/profiles/selfhosted-v4.yaml`
 
+M3.4 calibration record: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
+
 ## 3. M1 纵向闭环
 
 - 后端：已实现 `JsonlTraceSource`、作业状态机、算法执行壳、结果存储、REST 最小子集。

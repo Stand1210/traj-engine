@@ -43,6 +43,11 @@ def load_alert_config() -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
+def load_calibration_config() -> dict:
+    path = CONFIG_ROOT / "calibration.yaml"
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
 def resolve_profile_from_args(profile_name: str | None = None) -> dict:
     profile_name = profile_name or os.environ.get("TRAJ_PROFILE", "cloud-v4")
     if profile_name not in {"cloud-v4", "selfhosted-v4"}:

@@ -635,6 +635,96 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Calibration'
+  /runs/{runId}/calibration/trigger:
+    post:
+      tags: [reviews]
+      operationId: triggerReviewCalibration
+      summary: Create a calibration version from human reviews
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalibrationTriggerInput'
+      responses:
+        '201':
+          description: Calibration version created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCalibration'
+        '400':
+          description: Insufficient review labels
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /calibrations:
+    get:
+      tags: [reviews]
+      operationId: listReviewCalibrations
+      summary: List human-review calibration versions
+      parameters:
+        - name: tenantId
+          in: query
+          schema: {type: string}
+        - name: runId
+          in: query
+          schema: {type: string}
+        - $ref: '#/components/parameters/pageLimit'
+        - $ref: '#/components/parameters/pageCursor'
+      responses:
+        '200':
+          description: Calibration page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ReviewCalibration'
+  /calibrations/{calibrationId}:
+    get:
+      tags: [reviews]
+      operationId: getReviewCalibration
+      summary: Get one human-review calibration version
+      parameters:
+        - name: calibrationId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Calibration version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCalibration'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /calibrations/{calibrationId}/activate:
+    post:
+      tags: [reviews]
+      operationId: activateReviewCalibration
+      summary: Activate a calibration version for its tenant
+      parameters:
+        - name: calibrationId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Calibration activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCalibration'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   parameters:
     tenantId:
@@ -968,6 +1058,46 @@ components:
         scope: {type: string, enum: [alerts, abstains, all], default: all}
         limit: {type: integer, minimum: 1, maximum: 100, default: 50}
         queueName: {type: string, default: traj-engine-review}
+    CalibrationTriggerInput:
+      type: object
+      required: [createdBy]
+      properties:
+        createdBy: {type: string, minLength: 1, maxLength: 120}
+    ReviewCalibration:
+      type: object
+      required:
+        - id
+        - tenantId
+        - sourceRunId
+        - labelCount
+        - traceCount
+        - alertReviewed
+        - metrics
+        - parameters
+        - codeHash
+        - createdBy
+        - createdAt
+      properties:
+        id: {type: string}
+        tenantId: {type: string}
+        sourceRunId: {type: string}
+        labelCount: {type: integer}
+        traceCount: {type: integer}
+        verdictCounts:
+          type: object
+          additionalProperties: {type: integer}
+        alertReviewed: {type: integer}
+        alertAgree: {type: integer}
+        alertDisagree: {type: integer}
+        alertPrecision: {type: number, nullable: true}
+        ece: {type: number, nullable: true}
+        brier: {type: number, nullable: true}
+        metrics: {type: object, additionalProperties: true}
+        parameters: {type: object, additionalProperties: true}
+        codeHash: {type: string}
+        createdBy: {type: string}
+        createdAt: {type: string, format: date-time}
+        activatedAt: {type: string, format: date-time, nullable: true}
     ReviewQueuePushResult:
       type: object
       required: [runId, queueId, scope, selected, pushed, items]
