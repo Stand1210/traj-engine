@@ -13,6 +13,7 @@ from platform.app.config import load_endpoints, resolve_profile_from_args
 from platform.app.algorithm import load_frozen_state
 from platform.app.engine import ENGINE
 from platform.app.langfuse_source import LangfuseHttpError, LangfuseTraceSource
+from platform.app.langfuse_scores import LangfuseScoreWriter
 
 
 app = FastAPI(
@@ -34,6 +35,8 @@ class RunInput(BaseModel):
     limit: int | None = Field(default=None, ge=1)
     triggerReason: str | None = None
     idempotencyKey: str | None = None
+    writebackToLangfuse: bool = False
+    writebackStrict: bool = False
 
 
 class ReviewInput(BaseModel):
@@ -318,6 +321,8 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
             frozen_state = None
     trace_source = None
     window = None
+    score_writer = None
+    writeback_strict = False
     if input_data.source == "langfuse":
         profile = resolve_profile_from_args()
         endpoints = load_endpoints()
@@ -331,6 +336,16 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
             max_traces=input_data.limit,
         )
         window = {"start": input_data.windowStart, "end": input_data.windowEnd}
+        if input_data.writebackToLangfuse:
+            score_writer = LangfuseScoreWriter.from_config(
+                profile,
+                endpoints,
+                {
+                    "publicKey": langfuse_tenant["public_key"],
+                    "secretKey": langfuse_tenant["secret_key"],
+                },
+            )
+            writeback_strict = input_data.writebackStrict
     ENGINE.submit(
         run_id,
         input_data.sourceRef,
@@ -340,6 +355,8 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
         window=window,
         ontology_id=input_data.ontologyId,
         frozen_state=frozen_state,
+        score_writer=score_writer,
+        writeback_strict=writeback_strict,
     )
     row = connection.execute("SELECT * FROM cohort_runs WHERE id = ?", (run_id,)).fetchone()
     return serialize_run(row)

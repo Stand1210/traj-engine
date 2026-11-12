@@ -27,6 +27,7 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--id-offset", type=int, default=None)
     parser.add_argument("--id-count", type=int, default=None)
+    parser.add_argument("--write-scores", action="store_true")
     args = parser.parse_args()
 
     profile = load_profile(args.profile)
@@ -104,6 +105,10 @@ def main() -> int:
             raise SystemExit("--id-offset requires --id-count >= 1")
         source = IdRangeTraceSource(source, args.id_offset, args.id_count)
     engine = RunEngine()
+    score_writer = None
+    if args.write_scores:
+        from platform.app.langfuse_scores import LangfuseScoreWriter
+        score_writer = LangfuseScoreWriter.from_config(profile, endpoints, keys)
     try:
         engine.submit(
             run_id,
@@ -114,6 +119,7 @@ def main() -> int:
             window={"start": start.isoformat(), "end": end.isoformat()},
             ontology_id=ontology_id,
             frozen_state=frozen_state,
+            score_writer=score_writer,
         )
     finally:
         engine.close()

@@ -15,6 +15,8 @@ export default function RunLauncher({ onCreated, runsVersion, onSelect }: Props)
   const [submitting, setSubmitting] = useState(false);
   const [sourceRef, setSourceRef] = useState("R1");
   const [limit, setLimit] = useState("");
+  const [source, setSource] = useState<"jsonl" | "langfuse">("jsonl");
+  const [writeback, setWriteback] = useState(false);
 
   useEffect(() => {
     void Promise.all([api.tenants(), api.ontologies()])
@@ -48,14 +50,15 @@ export default function RunLauncher({ onCreated, runsVersion, onSelect }: Props)
       const run = await api.createRun({
         tenantId: tenant.id,
         ontologyId: ontology.id,
-        source: "jsonl",
+        source,
         sourceRef,
         runType: "R1",
         windowStart: defaultWindow.start,
         windowEnd: defaultWindow.end,
         samplingRate: 1,
         limit: limit ? Number(limit) : undefined,
-        triggerReason: "M1 frontend launch"
+        triggerReason: source === "langfuse" ? "M3 frontend launch" : "M1 frontend launch",
+        writebackToLangfuse: source === "langfuse" && writeback
       });
       onCreated();
       onSelect(`/runs/${run.id}`);
@@ -73,8 +76,24 @@ export default function RunLauncher({ onCreated, runsVersion, onSelect }: Props)
         <div className="form-grid">
           <label>租户<span>{tenant?.displayName ?? "..."}</span></label>
           <label>本体<span>{ontology?.id ?? "..."} / {ontology?.tier ?? "..."}</span></label>
-          <label>数据集<input value={sourceRef} onChange={event => setSourceRef(event.target.value)} /></label>
+          <label>数据源
+            <select value={source} onChange={event => setSource(event.target.value as "jsonl" | "langfuse")}>
+              <option value="jsonl">基准 JSONL</option>
+              <option value="langfuse">Langfuse Project</option>
+            </select>
+          </label>
+          <label>数据集 / Run 标识<input value={sourceRef} onChange={event => setSourceRef(event.target.value)} /></label>
           <label>条数上限<input value={limit} placeholder="留空表示全量" onChange={event => setLimit(event.target.value)} /></label>
+          {source === "langfuse" && (
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={writeback}
+                onChange={event => setWriteback(event.target.checked)}
+              />
+              评分写回 Langfuse Scores
+            </label>
+          )}
           <label>时间窗<span>{defaultWindow.start.slice(0, 19)} ~ {defaultWindow.end.slice(0, 19)}</span></label>
         </div>
         <button className="primary" disabled={!canSubmit} onClick={() => void createRun()}>

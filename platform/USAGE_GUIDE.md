@@ -76,6 +76,23 @@ Content-Type: application/json
   缺失时平台不会伪造数据，但结果符合度相关证据会降级，部分可判定问题
   可能无法进入告警流。
 
+## 3.3 当前 M3 可用能力
+
+- 发起 `source=langfuse` 的 Run 时，可以传 `writebackToLangfuse=true`，
+  平台会把评分结果写回该业务 Project 的 Langfuse Scores。
+- 每条轨迹会生成三个原生 Score：
+  - `traj-engine-total-score`：0~100 的总分，metadata 内携带五维分数、
+    cell、runId、codeHash。
+  - `traj-engine-alert`：布尔值，1 表示该轨迹进入平台告警流。
+  - `traj-engine-abstain`：布尔值，1 表示当前结构无法可靠归类，需要复核。
+- 写回是独立 Run 步骤：算法评分成功但写回失败时，默认 Run 仍为
+  succeeded，可在 Run Steps 中查看 `score_writeback` 失败原因；
+  需要“写回失败即 Run 失败”时传 `writebackStrict=true`。
+- 业务方可以在 Langfuse 原生 UI 中按 Score 名筛选平台评分，并结合
+  trace 详情查看分数与 metadata。
+- 前端发起 Run 时可选择「Langfuse Project」数据源，并勾选
+  「评分写回 Langfuse Scores」。
+
 ## 4. 结果解读
 
 | 页面内容 | 业务含义 | 判断动作 |
@@ -92,5 +109,5 @@ Content-Type: application/json
 - [ ] 业务红线填写示例
 - [ ] 人工复核操作规范
 - [ ] 告警处置建议
-- [ ] 与 Langfuse 原生页面的跳转关系
+- [ ] Langfuse Scores 页面筛选与 trace 详情联动截图
 

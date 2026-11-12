@@ -126,6 +126,30 @@
   - `GET /api/v1/ontologies/{id}/versions/current`：查看当前不可变本体版本。
   - `POST /api/v1/runs` 支持 `source=langfuse`，按时间窗发起真实数据 Run。
 
+## 3.1 M3 Score 写回部署记录
+
+- 无新增数据库表、三方件或 embedding 模型；复用 SQLite 表
+  `run_steps` 记录写回结果。
+- 新增后端源：
+  - `LangfuseScoreWriter` 使用 Python 标准库访问
+    `POST /api/public/scores`。
+  - endpoint 与批量大小由 `platform/config/endpoints.yaml` 的
+    `endpoints.scores.create` 与 `limits.scoresCreateBatchSize` 配置。
+- 写回内容：每条 trace 三个 Score
+  （`traj-engine-total-score` / `traj-engine-alert` /
+  `traj-engine-abstain`），批量默认 100，自动重试 429/5xx。
+- 失败语义：默认 `score_writeback` failed 不影响 Run succeeded；
+  `writebackStrict=true` 时升级为 Run failed。
+- 验证命令：
+  ```powershell
+  python -m unittest discover -s platform/tests -v
+  python platform/scripts/langfuse_production_smoke.py --profile cloud-v4 --project-name development_env --minutes 240 --limit 1 --id-offset 400000000000 --id-count 1 --write-scores
+  ```
+- 真实 Cloud v4 已验证：直接写回 1 条 trace 的 3 个 Score，
+  返回 `accepted=3 / rejected=0`。同一脚本的完整读-算-写链路在当前
+  代理环境下读取阶段可能挂起；这是开发网络问题，不代表 Scores API
+  写回失败。
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

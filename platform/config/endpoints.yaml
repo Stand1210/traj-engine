@@ -59,5 +59,6 @@ endpoints:
 limits:
   requestBodyBytes: 5242880
   responseBodyBytes: 5242880
+  scoresCreateBatchSize: 100
   scoresPageMax: 100
   observationsPageSizeDefault: 50

@@ -720,6 +720,8 @@ components:
         windowStart: {type: string, format: date-time}
         windowEnd: {type: string, format: date-time}
         samplingRate: {type: number, minimum: 0, maximum: 1}
+        writebackToLangfuse: {type: boolean, default: false}
+        writebackStrict: {type: boolean, default: false}
         parentRunId: {type: string}
         triggerReason: {type: string}
         idempotencyKey: {type: string}

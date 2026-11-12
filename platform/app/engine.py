@@ -40,11 +40,13 @@ class RunEngine:
         window: dict | None = None,
         ontology_id: str | None = None,
         frozen_state: dict | None = None,
+        score_writer=None,
+        writeback_strict: bool = False,
     ) -> None:
         self.executor.submit(
             self._execute, run_id, source_ref, sampling_rate, limit,
             trace_source, window, ontology_id,
-            frozen_state,
+            frozen_state, score_writer, writeback_strict,
         )
 
     def cancel(self, run_id: str) -> None:
@@ -63,6 +65,8 @@ class RunEngine:
         window: dict | None = None,
         ontology_id: str | None = None,
         frozen_state: dict | None = None,
+        score_writer=None,
+        writeback_strict: bool = False,
     ) -> None:
         run_dir = VAR_ROOT / "runs" / run_id
         data_root = run_dir / "data"
@@ -135,6 +139,39 @@ class RunEngine:
                     connection, run_id, "persist", "succeeded",
                     {"benchmark_exact": exact}, ended=True,
                 )
+                if score_writer is None:
+                    store.upsert_run_step(
+                        connection, run_id, "score_writeback", "skipped",
+                        {"reason": "not_requested"}, ended=True,
+                    )
+                else:
+                    store.upsert_run_step(connection, run_id, "score_writeback", "running")
+                    writeback = None
+                    try:
+                        score_rows = []
+                        with (out_root / source_ref / "scores.jsonl").open(encoding="utf-8") as handle:
+                            for line in handle:
+                                if line.strip():
+                                    score_rows.append(json.loads(line))
+                        run = store.get_run(connection, run_id)
+                        writeback = score_writer.write_scores(score_rows, run)
+                        writeback_status = "succeeded" if writeback["rejected"] == 0 else "failed"
+                        store.upsert_run_step(
+                            connection, run_id, "score_writeback", writeback_status, writeback, ended=True,
+                        )
+                        if writeback_status == "failed" and writeback_strict:
+                            raise RuntimeError("Langfuse score writeback rejected at least one score")
+                    except Exception as error:
+                        payload = writeback if writeback is not None else {"error": str(error)}
+                        if writeback_strict:
+                            store.upsert_run_step(
+                                connection, run_id, "score_writeback", "failed", payload, ended=True,
+                            )
+                            raise
+                        store.upsert_run_step(
+                            connection, run_id, "score_writeback", "failed",
+                            payload, ended=True,
+                        )
                 store.set_run_status(connection, run_id, "succeeded", ended=True)
                 self.canceled_runs.discard(run_id)
         except Exception as error:

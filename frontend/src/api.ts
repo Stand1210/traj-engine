@@ -120,6 +120,8 @@ export interface RunInput {
   limit?: number;
   triggerReason?: string;
   idempotencyKey?: string;
+  writebackToLangfuse?: boolean;
+  writebackStrict?: boolean;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

@@ -143,7 +143,18 @@ M0 契约文件已落盘（路径均相对仓库根目录）：
 
 ## 5. M3 运营闭环
 
-- 使用 `POST /api/public/scores` 写回租户 project。
+- 已实现 `POST /api/public/scores` 写回租户 project：每条 trace 写回
+  `traj-engine-total-score`、`traj-engine-alert`、`traj-engine-abstain`
+  三个 trace 级 Score；总分携带五维分数、cell、runId、codeHash 等 metadata。
+- 写回由 Run 输入的 `writebackToLangfuse` 显式开启；默认失败只把
+  `score_writeback` 步骤标记为 failed，不推翻算法 Run 的 succeeded 状态。
+  `writebackStrict=true` 时可将写回失败升级为 Run 失败。
+- 写回使用可配置 endpoint 与 Basic Auth，批量分片默认 100，支持
+  429/5xx 重试，兼容 Langfuse 的 202 全量接受与 207 部分拒绝响应。
+- 前端 Run 发起器支持选择 `基准 JSONL` / `Langfuse Project`，Langfuse
+  模式下可勾选「评分写回 Langfuse Scores」。
+- 真实 Cloud v4 冒烟已通过：1 条 trace、3 个 Score，全部 accepted，
+  rejected=0。
 - 复用 Langfuse 原生标注队列做人工复核。
 - 实现告警预算与 top-K 排序。
 - 复核标签回流触发校准。

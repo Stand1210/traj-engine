@@ -138,6 +138,56 @@ class ProductionAlgorithmTest(unittest.TestCase):
             self.assertEqual(frozen_row["id"], second_run["structure_version_id"])
             self.assertEqual(1, structure_count)
 
+    def test_score_writeback_failure_does_not_fail_run_by_default(self):
+        traces = []
+        with (ROOT / "data" / "bench_v1" / "R1" / "traces.jsonl").open(encoding="utf-8") as handle:
+            for line in handle:
+                traces.append(json.loads(line))
+                if len(traces) == 20:
+                    break
+
+        class FailingWriter:
+            def write_scores(self, score_rows, run):
+                raise RuntimeError("network unavailable")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            db_path = root / "test.db"
+            connection = store.connect(db_path, initialize=True)
+            try:
+                tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
+                ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+                run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke", "R1",
+                    "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 1.0, "test", None,
+                )
+            finally:
+                connection.close()
+
+            engine = RunEngine(db_path)
+            try:
+                with patch("platform.app.engine.VAR_ROOT", root / "var"):
+                    engine.submit(
+                        run_id, "smoke", 1.0, 20, trace_source=FakeTraceSource(traces),
+                        ontology_id=ontology_id, score_writer=FailingWriter(),
+                    )
+            finally:
+                engine.close()
+
+            connection = store.connect(db_path)
+            try:
+                run = store.get_run(connection, run_id)
+                step = connection.execute(
+                    "SELECT status, payload_json FROM run_steps WHERE run_id = ? AND name = 'score_writeback'",
+                    (run_id,),
+                ).fetchone()
+            finally:
+                connection.close()
+
+            self.assertEqual("succeeded", run["status"])
+            self.assertEqual("failed", step["status"])
+            self.assertIn("network unavailable", step["payload_json"])
+
     def test_frozen_state_roundtrip_replays_assignments(self):
         traces = []
         with (ROOT / "data" / "bench_v1" / "R1" / "traces.jsonl").open(encoding="utf-8") as handle:
