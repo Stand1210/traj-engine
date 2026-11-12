@@ -115,6 +115,10 @@
   89.9738。
   Cloud OTLP ingestion 为异步落库；子观测可能先于根观测可见，因此读回
   路径会跳过并统计 incomplete traces，等待后再执行 Run。
+- M2 后续 R1 行为：首跑或兼容旧结构时会生成/重建冻结结构；之后同一本体
+  的 R1 Run 复用 `structure_versions` 中当前 active 版本，不再新建结构。
+- 本地 1000 条 R1 基准复验：首跑 R2、复跑 R1，逐条
+  `trace_id / cell / novelty` 完全一致，`code_hash=2064664e6aa5fb46`。
 - M2 新增 REST 能力：
   - `POST /api/v1/tenants`：注册 Langfuse org/project 与项目 API key。
   - `POST /api/v1/ontologies`：创建 Tier 0/Tier 1 本体占位。

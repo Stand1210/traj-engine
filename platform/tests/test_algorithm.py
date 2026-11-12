@@ -4,7 +4,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from platform.app.algorithm import build_dynamic_ontology, run_production, write_production_report
+from platform.app.algorithm import (
+    build_dynamic_ontology,
+    dump_frozen_state,
+    load_frozen_state,
+    run_production,
+    write_production_report,
+)
 from platform.app import store
 from platform.app.engine import RunEngine
 
@@ -90,6 +96,68 @@ class ProductionAlgorithmTest(unittest.TestCase):
 
             self.assertEqual("succeeded", run["status"])
             self.assertEqual(20, score_count)
+
+            connection = store.connect(db_path)
+            frozen_row = connection.execute(
+                """SELECT id, state_json FROM structure_versions
+                   WHERE ontology_id = ? ORDER BY version DESC LIMIT 1""",
+                (ontology_id,),
+            ).fetchone()
+            frozen_state = load_frozen_state(frozen_row["state_json"])
+            frozen_state["structure_id"] = frozen_row["id"]
+            second_run_id = store.create_run(
+                connection, tenant_id, ontology_id, "langfuse", "smoke-r1", "R1",
+                "2026-01-02T00:00:00Z", "2026-01-03T00:00:00Z", 1.0, "test", None,
+            )
+            connection.close()
+
+            engine = RunEngine(db_path)
+            try:
+                with patch("platform.app.engine.VAR_ROOT", root / "var"):
+                    engine.submit(
+                        second_run_id, "smoke-r1", 1.0, 20,
+                        trace_source=FakeTraceSource(traces),
+                        window={"start": "2026-01-02T00:00:00Z", "end": "2026-01-03T00:00:00Z"},
+                        ontology_id=ontology_id,
+                        frozen_state=frozen_state,
+                    )
+            finally:
+                engine.close()
+
+            connection = store.connect(db_path)
+            try:
+                second_run = store.get_run(connection, second_run_id)
+                structure_count = connection.execute(
+                    "SELECT COUNT(*) AS n FROM structure_versions WHERE ontology_id = ?",
+                    (ontology_id,),
+                ).fetchone()["n"]
+            finally:
+                connection.close()
+
+            self.assertEqual("succeeded", second_run["status"])
+            self.assertEqual(frozen_row["id"], second_run["structure_version_id"])
+            self.assertEqual(1, structure_count)
+
+    def test_frozen_state_roundtrip_replays_assignments(self):
+        traces = []
+        with (ROOT / "data" / "bench_v1" / "R1" / "traces.jsonl").open(encoding="utf-8") as handle:
+            for line in handle:
+                traces.append(json.loads(line))
+                if len(traces) == 40:
+                    break
+
+        initial_result, initial_scores = run_production(traces, "ontology-frozen-test")
+        frozen_state = load_frozen_state(dump_frozen_state(initial_result["frozen_state"]))
+        frozen_result, frozen_scores = run_production(
+            traces, "ontology-frozen-test", frozen_state=frozen_state
+        )
+
+        initial_cells = [(row["trace_id"], row["cell"], row["novelty"]) for row in initial_scores]
+        frozen_cells = [(row["trace_id"], row["cell"], row["novelty"]) for row in frozen_scores]
+        self.assertEqual("R2", initial_result["run_mode"])
+        self.assertEqual("R1", frozen_result["run_mode"])
+        self.assertEqual(initial_cells, frozen_cells)
+        self.assertTrue(frozen_result["cluster_info"]["frozen_structure"])
 
 
 if __name__ == "__main__":

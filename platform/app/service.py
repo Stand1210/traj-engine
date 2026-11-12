@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from platform.app import store
 from platform.app.config import load_endpoints, resolve_profile_from_args
+from platform.app.algorithm import load_frozen_state
 from platform.app.engine import ENGINE
 from platform.app.langfuse_source import LangfuseHttpError, LangfuseTraceSource
 
@@ -288,7 +289,7 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
         if langfuse_tenant is None:
             raise HTTPException(status_code=400, detail={"code": "ontology_version_not_published"})
     if input_data.runType != "R1":
-        raise HTTPException(status_code=400, detail={"code": "m1_only_supports_r1"})
+        raise HTTPException(status_code=400, detail={"code": "current_release_only_supports_r1"})
     if input_data.samplingRate <= 0:
         raise HTTPException(status_code=400, detail={"code": "sampling_rate_must_be_positive"})
     if input_data.idempotencyKey:
@@ -307,6 +308,14 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail={"code": "invalid_run_request", "message": str(error)})
+    frozen_state = None
+    active_structure = store.get_active_structure(connection, input_data.ontologyId)
+    if active_structure is not None and active_structure["state_json"]:
+        try:
+            frozen_state = load_frozen_state(active_structure["state_json"])
+            frozen_state["structure_id"] = active_structure["id"]
+        except ValueError:
+            frozen_state = None
     trace_source = None
     window = None
     if input_data.source == "langfuse":
@@ -330,6 +339,7 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
         trace_source=trace_source,
         window=window,
         ontology_id=input_data.ontologyId,
+        frozen_state=frozen_state,
     )
     row = connection.execute("SELECT * FROM cohort_runs WHERE id = ?", (run_id,)).fetchone()
     return serialize_run(row)

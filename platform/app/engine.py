@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from bench.runner import run_regime
-from platform.app.algorithm import run_production, write_production_report
+from platform.app.algorithm import dump_frozen_state, run_production, write_production_report
 
 from platform.app import store
 from platform.app.trace_source import JsonlTraceSource
@@ -39,10 +39,12 @@ class RunEngine:
         trace_source=None,
         window: dict | None = None,
         ontology_id: str | None = None,
+        frozen_state: dict | None = None,
     ) -> None:
         self.executor.submit(
             self._execute, run_id, source_ref, sampling_rate, limit,
             trace_source, window, ontology_id,
+            frozen_state,
         )
 
     def cancel(self, run_id: str) -> None:
@@ -60,6 +62,7 @@ class RunEngine:
         trace_source=None,
         window: dict | None = None,
         ontology_id: str | None = None,
+        frozen_state: dict | None = None,
     ) -> None:
         run_dir = VAR_ROOT / "runs" / run_id
         data_root = run_dir / "data"
@@ -101,7 +104,11 @@ class RunEngine:
             if is_benchmark:
                 result = run_regime(source_ref, data_root=data_root, out_root=out_root)
             else:
-                result, score_rows = run_production(traces, ontology_id or source_ref)
+                result, score_rows = run_production(
+                    traces,
+                    ontology_id or source_ref,
+                    frozen_state=frozen_state,
+                )
                 write_production_report(out_root / source_ref, result, score_rows)
             if self._is_canceled(run_id):
                 return
@@ -146,21 +153,41 @@ class RunEngine:
         run = store.get_run(connection, run_id)
         if run is None:
             raise ValueError(f"run not found: {run_id}")
-        structure_id = store.new_id("structure")
-        next_structure_version = 1 + int(
+        frozen_state = result.get("frozen_state")
+        reuse_structure_id = (
+            frozen_state.get("structure_id")
+            if result.get("run_mode") == "R1" and frozen_state is not None
+            else None
+        )
+        if reuse_structure_id is not None:
+            structure_row = connection.execute(
+                "SELECT id FROM structure_versions WHERE id = ? AND ontology_id = ?",
+                (reuse_structure_id, run["ontology_id"]),
+            ).fetchone()
+            if structure_row is None:
+                raise ValueError("frozen structure version not found")
+            structure_id = reuse_structure_id
+        else:
+            structure_id = store.new_id("structure")
+            next_structure_version = 1 + int(
+                connection.execute(
+                    "SELECT COALESCE(MAX(version), 0) AS max_version FROM structure_versions WHERE ontology_id = ?",
+                    (run["ontology_id"],),
+                ).fetchone()["max_version"]
+            )
             connection.execute(
-                "SELECT COALESCE(MAX(version), 0) AS max_version FROM structure_versions WHERE ontology_id = ?",
+                "UPDATE structure_versions SET active = 0 WHERE ontology_id = ? AND active = 1",
                 (run["ontology_id"],),
-            ).fetchone()["max_version"]
-        )
-        connection.execute(
-            """INSERT INTO structure_versions
-               (id, ontology_id, version, code_hash, state_json, created_at, active)
-               VALUES (?, ?, ?, ?, ?, ?, 1)""",
-            (structure_id, run["ontology_id"], next_structure_version, result["code_hash"],
-             json.dumps({"cluster_info": result["cluster_info"]}, ensure_ascii=False, sort_keys=True),
-             store.utcnow()),
-        )
+            )
+            persisted_state = dict(frozen_state or {})
+            persisted_state["structure_id"] = structure_id
+            connection.execute(
+                """INSERT INTO structure_versions
+                   (id, ontology_id, version, code_hash, state_json, created_at, active)
+                   VALUES (?, ?, ?, ?, ?, ?, 1)""",
+                (structure_id, run["ontology_id"], next_structure_version, result["code_hash"],
+                 dump_frozen_state(persisted_state), store.utcnow()),
+            )
         connection.execute(
             "UPDATE cohort_runs SET structure_version_id = ? WHERE id = ?",
             (structure_id, run_id),

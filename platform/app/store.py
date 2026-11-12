@@ -134,6 +134,17 @@ def create_run(
     return run_id
 
 
+def get_active_structure(connection: sqlite3.Connection, ontology_id: str) -> dict | None:
+    row = connection.execute(
+        """SELECT * FROM structure_versions
+           WHERE ontology_id = ? AND active = 1
+           ORDER BY version DESC, created_at DESC
+           LIMIT 1""",
+        (ontology_id,),
+    ).fetchone()
+    return row_to_dict(row)
+
+
 def create_tenant(
     connection: sqlite3.Connection,
     display_name: str,

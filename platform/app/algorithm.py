@@ -1,5 +1,6 @@
 import hashlib
 import json
+import sys
 from pathlib import Path
 
 from bench.runner import code_hash
@@ -17,6 +18,28 @@ import bench.regime as RG
 
 PIPELINE_VERSION = "platform-prod-v0.1.0"
 PATTERN_CAP_NDEC_DEFAULT = 3
+FROZEN_STATE_FORMAT = "traj-engine-frozen-state-v1"
+FROZEN_STATE_KEYS = (
+    "cents_i",
+    "med_p",
+    "single_i",
+    "single_p",
+    "memcons_i",
+    "memcons_p",
+    "cons_i",
+    "cons_p",
+    "cl",
+    "pl",
+    "cent_list",
+    "sigma2",
+    "geo_cut",
+    "threshold",
+    "eval_idx",
+    "n_flag",
+    "flag_rate",
+    "m",
+    "_sig_ctx",
+)
 
 
 def build_dynamic_ontology(traces: list[dict], ontology_id: str) -> dict:
@@ -72,26 +95,45 @@ def build_dynamic_ontology(traces: list[dict], ontology_id: str) -> dict:
     }
 
 
-def run_production(traces: list[dict], ontology_id: str) -> tuple[dict, list[dict]]:
+def run_production(
+    traces: list[dict],
+    ontology_id: str,
+    frozen_state: dict | None = None,
+) -> tuple[dict, list[dict]]:
     if not traces:
         raise ValueError("production run requires at least one trace")
 
-    ontology = build_dynamic_ontology(traces, ontology_id)
     spec_hash = _spec_hash(traces)
-    anchor_version = f"anchor-{ontology_id}-{spec_hash}"
-    cold_start = len(traces) < RG.COLD_START_MIN_TRACES
+    if frozen_state is not None:
+        ontology = frozen_state["ontology"]
+        if ontology.get("id") != ontology_id:
+            raise ValueError("frozen structure belongs to a different ontology")
+        anchor_version = frozen_state["anchor_version"]
+        cold_start = False
+    else:
+        ontology = build_dynamic_ontology(traces, ontology_id)
+        anchor_version = f"anchor-{ontology_id}-{spec_hash}"
+        cold_start = len(traces) < RG.COLD_START_MIN_TRACES
 
     normalized = [ingest.normalize(trace, ontology) for trace in traces]
     feature_rows = [FEAT.extract(item, ontology) for item in normalized]
     FEAT.annotate_sessions(feature_rows, traces)
 
-    cluster.reset_cache()
-    assigns, cluster_info = cluster.cluster_views(
-        feature_rows,
-        threshold=cluster.CONSENSUS_THRESHOLD,
-        seed=42,
-        n_declared_patterns=PATTERN_CAP_NDEC_DEFAULT,
-    )
+    if frozen_state is None:
+        assigns, cluster_info, frozen_state = _cluster_views_with_frozen_state(
+            feature_rows,
+            ontology,
+            anchor_version,
+        )
+    else:
+        assigns = _assign_frozen(feature_rows, frozen_state)
+        cluster_info = dict(frozen_state["cluster_info"])
+        cluster_info["novelty_rate"] = (
+            sum(1 for assign in assigns if assign["novelty"]) / len(assigns)
+            if assigns
+            else 0.0
+        )
+        cluster_info["frozen_structure"] = True
     records = [
         {"cell": assign["cell"], "intent": assign.get("near_intent", -1), "feats": feature}
         for assign, feature in zip(assigns, feature_rows)
@@ -149,6 +191,7 @@ def run_production(traces: list[dict], ontology_id: str) -> tuple[dict, list[dic
         "code_hash": code_hash(),
         "spec_hash": spec_hash,
         "ontology_id": ontology_id,
+        "run_mode": "R1" if frozen_state is not None and cluster_info.get("frozen_structure") else "R2",
         "n": len(traces),
         "n_pool": sum(1 for assign in assigns if not assign["novelty"]),
         "cold_start": cold_start,
@@ -167,6 +210,7 @@ def run_production(traces: list[dict], ontology_id: str) -> tuple[dict, list[dic
         "drift": drift_result,
         "scoring": _scoring_summary(score_rows),
         "calibration": {"kind": "none", "n_labels": 0, "ece_oof": None},
+        "frozen_state": frozen_state,
     }
     return result, score_rows
 
@@ -202,10 +246,166 @@ def write_production_report(report_dir: Path, result: dict, score_rows: list[dic
     with (report_dir / "scores.jsonl").open("w", encoding="utf-8", newline="\n") as handle:
         for row in slim:
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    report_result = {key: value for key, value in result.items() if key != "frozen_state"}
     with (report_dir / "metrics.json").open("w", encoding="utf-8", newline="\n") as handle:
-        json.dump(result, handle, ensure_ascii=False, indent=2, sort_keys=True)
+        json.dump(report_result, handle, ensure_ascii=False, indent=2, sort_keys=True)
         handle.write("\n")
     return report_dir
+
+
+def dump_frozen_state(state: dict) -> str:
+    payload = dict(state)
+    payload["single_i"] = sorted(payload["single_i"])
+    payload["single_p"] = sorted(payload["single_p"])
+    sig, sig_tokens = payload["_sig_ctx"]
+    payload["_sig_ctx"] = {"actions": sorted(sig), "tokens": list(sig_tokens)}
+    return json.dumps(
+        {"format": FROZEN_STATE_FORMAT, "state": payload},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def load_frozen_state(text: str) -> dict:
+    try:
+        wrapper = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise ValueError("frozen structure state is not valid JSON") from error
+    if wrapper.get("format") != FROZEN_STATE_FORMAT:
+        raise ValueError("unsupported frozen structure state format")
+    state = dict(wrapper["state"])
+    state["single_i"] = set(state["single_i"])
+    state["single_p"] = set(state["single_p"])
+    state["_sig_ctx"] = (
+        set(state["_sig_ctx"]["actions"]),
+        tuple(state["_sig_ctx"]["tokens"]),
+    )
+    for key in ("cents_i", "med_p", "memcons_i", "memcons_p"):
+        state[key] = {int(cluster): value for cluster, value in state[key].items()}
+    missing = [key for key in FROZEN_STATE_KEYS if key not in state]
+    if missing:
+        raise ValueError(f"frozen structure state is missing keys: {missing}")
+    for key in ("ontology", "cluster_info", "anchor_version", "training_size"):
+        if key not in state:
+            raise ValueError(f"frozen structure state is missing key: {key}")
+    return state
+
+
+def _cluster_views_with_frozen_state(
+    feature_rows: list[dict],
+    ontology: dict,
+    anchor_version: str,
+) -> tuple[list[dict], dict, dict]:
+    captured = {}
+
+    def capture_return(frame, event, arg):
+        if event == "return":
+            captured.update(frame.f_locals)
+        return capture_return
+
+    def capture_cluster_views(frame, event, arg):
+        if (
+            event == "call"
+            and frame.f_code.co_name == "cluster_views"
+            and frame.f_code.co_filename.replace("\\", "/").endswith("kernel/cluster.py")
+        ):
+            return capture_return
+        return None
+
+    cluster.reset_cache()
+    sys.settrace(capture_cluster_views)
+    try:
+        assigns, cluster_info = cluster.cluster_views(
+            feature_rows,
+            threshold=cluster.CONSENSUS_THRESHOLD,
+            seed=42,
+            n_declared_patterns=PATTERN_CAP_NDEC_DEFAULT,
+        )
+    finally:
+        sys.settrace(None)
+
+    missing = [key for key in FROZEN_STATE_KEYS if key not in captured]
+    if missing:
+        raise RuntimeError(f"failed to capture frozen clustering state: {missing}")
+    state = {key: captured[key] for key in FROZEN_STATE_KEYS}
+    state["_cons_i_t"] = {
+        feature_rows[index]["trace_id"]: captured["cons_i"][position]
+        for position, index in enumerate(captured["eval_idx"])
+    }
+    state["_cons_p_t"] = {
+        feature_rows[index]["trace_id"]: captured["cons_p"][position]
+        for position, index in enumerate(captured["eval_idx"])
+    }
+    state.update(
+        {
+            "ontology": ontology,
+            "cluster_info": cluster_info,
+            "anchor_version": anchor_version,
+            "training_size": len(feature_rows),
+        }
+    )
+    return assigns, cluster_info, state
+
+
+def _assign_frozen(feature_rows: list[dict], state: dict) -> list[dict]:
+    cents_i = state["cents_i"]
+    med_p = state["med_p"]
+    cl = state["cl"]
+    pl = state["pl"]
+    cent_list = state["cent_list"]
+    single_i = state["single_i"]
+    single_p = state["single_p"]
+    memcons_i = state["memcons_i"]
+    memcons_p = state["memcons_p"]
+    sigma2 = state["sigma2"]
+    geo_cut = state["geo_cut"]
+    threshold = state["threshold"]
+    sig, sig_tokens = state["_sig_ctx"]
+
+    assigns = []
+    for feature in feature_rows:
+        embedding = feature["embedding"]
+        intent = min(cl, key=lambda cluster_id: cluster.euclid(embedding, cents_i[cluster_id])) if cl else -1
+        skeleton = cluster.collapse(feature["action_seq"])
+        pattern = (
+            min(pl, key=lambda cluster_id: cluster.seq_dist(skeleton, med_p[cluster_id], sig, sig_tokens))
+            if pl
+            else -1
+        )
+        trace_id = feature["trace_id"]
+        consensus_intent = (
+            state["_cons_i_t"][trace_id]
+            if trace_id in state["_cons_i_t"]
+            else memcons_i.get(intent, 0.0)
+        )
+        consensus_pattern = (
+            state["_cons_p_t"][trace_id]
+            if trace_id in state["_cons_p_t"]
+            else memcons_p.get(pattern, 0.0)
+        )
+        margin = cluster.post_margin(embedding, cent_list, sigma2)
+        novelty = (
+            intent in single_i
+            or pattern in single_p
+            or consensus_intent < threshold
+            or consensus_pattern < threshold
+            or (geo_cut is not None and margin <= geo_cut)
+        )
+        assigns.append(
+            {
+                "trace_id": trace_id,
+                "intent_cluster": -1 if novelty else intent,
+                "pattern_cluster": -1 if novelty else pattern,
+                "cell": None if novelty else f"i{intent}xp{pattern}",
+                "consensus_intent": consensus_intent,
+                "consensus_pattern": consensus_pattern,
+                "novelty": bool(novelty),
+                "near_intent": intent,
+                "near_pattern": pattern,
+                "post_margin": None if margin == float("inf") else round(margin, 6),
+            }
+        )
+    return assigns
 
 
 def _spec_hash(traces: list[dict]) -> str:

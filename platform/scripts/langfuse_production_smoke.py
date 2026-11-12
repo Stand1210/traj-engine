@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from platform.app import store
+from platform.app.algorithm import load_frozen_state
 from platform.app.config import load_endpoints, load_profile
 from platform.app.engine import RunEngine
 from platform.app.langfuse_source import LangfuseTraceSource
@@ -79,6 +80,14 @@ def main() -> int:
             "langfuse_production_smoke",
             None,
         )
+        frozen_state = None
+        active_structure = store.get_active_structure(connection, ontology_id)
+        if active_structure is not None and active_structure["state_json"]:
+            try:
+                frozen_state = load_frozen_state(active_structure["state_json"])
+                frozen_state["structure_id"] = active_structure["id"]
+            except ValueError:
+                frozen_state = None
     finally:
         connection.close()
 
@@ -104,6 +113,7 @@ def main() -> int:
             trace_source=source,
             window={"start": start.isoformat(), "end": end.isoformat()},
             ontology_id=ontology_id,
+            frozen_state=frozen_state,
         )
     finally:
         engine.close()
