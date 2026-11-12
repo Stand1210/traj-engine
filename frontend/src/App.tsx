@@ -5,12 +5,14 @@ import RunOverview from "./components/RunOverview";
 import ClusterView from "./components/ClusterView";
 import TraceWorkbench from "./components/TraceWorkbench";
 import TraceDetail from "./components/TraceDetail";
+import AlertWorkbench from "./components/AlertWorkbench";
 
 type Route =
   | { name: "runs" }
   | { name: "run"; runId: string }
   | { name: "cells"; runId: string }
   | { name: "traces"; runId: string; mode: "all" | "alerts" | "abstain" }
+  | { name: "alerts"; runId: string }
   | { name: "trace"; runId: string; traceId: string };
 
 function parseHash(): Route {
@@ -21,6 +23,9 @@ function parseHash(): Route {
   if (parts[0] === "runs" && parts[1] && parts[2] === "traces") {
     const mode = parts[3] === "alerts" || parts[3] === "abstain" ? parts[3] : "all";
     return { name: "traces", runId: parts[1], mode };
+  }
+  if (parts[0] === "runs" && parts[1] && parts[2] === "alerts") {
+    return { name: "alerts", runId: parts[1] };
   }
   if (parts[0] === "runs" && parts[1] && parts[2] === "trace" && parts[3]) {
     return { name: "trace", runId: parts[1], traceId: parts[3] };
@@ -81,6 +86,7 @@ export default function App() {
             <button onClick={() => navigate(`/runs/${activeRunId}`)}>Run 概览</button>
             <button onClick={() => navigate(`/runs/${activeRunId}/cells`)}>聚类结果</button>
             <button onClick={() => navigate(`/runs/${activeRunId}/traces`)}>轨迹工作台</button>
+            <button onClick={() => navigate(`/runs/${activeRunId}/alerts`)}>告警工作台</button>
           </>
         )}
       </nav>
@@ -92,6 +98,7 @@ export default function App() {
         {route.name === "run" && <RunOverview runId={route.runId} onSelect={navigate} />}
         {route.name === "cells" && <ClusterView runId={route.runId} onSelect={navigate} />}
         {route.name === "traces" && <TraceWorkbench runId={route.runId} initialMode={route.mode} onSelect={navigate} />}
+        {route.name === "alerts" && <AlertWorkbench runId={route.runId} onSelect={navigate} />}
         {route.name === "trace" && <TraceDetail runId={route.runId} traceId={route.traceId} />}
       </main>
     </div>

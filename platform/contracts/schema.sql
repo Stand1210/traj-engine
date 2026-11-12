@@ -227,6 +227,25 @@ CREATE TABLE IF NOT EXISTS review_queue_items (
     UNIQUE (queue_id, item_id)
 );
 
+CREATE TABLE IF NOT EXISTS alert_decisions (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL,
+    trace_score_id TEXT NOT NULL,
+    group_key TEXT NOT NULL,
+    cause TEXT NOT NULL,
+    cause_kind TEXT NOT NULL,
+    priority REAL NOT NULL,
+    priority_rank INTEGER NOT NULL,
+    group_rank INTEGER NOT NULL,
+    group_size INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('alerted', 'candidate', 'suppressed_duplicate')),
+    reasons_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (run_id) REFERENCES cohort_runs (id),
+    FOREIGN KEY (trace_score_id) REFERENCES trace_scores (id),
+    UNIQUE (run_id, trace_score_id)
+);
+
 CREATE TABLE IF NOT EXISTS audit_events (
     id TEXT PRIMARY KEY,
     actor TEXT NOT NULL,
@@ -249,3 +268,5 @@ CREATE INDEX IF NOT EXISTS idx_reviews_score
     ON human_reviews (trace_score_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_review_queue_items_run
   ON review_queue_items (run_id, status);
+CREATE INDEX IF NOT EXISTS idx_alert_decisions_run_status
+  ON alert_decisions (run_id, status, priority_rank);

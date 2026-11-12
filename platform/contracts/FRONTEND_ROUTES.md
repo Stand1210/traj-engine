@@ -11,7 +11,7 @@
 | `/runs/:runId/cells` | Cluster view | `GET /runs/{runId}/cells` |
 | `/runs/:runId/traces` | Trace list | `GET /runs/{runId}/traces` |
 | `/runs/:runId/traces/:traceId` | Trace drilldown | `GET /runs/{runId}/traces/{traceId}` |
-| `/runs/:runId/alerts` | Alert workbench | `GET /runs/{runId}/alerts` |
+| `/runs/:runId/alerts` | Alert workbench | `GET /runs/{runId}/alerts/summary`, `GET /runs/{runId}/alerts`, `GET /runs/{runId}/alert-candidates` |
 | `/settings` | Effective profile | `GET /config/profile`, `GET /startup-records/current` |
 
 ## M2+ Pages

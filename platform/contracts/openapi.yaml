@@ -424,6 +424,10 @@ paths:
       summary: List alert-ranked traces
       parameters:
         - $ref: '#/components/parameters/runId'
+        - name: budget
+          in: query
+          required: false
+          schema: {type: integer, minimum: 0, maximum: 100}
         - name: limit
           in: query
           schema: {type: integer, minimum: 1, maximum: 100}
@@ -435,7 +439,65 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TraceScore'
+                  $ref: '#/components/schemas/AlertTraceScore'
+  /runs/{runId}/alert-candidates:
+    get:
+      tags: [results]
+      operationId: listAlertCandidates
+      summary: List alerts suppressed by grouping or budget
+      parameters:
+        - $ref: '#/components/parameters/runId'
+        - name: budget
+          in: query
+          required: false
+          schema: {type: integer, minimum: 0, maximum: 100}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+      responses:
+        '200':
+          description: Candidate and duplicate-suppressed alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertTraceScore'
+  /runs/{runId}/alerts/summary:
+    get:
+      tags: [results]
+      operationId: getAlertSummary
+      summary: Get alert budget summary
+      parameters:
+        - $ref: '#/components/parameters/runId'
+        - name: budget
+          in: query
+          required: false
+          schema: {type: integer, minimum: 0, maximum: 100}
+      responses:
+        '200':
+          description: Alert budget summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertSummary'
+  /config/alerts:
+    get:
+      tags: [config]
+      operationId: getAlertConfig
+      summary: Get alert budget configuration
+      responses:
+        '200':
+          description: Alert configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: {type: integer}
+                  budgetPerRun: {type: integer}
+                  maxPerGroup: {type: integer}
+                  weights: {type: object, additionalProperties: {type: number}}
   /runs/{runId}/lineage:
     get:
       tags: [results]
@@ -817,6 +879,50 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Evidence'
+    AlertTraceScore:
+      allOf:
+        - $ref: '#/components/schemas/TraceScore'
+        - type: object
+          required: [alertStatus, priority, priorityRank, groupKey, groupRank, groupSize, cause, causeKind]
+          properties:
+            alertStatus: {type: string, enum: [alerted, candidate, suppressed_duplicate]}
+            priority: {type: number}
+            priorityRank: {type: integer}
+            groupKey: {type: string}
+            groupRank: {type: integer}
+            groupSize: {type: integer}
+            cause: {type: string}
+            causeKind: {type: string}
+            reasons:
+              type: array
+              items: {type: string}
+    AlertSummary:
+      type: object
+      required: [budget, totalAlerts, groups, emitted, candidates, statusCounts, topGroups]
+      properties:
+        budget: {type: integer}
+        totalAlerts: {type: integer}
+        groups: {type: integer}
+        emitted: {type: integer}
+        candidates: {type: integer}
+        statusCounts:
+          type: object
+          required: [alerted, candidate, suppressed_duplicate]
+          properties:
+            alerted: {type: integer}
+            candidate: {type: integer}
+            suppressed_duplicate: {type: integer}
+        topGroups:
+          type: array
+          items:
+            type: object
+            properties:
+              groupKey: {type: string}
+              cause: {type: string}
+              causeKind: {type: string}
+              groupSize: {type: integer}
+              topPriority: {type: number}
+              status: {type: string}
     Evidence:
       type: object
       required: [id, dimension, contribution, explanation]

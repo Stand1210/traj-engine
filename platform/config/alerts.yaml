@@ -1,0 +1,10 @@
+version: 1
+description: Alert stream budget and ranking defaults.
+budgetPerRun: 5
+maxPerGroup: 1
+weights:
+  severity: 0.34
+  dimensionImpact: 0.20
+  deductionStrength: 0.16
+  causeSeverity: 0.20
+  clusterImpact: 0.10

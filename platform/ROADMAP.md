@@ -167,7 +167,22 @@ M0 契约文件已落盘（路径均相对仓库根目录）：
   - 前端 Run 概览提供「推送复核队列」与「同步 Langfuse 人工复核」。
   - 真实 Cloud v4 已完成队列、Score Config、队列 item、人工 Score、
     完成状态与读回验证。
-- 实现告警预算与 top-K 排序。
+- 告警预算与 top-K 排序已实现：
+  - 每条告警计算统一优先级：低分严重度 34%、最差维度 20%、扣分强度 16%、
+    规则/统计根因严重度 20%、cell 影响面 10%。
+  - 按「cell + 主根因」分组，同组只放行 1 条代表告警，其余标记
+    `suppressed_duplicate`。
+  - 按 Run 预算只放行 top-K 代表告警，其余代表告警标记 `candidate`。
+  - 预算默认 5，配置在 `platform/config/alerts.yaml`。
+  - 新增 `alert_decisions` 表持久化每个 Run 的优先级、排名、分组、
+    状态与原因；Run Steps 新增 `alert_budget`。
+  - REST 提供 `GET /runs/{runId}/alerts`、
+    `GET /runs/{runId}/alert-candidates`、
+    `GET /runs/{runId}/alerts/summary`、`GET /config/alerts`。
+  - 前端新增「告警工作台」，区分正式告警与候选异常，并展示预算摘要、
+    根因组、优先级和下钻入口。
+  - 1000 条真实 Cloud Run 复验：原始告警 40 条 → 21 个根因组 →
+    正式告警 5 条、预算外 16 条、同组去重 19 条，满足预算目标。
 - 复核标签回流触发校准。
 
 ## 6. M4 生命周期

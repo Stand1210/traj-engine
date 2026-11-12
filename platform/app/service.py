@@ -9,8 +9,13 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from platform.app import store
-from platform.app.config import load_endpoints, resolve_profile_from_args
+from platform.app.config import load_alert_config, load_endpoints, resolve_profile_from_args
 from platform.app.algorithm import load_frozen_state
+from platform.app.alerts import (
+    DEFAULT_ALERT_BUDGET,
+    compute_alert_decisions,
+    summarize_decisions,
+)
 from platform.app.engine import ENGINE
 from platform.app.langfuse_source import LangfuseHttpError, LangfuseTraceSource
 from platform.app.langfuse_scores import LangfuseScoreWriter
@@ -501,14 +506,65 @@ def get_trace_score(run_id: str, trace_id: str, connection=Depends(get_connectio
 
 
 @app.get("/api/v1/runs/{run_id}/alerts")
-def list_alerts(run_id: str, limit: int = Query(default=50, ge=1, le=100), connection=Depends(get_connection)) -> list[dict]:
+def list_alerts(
+    run_id: str,
+    budget: int | None = Query(default=None, ge=0, le=100),
+    limit: int = Query(default=50, ge=1, le=100),
+    connection=Depends(get_connection),
+) -> list[dict]:
     ensure_run(connection, run_id)
-    rows = connection.execute(
-        """SELECT * FROM trace_scores WHERE run_id = ? AND is_alert = 1
-           ORDER BY total_score ASC, trace_id LIMIT ?""",
-        (run_id, limit),
-    ).fetchall()
-    return [serialize_trace_score(row) for row in rows]
+    decisions = _alert_decisions(connection, run_id, budget)
+    decisions = [item for item in decisions if item["status"] == "alerted"][:limit]
+    score_rows = _alert_score_rows(connection, run_id)
+    return [_serialize_alert_score(score_rows[item["trace_score_id"]], item) for item in decisions]
+
+
+@app.get("/api/v1/runs/{run_id}/alert-candidates")
+def list_alert_candidates(
+    run_id: str,
+    budget: int | None = Query(default=None, ge=0, le=100),
+    limit: int = Query(default=50, ge=1, le=100),
+    connection=Depends(get_connection),
+) -> list[dict]:
+    ensure_run(connection, run_id)
+    decisions = _alert_decisions(connection, run_id, budget)
+    decisions = [
+        item for item in decisions
+        if item["status"] in {"candidate", "suppressed_duplicate"}
+    ][:limit]
+    score_rows = _alert_score_rows(connection, run_id)
+    return [_serialize_alert_score(score_rows[item["trace_score_id"]], item) for item in decisions]
+
+
+@app.get("/api/v1/runs/{run_id}/alerts/summary")
+def get_alert_summary(
+    run_id: str,
+    budget: int | None = Query(default=None, ge=0, le=100),
+    connection=Depends(get_connection),
+) -> dict:
+    ensure_run(connection, run_id)
+    decisions = _alert_decisions(connection, run_id, budget)
+    summary = summarize_decisions(decisions, _effective_budget(budget))
+    top_groups: dict[str, dict] = {}
+    for decision in decisions:
+        group = top_groups.setdefault(decision["group_key"], {
+            "groupKey": decision["group_key"],
+            "cause": decision["cause"],
+            "causeKind": decision["cause_kind"],
+            "groupSize": decision["group_size"],
+            "topPriority": decision["priority"],
+            "status": decision["status"],
+        })
+        group["topPriority"] = max(group["topPriority"], decision["priority"])
+    summary["topGroups"] = sorted(
+        top_groups.values(), key=lambda item: (-item["topPriority"], item["groupKey"])
+    )[:10]
+    return summary
+
+
+@app.get("/api/v1/config/alerts")
+def get_alert_config() -> dict:
+    return load_alert_config()
 
 
 @app.get("/api/v1/runs/{run_id}/lineage")
@@ -749,6 +805,65 @@ def ensure_run(connection, run_id: str) -> None:
         raise HTTPException(status_code=404, detail={"code": "run_not_found"})
 
 
+def _effective_budget(budget: int | None) -> int:
+    if budget is not None:
+        return budget
+    config = load_alert_config()
+    return int(config.get("budgetPerRun", DEFAULT_ALERT_BUDGET))
+
+
+def _alert_score_rows(connection, run_id: str) -> dict[str, dict]:
+    return {
+        row["id"]: dict(row)
+        for row in connection.execute(
+            "SELECT * FROM trace_scores WHERE run_id = ? AND is_alert = 1", (run_id,)
+        ).fetchall()
+    }
+
+
+def _alert_decisions(connection, run_id: str, budget: int | None) -> list[dict]:
+    effective_budget = _effective_budget(budget)
+    persisted = [
+        dict(row) for row in connection.execute(
+            "SELECT * FROM alert_decisions WHERE run_id = ? ORDER BY priority_rank", (run_id,)
+        ).fetchall()
+    ]
+    if persisted and effective_budget == _effective_budget(None):
+        return _decode_persisted_decisions(persisted)
+
+    score_rows = list(_alert_score_rows(connection, run_id).values())
+    evidence_rows = []
+    for row in score_rows:
+        evidence_rows.extend(
+            dict(item) for item in connection.execute(
+                "SELECT * FROM score_evidence WHERE trace_score_id = ? ORDER BY dimension", (row["id"],)
+            ).fetchall()
+        )
+    cell_sizes = {
+        row["id"]: int(row["size"])
+        for row in connection.execute("SELECT id, size FROM cells WHERE run_id = ?", (run_id,)).fetchall()
+    }
+    return compute_alert_decisions(score_rows, evidence_rows, cell_sizes, effective_budget)
+
+
+def _decode_persisted_decisions(rows: list[dict]) -> list[dict]:
+    decisions = []
+    for row in rows:
+        decisions.append({
+            "trace_score_id": row["trace_score_id"],
+            "group_key": row["group_key"],
+            "cause": row["cause"],
+            "cause_kind": row["cause_kind"],
+            "priority": row["priority"],
+            "group_rank": row["group_rank"],
+            "group_size": row["group_size"],
+            "status": row["status"],
+            "rank": row["priority_rank"],
+            "reasons": json.loads(row["reasons_json"] or "[]"),
+        })
+    return decisions
+
+
 def _tenant_for_run(connection, run_id: str):
     tenant = connection.execute(
         """SELECT t.* FROM cohort_runs r
@@ -924,6 +1039,22 @@ def serialize_trace_score(row) -> dict:
         "isAbstain": bool(row["is_abstain"]), "structureVersion": row["structure_version_id"],
         "ontologyVersion": 1, "codeHash": row["code_hash"],
     }
+
+
+def _serialize_alert_score(row: dict, decision: dict) -> dict:
+    result = serialize_trace_score(row)
+    result.update({
+        "alertStatus": decision["status"],
+        "priority": decision["priority"],
+        "priorityRank": decision["rank"],
+        "groupKey": decision["group_key"],
+        "groupRank": decision["group_rank"],
+        "groupSize": decision["group_size"],
+        "cause": decision["cause"],
+        "causeKind": decision["cause_kind"],
+        "reasons": decision["reasons"],
+    })
+    return result
 
 
 def serialize_evidence(row) -> dict:

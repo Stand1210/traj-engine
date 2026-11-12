@@ -174,6 +174,31 @@
     将 item 置为 `COMPLETED`，并可通过 Scores v3 按 `queueId + traceId`
     读回。
 
+### 3.1.2 M3 告警预算部署记录
+
+- 新增数据表：`alert_decisions`，记录每个 Run 内每条原始告警的
+  优先级、全局排名、根因组、组内排名、状态与解释原因。建表语句在
+  `platform/contracts/schema.sql`，应用启动时自动创建。
+- 新增配置文件：`platform/config/alerts.yaml`。
+  - `budgetPerRun`：每个 Run 的正式告警数，默认 5。
+  - `maxPerGroup`：当前固定为 1，同组只放行一条代表告警。
+  - `weights`：优先级各分量权重，当前实现读取配置用于展示，
+    计算公式与配置保持一致。
+- 无新增三方件、无 embedding 模型；计算在 Python 标准库内完成。
+- Run 持久化后自动执行 `alert_budget` 步骤并写入 `alert_decisions`。
+- REST：
+  - `GET /api/v1/runs/{runId}/alerts`
+  - `GET /api/v1/runs/{runId}/alert-candidates`
+  - `GET /api/v1/runs/{runId}/alerts/summary`
+  - `GET /api/v1/config/alerts`
+- 前端路由：`#/runs/{runId}/alerts`。
+- 1000 条真实 Cloud Run 验证：
+  - 原始告警 40
+  - 根因组 21
+  - 正式告警 5
+  - 预算外候选 16
+  - 同组去重 19
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

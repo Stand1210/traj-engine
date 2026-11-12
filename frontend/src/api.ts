@@ -100,6 +100,35 @@ export interface TraceScoreDetail extends TraceScore {
   evidence: Evidence[];
 }
 
+export interface AlertTraceScore extends TraceScore {
+  alertStatus: "alerted" | "candidate" | "suppressed_duplicate";
+  priority: number;
+  priorityRank: number;
+  groupKey: string;
+  groupRank: number;
+  groupSize: number;
+  cause: string;
+  causeKind: string;
+  reasons: string[];
+}
+
+export interface AlertSummary {
+  budget: number;
+  totalAlerts: number;
+  groups: number;
+  emitted: number;
+  candidates: number;
+  statusCounts: Record<string, number>;
+  topGroups: Array<{
+    groupKey: string;
+    cause: string;
+    causeKind: string;
+    groupSize: number;
+    topPriority: number;
+    status: string;
+  }>;
+}
+
 export interface Calibration {
   runId: string;
   kind: string;
@@ -165,7 +194,11 @@ export const api = {
     request<Page<TraceScore>>(`/api/v1/runs/${id}/traces?limit=100${query}`),
   trace: (runId: string, traceId: string) =>
     request<TraceScoreDetail>(`/api/v1/runs/${runId}/traces/${traceId}`),
-  alerts: (id: string) => request<TraceScore[]>(`/api/v1/runs/${id}/alerts?limit=100`),
+  alerts: (id: string) => request<AlertTraceScore[]>(`/api/v1/runs/${id}/alerts?limit=100`),
+  alertCandidates: (id: string) =>
+    request<AlertTraceScore[]>(`/api/v1/runs/${id}/alert-candidates?limit=100`),
+  alertSummary: (id: string) => request<AlertSummary>(`/api/v1/runs/${id}/alerts/summary`),
+  alertConfig: () => request<Record<string, unknown>>("/api/v1/config/alerts"),
   calibration: (id: string) => request<Calibration>(`/api/v1/runs/${id}/calibration`),
   createRun: (input: RunInput) =>
     request<Run>("/api/v1/runs", { method: "POST", body: JSON.stringify(input) })

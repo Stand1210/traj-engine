@@ -88,6 +88,7 @@ export default function RunOverview({ runId, onSelect }: Props) {
         <div className="button-row">
           <button onClick={() => onSelect(`/runs/${runId}/cells`)}>查看聚类</button>
           <button onClick={() => onSelect(`/runs/${runId}/traces`)}>查看轨迹</button>
+          <button onClick={() => onSelect(`/runs/${runId}/alerts`)}>查看告警</button>
           {run?.source === "langfuse" && run.status === "succeeded" && (
             <>
               <button disabled={reviewBusy} onClick={() => void pushReviewQueue("all")}>

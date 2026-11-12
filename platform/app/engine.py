@@ -8,6 +8,7 @@ from typing import Any
 
 from bench.runner import run_regime
 from platform.app.algorithm import dump_frozen_state, run_production, write_production_report
+from platform.app.alerts import persist_alert_decisions
 
 from platform.app import store
 from platform.app.trace_source import JsonlTraceSource
@@ -138,6 +139,10 @@ class RunEngine:
                 store.upsert_run_step(
                     connection, run_id, "persist", "succeeded",
                     {"benchmark_exact": exact}, ended=True,
+                )
+                alert_summary = persist_alert_decisions(connection, run_id)
+                store.upsert_run_step(
+                    connection, run_id, "alert_budget", "succeeded", alert_summary, ended=True,
                 )
                 if score_writer is None:
                     store.upsert_run_step(
