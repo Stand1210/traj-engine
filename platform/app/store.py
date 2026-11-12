@@ -172,13 +172,37 @@ def create_ontology(
         raise ValueError("tier must be tier0 or tier1")
     if connection.execute("SELECT id FROM tenants WHERE id = ?", (tenant_id,)).fetchone() is None:
         raise ValueError("tenant not found")
+    if connection.execute("SELECT id FROM ontologies WHERE tenant_id = ?", (tenant_id,)).fetchone() is not None:
+        raise ValueError("tenant already has an ontology")
     ontology_id = new_id("ontology")
-    connection.execute(
-        """INSERT INTO ontologies
-           (id, tenant_id, display_name, tier, current_version, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 0, ?, ?)""",
-        (ontology_id, tenant_id, display_name, tier, utcnow(), utcnow()),
-    )
+    from bench.runner import code_hash
+    if tier == "tier0":
+        yaml_text = (
+            f"id: {ontology_id}\n"
+            "version: 1\n"
+            "unit_price:\n"
+            "  prompt: 0.0\n"
+            "  completion: 0.0\n"
+        )
+        connection.execute(
+            """INSERT INTO ontologies
+               (id, tenant_id, display_name, tier, current_version, created_at, updated_at)
+               VALUES (?, ?, ?, ?, 1, ?, ?)""",
+            (ontology_id, tenant_id, display_name, tier, utcnow(), utcnow()),
+        )
+        connection.execute(
+            """INSERT INTO ontology_versions
+               (id, ontology_id, version, yaml, code_hash, created_at)
+               VALUES (?, ?, 1, ?, ?, ?)""",
+            (new_id("ontology-version"), ontology_id, yaml_text, code_hash(), utcnow()),
+        )
+    else:
+        connection.execute(
+            """INSERT INTO ontologies
+               (id, tenant_id, display_name, tier, current_version, created_at, updated_at)
+               VALUES (?, ?, ?, ?, 0, ?, ?)""",
+            (ontology_id, tenant_id, display_name, tier, utcnow(), utcnow()),
+        )
     connection.commit()
     return ontology_id
 

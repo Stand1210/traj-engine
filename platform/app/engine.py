@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from bench.runner import run_regime
+from platform.app.algorithm import run_production, write_production_report
 
 from platform.app import store
 from platform.app.trace_source import JsonlTraceSource
@@ -29,8 +30,20 @@ class RunEngine:
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="traj-run")
         self.canceled_runs: set[str] = set()
 
-    def submit(self, run_id: str, source_ref: str, sampling_rate: float, limit: int | None) -> None:
-        self.executor.submit(self._execute, run_id, source_ref, sampling_rate, limit)
+    def submit(
+        self,
+        run_id: str,
+        source_ref: str,
+        sampling_rate: float,
+        limit: int | None,
+        trace_source=None,
+        window: dict | None = None,
+        ontology_id: str | None = None,
+    ) -> None:
+        self.executor.submit(
+            self._execute, run_id, source_ref, sampling_rate, limit,
+            trace_source, window, ontology_id,
+        )
 
     def cancel(self, run_id: str) -> None:
         self.canceled_runs.add(run_id)
@@ -38,7 +51,16 @@ class RunEngine:
     def _is_canceled(self, run_id: str) -> bool:
         return run_id in self.canceled_runs
 
-    def _execute(self, run_id: str, source_ref: str, sampling_rate: float, limit: int | None) -> None:
+    def _execute(
+        self,
+        run_id: str,
+        source_ref: str,
+        sampling_rate: float,
+        limit: int | None,
+        trace_source=None,
+        window: dict | None = None,
+        ontology_id: str | None = None,
+    ) -> None:
         run_dir = VAR_ROOT / "runs" / run_id
         data_root = run_dir / "data"
         out_root = run_dir / "reports"
@@ -50,9 +72,10 @@ class RunEngine:
 
             with closing(store.connect(self.db_path)) as connection:
                 store.upsert_run_step(connection, run_id, "load_source", "running")
-            source = JsonlTraceSource(source_ref, limit=limit)
+            source = trace_source or JsonlTraceSource(source_ref, limit=limit)
+            effective_window = window or {"start": None, "end": None}
             traces = list(source.list_traces(
-                {"start": None, "end": None},
+                effective_window,
                 {"rate": sampling_rate, "seed": 0, "strategy": "systematic"},
             ))
             if not traces:
@@ -62,9 +85,11 @@ class RunEngine:
             with (regime_dir / "traces.jsonl").open("w", encoding="utf-8", newline="\n") as handle:
                 for trace in traces:
                     handle.write(json.dumps(trace, ensure_ascii=False, sort_keys=True) + "\n")
-            benchmark_root = ROOT / "data" / "bench_v1" / source_ref
-            shutil.copy2(benchmark_root / "gt.jsonl", regime_dir / "gt.jsonl")
-            shutil.copy2(benchmark_root / "meta.json", regime_dir / "meta.json")
+            is_benchmark = isinstance(source, JsonlTraceSource)
+            if is_benchmark:
+                benchmark_root = ROOT / "data" / "bench_v1" / source_ref
+                shutil.copy2(benchmark_root / "gt.jsonl", regime_dir / "gt.jsonl")
+                shutil.copy2(benchmark_root / "meta.json", regime_dir / "meta.json")
             with closing(store.connect(self.db_path)) as connection:
                 store.upsert_run_step(
                     connection, run_id, "load_source", "succeeded",
@@ -73,23 +98,27 @@ class RunEngine:
 
             with closing(store.connect(self.db_path)) as connection:
                 store.upsert_run_step(connection, run_id, "algorithm", "running")
-            result = run_regime(source_ref, data_root=data_root, out_root=out_root)
+            if is_benchmark:
+                result = run_regime(source_ref, data_root=data_root, out_root=out_root)
+            else:
+                result, score_rows = run_production(traces, ontology_id or source_ref)
+                write_production_report(out_root / source_ref, result, score_rows)
             if self._is_canceled(run_id):
                 return
             with closing(store.connect(self.db_path)) as connection:
                 store.upsert_run_step(
                     connection, run_id, "algorithm", "succeeded",
-                    {"all_pass": result["all_pass"], "code_hash": result["code_hash"],
-                     "spec_hash": result["spec_hash"], "n": result["n"]},
+                    {"code_hash": result["code_hash"], "spec_hash": result["spec_hash"],
+                     "n": result["n"], "cold_start": result.get("cold_start")},
                     ended=True,
                 )
 
-            with store.connect(self.db_path) as connection:
+            with closing(store.connect(self.db_path)) as connection:
                 store.upsert_run_step(connection, run_id, "persist", "running")
                 self._persist_results(connection, run_id, result, out_root / source_ref)
                 baseline_path = ROOT / "reports" / source_ref / "scores.jsonl"
                 exact = None
-                if source_ref == "R1" and sampling_rate == 1.0 and limit is None:
+                if is_benchmark and source_ref == "R1" and sampling_rate == 1.0 and limit is None:
                     generated = (out_root / source_ref / "scores.jsonl").read_bytes()
                     expected = baseline_path.read_bytes()
                     exact = generated == expected

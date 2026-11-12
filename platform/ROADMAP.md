@@ -114,7 +114,17 @@ M0 契约文件已落盘（路径均相对仓库根目录）：
   `POST /api/public/otel/v1/traces` 写入一条 3-span 开发轨迹，再通过
   Observations v2 读回并映射为内核契约。
 - Cloud v4 实测返回 `otel-ingestion-job` 异步任务对象而非文档示例的空对象；
-  两种响应均已按合法成功处理。Tier 0 YAML 合成与真实 Project 首跑尚未开始。
+  两种响应均已按合法成功处理。
+- 已实现 Tier 0 自动合成与不可变 `ontology@version` 发布：仅包含
+  `id` / `version` / `unit_price`，业务方零填写。
+- 已实现生产执行壳 `platform/app/algorithm.py`：从 Langfuse 轨迹观测自动合成
+  动态最小本体，不改 `kernel/`，驱动
+  `ingest → features → cluster → baseline → detect → score`，并输出生产版
+  `scores.jsonl` 与 `metrics.json`。
+- 已实现 `source=langfuse` 的 REST Run 发起与异步执行链路。
+- 真实 Cloud Project 首跑已通过：
+  `run-1a703e4a8c584836`，20 条轨迹、1 个 cell、Run 成功、冷启动降级为 true，
+  内核 `code_hash=2064664e6aa5fb46` 未变化。
 
 ## 5. M3 运营闭环
 

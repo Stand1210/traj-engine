@@ -64,6 +64,11 @@ Content-Type: application/json
 - 平台开发自检可通过 `platform/scripts/langfuse_v4_smoke.py` 验证当前
   Langfuse v4 项目的写入、异步落库、读回与内核契约映射；该脚本面向平台开发，
   不是业务方日常操作入口。
+- Tier 0 本体已由平台自动合成并发布，业务方不需要下载或上传文件。
+- 当前可通过 REST 用 `source=langfuse` 指定时间窗发起真实轨迹分析 Run；
+  Run 结果包含轨迹分数、聚类 cell、异常/弃权标记与扣分证据。
+- 样本量低于 `COLD_START_MIN_TRACES=1000` 时，Run 会明确标记冷启动降级：
+  可以查看分数与排序，但不会产出正式告警。
 
 ## 4. 结果解读
 

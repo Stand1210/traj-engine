@@ -171,6 +171,25 @@ def get_ontology(ontology_id: str, connection=Depends(get_connection)) -> dict:
     return serialize_ontology(row)
 
 
+@app.get("/api/v1/ontologies/{ontology_id}/versions/current")
+def get_current_ontology_version(ontology_id: str, connection=Depends(get_connection)) -> dict:
+    row = connection.execute(
+        """SELECT v.* FROM ontologies o
+           JOIN ontology_versions v ON v.ontology_id = o.id AND v.version = o.current_version
+           WHERE o.id = ?""",
+        (ontology_id,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail={"code": "ontology_version_not_found"})
+    return {
+        "ontologyId": row["ontology_id"],
+        "version": row["version"],
+        "yaml": row["yaml"],
+        "codeHash": row["code_hash"],
+        "createdAt": row["created_at"],
+    }
+
+
 @app.post("/api/v1/ontologies", status_code=201)
 def create_ontology(input_data: OntologyInput, connection=Depends(get_connection)) -> dict:
     try:
@@ -256,10 +275,18 @@ def run_precheck(
 
 @app.post("/api/v1/runs", status_code=201)
 def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict:
-    if input_data.source != "jsonl":
-        raise HTTPException(status_code=400, detail={"code": "langfuse_not_implemented_in_m1"})
-    if input_data.sourceRef not in {f"R{i}" for i in range(1, 9)}:
+    if input_data.source == "jsonl" and input_data.sourceRef not in {f"R{i}" for i in range(1, 9)}:
         raise HTTPException(status_code=400, detail={"code": "invalid_source_ref"})
+    langfuse_tenant = None
+    if input_data.source == "langfuse":
+        langfuse_tenant = connection.execute(
+            """SELECT t.* FROM ontologies o
+               JOIN tenants t ON t.id = o.tenant_id
+               WHERE o.id = ? AND o.current_version > 0""",
+            (input_data.ontologyId,),
+        ).fetchone()
+        if langfuse_tenant is None:
+            raise HTTPException(status_code=400, detail={"code": "ontology_version_not_published"})
     if input_data.runType != "R1":
         raise HTTPException(status_code=400, detail={"code": "m1_only_supports_r1"})
     if input_data.samplingRate <= 0:
@@ -280,7 +307,30 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail={"code": "invalid_run_request", "message": str(error)})
-    ENGINE.submit(run_id, input_data.sourceRef, input_data.samplingRate, input_data.limit)
+    trace_source = None
+    window = None
+    if input_data.source == "langfuse":
+        profile = resolve_profile_from_args()
+        endpoints = load_endpoints()
+        trace_source = LangfuseTraceSource.from_config(
+            profile,
+            endpoints,
+            {
+                "publicKey": langfuse_tenant["public_key"],
+                "secretKey": langfuse_tenant["secret_key"],
+            },
+            max_traces=input_data.limit,
+        )
+        window = {"start": input_data.windowStart, "end": input_data.windowEnd}
+    ENGINE.submit(
+        run_id,
+        input_data.sourceRef,
+        input_data.samplingRate,
+        input_data.limit,
+        trace_source=trace_source,
+        window=window,
+        ontology_id=input_data.ontologyId,
+    )
     row = connection.execute("SELECT * FROM cohort_runs WHERE id = ?", (run_id,)).fetchone()
     return serialize_run(row)
 

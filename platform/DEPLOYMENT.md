@@ -96,10 +96,20 @@
   落库后按时间窗读回，输出 kind/action/tool/model/token 映射结果。
   已实测通过：`agent`、`tool`、`llm` 三类 span 均保留，工具名、模型名与
   prompt token 可读回。
+- M2 真实 Project 生产 Run 冒烟：
+  ```powershell
+  python platform/scripts/langfuse_production_smoke.py --profile cloud-v4 --project-name development_env --minutes 30 --limit 20
+  ```
+  脚本会注册/复用租户与 Tier 0 本体，从 Langfuse 拉取时间窗内轨迹，执行
+  生产算法壳并落库。已实测 `run-1a703e4a8c584836` 成功：20 条轨迹、1 个
+  cell、冷启动降级 true、`code_hash=2064664e6aa5fb46`。
+  该脚本仅用于开发验收，不是业务方日常入口。
 - M2 新增 REST 能力：
   - `POST /api/v1/tenants`：注册 Langfuse org/project 与项目 API key。
   - `POST /api/v1/ontologies`：创建 Tier 0/Tier 1 本体占位。
   - `POST /api/v1/ontologies/{id}/prechecks`：拉取近 7 天样本并执行 8 项适配度预检。
+  - `GET /api/v1/ontologies/{id}/versions/current`：查看当前不可变本体版本。
+  - `POST /api/v1/runs` 支持 `source=langfuse`，按时间窗发起真实数据 Run。
 
 ## 4. 待补充清单
 

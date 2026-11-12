@@ -58,6 +58,17 @@ class StoreTest(unittest.TestCase):
                 ontology_id = store.create_ontology(
                     connection, tenant_id, "Agent", "tier0"
                 )
+                ontology = connection.execute(
+                    "SELECT * FROM ontologies WHERE id = ?", (ontology_id,)
+                ).fetchone()
+                version = connection.execute(
+                    "SELECT * FROM ontology_versions WHERE ontology_id = ? AND version = 1",
+                    (ontology_id,),
+                ).fetchone()
+
+                self.assertEqual(1, ontology["current_version"])
+                self.assertIn("unit_price:", version["yaml"])
+                self.assertIn("prompt: 0.0", version["yaml"])
                 precheck_id = store.create_precheck(connection, ontology_id, 100)
                 report = build_precheck_report([trace()], 100)
                 store.finish_precheck(connection, precheck_id, "passed", report)

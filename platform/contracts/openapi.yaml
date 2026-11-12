@@ -168,6 +168,22 @@ paths:
                 $ref: '#/components/schemas/Ontology'
         '404':
           $ref: '#/components/responses/NotFound'
+  /ontologies/{ontologyId}/versions/current:
+    get:
+      tags: [ontologies]
+      operationId: getCurrentOntologyVersion
+      summary: Get the current immutable ontology version
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+      responses:
+        '200':
+          description: Ontology version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OntologyVersion'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /ontologies/{ontologyId}/versions:
     post:
       tags: [ontologies]
