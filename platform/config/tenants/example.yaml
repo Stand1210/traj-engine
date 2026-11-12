@@ -1,0 +1,11 @@
+tenantId: example-tenant
+displayName: Example Agent Owner
+orgId: example-organization
+projectId: example-project
+queueId: example-annotation-queue
+keys:
+  publicKey: replace-with-public-key
+  secretKey: replace-with-secret-key
+defaultOntology:
+  tier: tier0
+  displayName: Example Agent

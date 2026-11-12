@@ -74,7 +74,7 @@
 **业务方只动手第 1、3、6 步**，其中第 6 步在 Tier 0 下是空的。
 
 **★流程外还有一道部署级的闸（业务方看不到）**：后端启动命令带 `--profile <name>`
-（`cloud-v4` / `selfhosted-v3` / `selfhosted-v4` 三选一），启动时做**一次** `GET /api/public/health`，
+（`cloud-v4` / `selfhosted-v4` 二选一），启动时做**一次** `GET /api/public/health`，
 把返回的 `version` 与该 profile 声明的 `version_constraint` 比对，**不符则拒绝启动**。
 约 50ms、免鉴权、与租户数无关，不属于任何一个租户的接入流程，详见 `MODULES.md` §1.5。
 
@@ -641,7 +641,7 @@ lineage 是「旧 cell → 新 cell 的关系图」，跨 run 累积。是存成
   保存时校验清单落地。
   **新增一项 L2 职责**：把 `PATTERN_CAP_NDEC_DEFAULT = 3` 作为平台常量传给 B4 执行壳
   （§2.4.1），**并在配置面板的"锁定项"区显示它 + 锁定理由**（它不是可调白名单成员）。
-- **B0 配置**：`endpoints.yaml` + **出厂固定三份** `profiles/{cloud-v4,selfhosted-v3,selfhosted-v4}.yaml`
+- **B0 配置**：`endpoints.yaml` + **首版固定两份** `profiles/{cloud-v4,selfhosted-v4}.yaml`
   （含 `base_url` / capabilities / `version_constraint` / throttle，见 `MODULES.md` §1.2 / §1.2.1）。
   **没有 `platform.yaml`**（原设计已删）。
 - **B3 作业编排**：状态机需区分 **R1 / R2 / R3** 三种作业类型（成本与影响面完全不同），

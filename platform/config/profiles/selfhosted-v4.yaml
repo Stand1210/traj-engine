@@ -1,0 +1,14 @@
+profile: selfhosted-v4
+endpointsFile: endpoints.yaml
+baseUrl: http://langfuse.internal
+versionConstraint: ">=4.0.0"
+capabilities:
+  observationsApi: v2
+  scoresWriteApi: public
+  scoresReadApi: v3
+  annotationQueueApi: true
+  projectProvisioning: admin-or-public-project-flow
+throttle:
+  requestsPerMinute: 0
+  burst: 0
+  maxConcurrentRuns: 2

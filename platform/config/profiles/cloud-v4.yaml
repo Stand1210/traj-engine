@@ -1,0 +1,14 @@
+profile: cloud-v4
+endpointsFile: endpoints.yaml
+baseUrl: https://cloud.langfuse.com
+versionConstraint: ">=4.0.0"
+capabilities:
+  observationsApi: v2
+  scoresWriteApi: public
+  scoresReadApi: v3
+  annotationQueueApi: true
+  projectProvisioning: public-org-scoped-key
+throttle:
+  requestsPerMinute: 100
+  burst: 20
+  maxConcurrentRuns: 2

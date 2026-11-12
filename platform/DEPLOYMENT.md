@@ -1,0 +1,105 @@
+# 内网部署记录（活文档）
+
+> 状态：随工程开发持续补充，不在当前阶段一次性编写完整部署手册。
+> 目标：当平台进入内网部署时，本文能回答「需要哪些组件、哪些版本、如何初始化数据、如何启动、如何验证」。
+
+## 1. 部署范围
+
+| 项 | 首版决策 | 记录状态 |
+|---|---|---|
+| Langfuse | Cloud v4 或自托管 v4 | 已定；自托管 v3 延后 |
+| 平后端 | FastAPI `0.115.6` + Uvicorn `0.34.0` | M1 最小闭环已实现 |
+| 前端 | Node.js `24.x` + Vite `6.0.7` + React `18.3.1` + ECharts `5.6.0` | M1 最小闭环已实现 |
+| 数据库 | SQLite（内置于 Python 3.11） | M1 DDL 已冻结：15 张表 |
+| Embedding | 待定 | 选型后记录模型名、版本、维度、输入截断规则与哈希 |
+
+## 2. 持续记录规则
+
+后续每个开发阶段涉及以下内容时，必须同步更新本文：
+
+1. **三方件与版本**：数据库、Web 框架、驱动、序列化库、前端构建工具、图表库等。
+2. **数据库初始化**：建表 DDL、迁移脚本、索引、约束、初始化数据。
+3. **模型资产**：embedding 模型名、版本、维度、缓存策略、输入长度限制、产物哈希。
+4. **启动与配置**：`--profile`、`--base-url`、环境变量、profile 文件、租户档案。
+5. **验证命令**：部署后连通性检查、版本核对、M1 基准位级复现、核心接口冒烟测试。
+6. **升级影响**：组件或模型变更对 `code_hash`、`structure_version`、历史分数可比性的影响。
+
+## 3. 当前已确定事项
+
+- 首版 profile 仅包含 `cloud-v4` 与 `selfhosted-v4`。
+- 一套平台部署只对接一个 Langfuse 实例。
+- `Organization = 租户`，`Project = 本体`，一个 project 只承载一类 agent 轨迹。
+- 基准数据集不导入 Langfuse，通过 `JsonlTraceSource` 作为平台内部租户接入。
+- M0 已冻结 `platform/contracts/openapi.yaml`、`platform/contracts/schema.sql`、
+  `platform/config/endpoints.yaml` 与两份 v4 profile。
+- M1 后端运行依赖：
+  - Python `3.11.x`
+  - `fastapi==0.115.6`
+  - `uvicorn[standard]==0.34.0`
+  - `PyYAML==6.0.3`
+  - 运行期传递依赖：`pydantic==2.14.3`、`starlette==0.41.3`
+- M1 前端依赖：
+  - Node.js `24.19.0`（内网可按 `>=24 <25` 准备）
+  - `vite==6.0.7`
+  - `react==18.3.1`
+  - `react-dom==18.3.1`
+  - `echarts==5.6.0`
+  - TypeScript `5.7.2`
+  - 锁文件：`frontend/package-lock.json`
+- M1 启动：
+  ```powershell
+  python -m pip install -r requirements.txt
+  python -m uvicorn platform.app.service:app --host 127.0.0.1 --port 8000
+  ```
+  或使用启动参数封装：
+  ```powershell
+  python -m platform.app.cli --profile selfhosted-v4 --base-url http://langfuse.internal
+  ```
+- M1 前端启动：
+  ```powershell
+  cd frontend
+  npm install
+  npm run dev
+  ```
+  开发代理默认指向 `http://127.0.0.1:8000`。
+  生产构建：
+  ```powershell
+  cd frontend
+  npm run build
+  ```
+- M1 数据库初始化：
+  - 默认库：`platform/var/traj-engine.db`
+  - 建表语句：`platform/contracts/schema.sql`
+  - 应用启动时自动执行；本地运行产物目录已 gitignore
+- M1 已验证：
+  - 5 个 YAML 契约解析通过
+  - SQLite DDL 建表 15 张通过
+  - R1 全量 4000 条 Run 成功
+  - `reports/R1/scores.jsonl` 位级复现通过
+  - 前端 `npm run build` 通过
+- M2 新增后端源（无新增三方件）：
+  - `LangfuseTraceSource` 使用 Python 标准库 `urllib.request` 访问
+    `GET /api/public/v2/observations`，通过 `platform/config/endpoints.yaml`
+    与 v4 profile 装配 URL 和请求参数。
+  - 本阶段验证命令：`python -m unittest discover -s platform/tests -v`
+- M2 新增 REST 能力：
+  - `POST /api/v1/tenants`：注册 Langfuse org/project 与项目 API key。
+  - `POST /api/v1/ontologies`：创建 Tier 0/Tier 1 本体占位。
+  - `POST /api/v1/ontologies/{id}/prechecks`：拉取近 7 天样本并执行 8 项适配度预检。
+
+## 4. 待补充清单
+
+- [ ] Node.js 版本与前端依赖锁文件
+- [ ] SQLite 初始化命令与 PostgreSQL 迁移脚本
+- [ ] Embedding 模型清单与版本记录
+- [ ] 后端启动命令与配置文件
+- [ ] 前端构建与静态资源部署
+- [ ] 部署后验收命令
+
+## 5. M0 契约验证
+
+```powershell
+python -c "import yaml; yaml.safe_load(open('platform/contracts/openapi.yaml', encoding='utf-8'))"
+python -c "import sqlite3, pathlib; con=sqlite3.connect(':memory:'); con.executescript(pathlib.Path('platform/contracts/schema.sql').read_text(encoding='utf-8'))"
+```
+

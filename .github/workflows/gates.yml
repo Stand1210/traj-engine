@@ -4,9 +4,9 @@ name: gates
 # the platform assumption it is making. The expensive full-matrix reproducibility run lives in
 # matrix.yml, which only fires on code/data changes, weekly, and on demand.
 #
-# Nothing here installs a dependency. The project is pure standard library by design (no
-# numpy/scipy/sklearn), which is what makes a two-OS matrix affordable and what keeps the
-# "deterministic, seeded, reproducible" claim auditable without a solver stack underneath it.
+# The kernel and benchmark remain pure standard library (no numpy/scipy/sklearn), which is what
+# keeps the deterministic reproducibility claim auditable without a solver stack. The M1 platform
+# service is the one exception and installs the pinned web stack from requirements.txt.
 
 on:
   push:
@@ -63,18 +63,73 @@ jobs:
         with:
           python-version: "3.11"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
       - name: Environment
         run: |
           python -VV
           uname -srm
           nproc
           echo "git core.autocrlf = $(git config --get core.autocrlf || echo unset)"
-          echo "third-party dependencies: none (pure standard library)"
+          echo "kernel dependencies: none; platform dependencies: requirements.txt"
+
+      - name: Install platform dependencies
+        run: python -m pip install --requirement requirements.txt
+
+      - name: "Gate 1/7 - platform contracts"
+        run: |
+          python -m compileall -q platform
+          python -m unittest discover -s platform/tests -v
+          python -c "from platform.app.service import app; assert app.title == 'Traj Engine Platform API'"
+          python - <<'PY'
+          import pathlib
+          import re
+          import sqlite3
+          import yaml
+
+          yaml_files = [
+              "platform/contracts/openapi.yaml",
+              "platform/config/endpoints.yaml",
+              "platform/config/profiles/cloud-v4.yaml",
+              "platform/config/profiles/selfhosted-v4.yaml",
+          ]
+          for name in yaml_files:
+              yaml.safe_load(pathlib.Path(name).read_text(encoding="utf-8"))
+
+          connection = sqlite3.connect(":memory:")
+          connection.executescript(
+              pathlib.Path("platform/contracts/schema.sql").read_text(encoding="utf-8")
+          )
+          tables = connection.execute(
+              "SELECT name FROM sqlite_master WHERE type='table'"
+          ).fetchall()
+          assert len(tables) == 15, tables
+
+          spec = yaml.safe_load(
+              pathlib.Path("platform/contracts/openapi.yaml").read_text(encoding="utf-8")
+          )
+          text = pathlib.Path("platform/contracts/openapi.yaml").read_text(encoding="utf-8")
+          refs = set(re.findall(r"\$ref: '([^']+)'", text))
+          for ref in refs:
+              current = spec
+              for part in ref[2:].split("/"):
+                  assert part in current, ref
+                  current = current[part]
+          print(f"platform contracts OK: {len(yaml_files)} YAML files, {len(tables)} tables, {len(refs)} refs")
+          PY
+
+      - name: "Gate 2/7 - frontend build"
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
 
       # 12 mathematical properties of the scoring / clustering / calibration machinery, asserted on
       # synthetic inputs with no ground truth and no labels. ~10s. These are what let the kernel be
       # called a standard engineering artefact rather than a fit to one business.
-      - name: "Gate 1/5 - invariants"
+      - name: "Gate 3/7 - invariants"
         run: python -m bench.invariants
 
       # Re-runs bench.generate for all 8 regimes into a scratch dir and compares against the
@@ -82,25 +137,25 @@ jobs:
       # truncation, CRLF conversion, a BOM, an edited record, and a stale dataset -- none of which
       # spec_hash provenance can see, because spec_hash hashes the regime spec, not the bytes.
       # ~53s on the dev box.
-      - name: "Gate 2/5 - regeneration identity"
+      - name: "Gate 4/7 - regeneration identity"
         run: python -m bench.reprocheck ${{ matrix.repro }}
 
       # Appendix-A 77-feature contract audit, 8 fidelity checks, 13-feature differential against
       # an independent probe, label/truth/feature agreement over all 22,800 traces, and dataset
       # provenance. Exits non-zero on any blocker, fidelity failure or stale regime.
-      - name: "Gate 3/5 - coverage / contract / fidelity audit"
+      - name: "Gate 5/7 - coverage / contract / fidelity audit"
         run: python -m bench.coverage --md
 
       # Three-hop reconciliation: README <-> reports/*/metrics.json cell by cell (wall clock
       # masked), metrics.spec_hash <-> data/*/meta.json.spec_hash, and metrics.code_hash <-> the
       # live kernel/ontology/bench closure hash. Catches "kernel edited, runner not re-run", which
       # the hop above cannot see.
-      - name: "Gate 4/5 - scorecard three-hop reconciliation"
+      - name: "Gate 6/7 - scorecard three-hop reconciliation"
         run: python -m bench.scorecard --check
 
       # Regenerate every derived document and assert the tree is still clean. This is the check
       # that makes hand-editing README.md or COVERAGE.md pointless: the next push rewrites them.
-      - name: "Gate 5/5 - no derived-document drift"
+      - name: "Gate 7/7 - no derived-document drift"
         run: |
           python -m bench.scorecard
           git --no-pager diff --stat

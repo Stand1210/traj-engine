@@ -1,328 +1,132 @@
-# 平台建设路线图（**待审核，审核通过后开工**）
+# 平台建设路线图
 
-> 回答一个问题：**前后端要做哪些模块、按什么顺序做、每阶段怎么算做完。**
-> 模块职责的完整定义在 `MODULES.md`（后端 B0~B10、前端 F0~F9）；
-> 接入 / 最小本体 / 重聚类的决策在 `LIFECYCLE.md`；租户模型与 Langfuse 映射在 `DESIGN.md`。
-> **本文只谈时序与验收，不重复上述内容。**
-> 日期 2026-11-10。算法内核已交付并冻结（`code_hash 2064664e6aa5fb46`、22 条不变量、8 档 scorecard IN SYNC）。
+> 状态：**M0 已批准，可开工（2026-11-12）**。
+> 模块职责见 `MODULES.md`；租户与 Langfuse 映射见 `DESIGN.md`；接入与重聚类见 `LIFECYCLE.md`；
+> 内网部署事项持续记录在 `DEPLOYMENT.md`；业务方使用说明持续记录在 `USAGE_GUIDE.md`。
 
----
+## 0. 已批准决策
 
-## 0. 一页纸总览
+1. **首版范围**：只支持 Langfuse Cloud v4 与自托管 v4；自托管 v3 延后。
+2. **技术栈**：后端 FastAPI + Uvicorn；前端 React + TypeScript + ECharts。
+3. **持久化**：M1 使用 SQLite；DDL 保持 PostgreSQL 兼容，M5 再切换评估。
+4. **异步作业**：M1 使用进程内线程池 + 数据库状态机；M5 压测后再评估引入队列。
+5. **契约策略**：M0 一次性设计 M1~M4 的 REST 契约与持久化 schema，分阶段实现。
 
+三个时序判断也已批准：
+
+1. M1 先做无 Langfuse key 的基准闭环，M2 再接真实 Langfuse。
+2. REST 契约和 DDL 先冻结，前端与后端并行开发。
+3. 多租户硬化放在 M5；若真实租户接入时间提前，限流与隔离同步提前。
+
+## 1. 阶段总览
+
+```text
+M0 契约冻结
+  └─> M1 基准数据纵向闭环
+        └─> M2 真实 Langfuse 接入
+              └─> M3 回写与复核闭环
+                    └─> M4 生命周期与重聚类
+                          └─> M5 多租户与性能硬化
 ```
-M0 契约冻结 ──┬──> M1 纵向最小闭环 ──> M2 真实 Langfuse 接入 ──> M3 运营闭环 ──> M4 生命周期 ──> M5 多租户硬化
-（纯文档）    │    （不需 key）        （需要 key）             （回写+预算）   （重聚类）      （压测）
-              └──> 前端 F0/F2~F5 可与 M1 后端并行（对着 M0 的 mock 契约开发）
-```
 
-| 阶段 | 一句话目标 | 需要外部依赖吗 | 出口验收的硬度 |
+| 阶段 | 目标 | 依赖 Langfuse key | 出口验收 |
 |---|---|---|---|
-| **M0** | 把前后端之间的契约钉死，让两边能并行 | 否 | 中（评审通过即可） |
-| **M1** | 用基准数据打通一条端到端细线 | **否** | **★最硬：位级复现已发表 scorecard** |
-| **M2** | 换成真实 Langfuse 数据源 + 业务自助接入 | **是（要 key）** | 中（跑通一次真实接入） |
-| **M3** | 分数回写、人工复核回流、告警预算 | 是 | 中（租户 UI 里能看到分数） |
-| **M4** | 重聚类可运营（R1/R2/R3 + lineage） | 是 | 中（一次 R2 前后对账） |
-| **M5** | 多租户 + 10 万条/天压测 | 是 | 硬（性能与隔离指标） |
+| M0 | 冻结 OpenAPI、DDL、配置 schema、`TraceSource` 接口、前端路由 | 否 | 前后端可各自对 mock 开工 |
+| M1 | 用基准数据打通端到端最小闭环 | 否 | 基准结果位级复现 |
+| M2 | 接入 Cloud v4 / 自托管 v4 真实数据 | 是 | 一个真实 project 完成首跑 |
+| M3 | 分数写回、人工复核、告警预算 | 是 | Langfuse 中可见分数并完成回流 |
+| M4 | R1/R2/R3 生命周期与 lineage | 是 | 一次受控 R2 前后可对账 |
+| M5 | 多租户限流、隔离与性能 | 是 | 10 万条/天压测达标 |
 
----
+## 2. M0 交付物
 
-## 1. 时序主线：为什么是这个顺序（三条排序原则）
+1. **OpenAPI 3 契约**
+   - 覆盖 M1~M4 的 REST 端点。
+   - 明确请求、响应、错误码、分页、异步状态、幂等键。
+   - 前端只允许调用平台 REST，不允许直连 Langfuse。
 
-**原则 1 · 契约先行。** 前后端并行的**唯一**前提是 REST 契约与持久化 schema 先冻结。
-否则前端每做一个页面都要跟着后端返工。**M0 不产出代码，但它是所有后续的前置。**
+2. **持久化 schema**
+   - 表：`tenants`、`ontologies`、`cohort_runs`、`run_steps`、`cells`、`cell_lineage`、
+     `trace_scores`、`score_evidence`、`calibration_runs`、`startup_records`。
+   - 必须从第一版就包含 `structure_version`、`anchor_version`、`ontology_version`、`code_hash`。
+   - 历史分数不可变；趋势图跨版本画边界线，不跨版本连线。
 
-**原则 2 · 先纵向、后横向。** M1 先用基准数据打通「发起 → 跑内核 → 存证据 → 前端看」这一条**细线**，
-再在 M2~M4 横向补 Langfuse 适配、回写、生命周期。理由有两条：
-- **它自带一个位级精确的验收标准**：`JsonlTraceSource` 把已发表的基准数据集当成一个内部租户，
-  走**完全相同**的代码路径 ⟹ 「在 UI 里点复现，得到与已发表 scorecard **位级一致**的结果」
-  是一个**非黑即白**的测试。这是整个项目里唯一能拿到的这种验收标准。
-- **它验证的是最难的边界**：与冻结内核的集成（`kernel/` 在 `code_hash` 闭包里，平台不能改它，
-  只能同进程调用）。这个边界如果设计错，越晚发现代价越大——而它**不需要 Langfuse key 就能验证**。
+3. **配置 schema**
+   - `endpoints.yaml`：Langfuse API 路径与请求旋钮。
+   - `profiles/cloud-v4.yaml`、`profiles/selfhosted-v4.yaml`：`base_url`、capabilities、
+     `version_constraint`、throttle。
+   - `tenants/<id>.yaml`：org/project/key/queue 等租户档案。
+   - 本体 YAML：Tier 0 / Tier 1 分层。
 
-**原则 3 · 风险前置，且承认不可验证的部分。** 有一件事**只有 6 天窗口**（今天 2026-11-10）：
-**自托管 v3 只提供 legacy v1 读取端点**（`public-api.md:117-118`、`:280`），
-而 **Cloud 于 2026-11-16 停止提供它们**、**Langfuse v4 上它们直接返回 404**
-（`deprecated-api-migration.md:643`、`:331`）。我们手上没有自托管 v3 实例 ⟹
-**11-16 之后，v3 适配器将永远无法在开发期被验证**，而生产环境恰恰就是自托管 v3。
-**⟹ 抓 v1 fixture 是 M0 的强制入口条件，不是可选的顺手活，且应当是 M0 里第一个做的任务。**
-范围与逐端点对照见 **§5.1（已定案）**。
+4. **`TraceSource` 接口**
+   - `list_traces(window, sampling) -> Iterator[RawTrace]`。
+   - 输出符合 `contracts/schemas.md` 的 19 键 trace 与 29 键 span。
+   - 不可得字段必须置 `None`，不允许伪造或静默丢弃。
 
----
+5. **前端路由与数据依赖**
+   - M1 页面：F0 全局状态、F2 Run 发起、F3 聚类结果、F4 异常工作台、F5 单轨迹下钻。
+   - M2 之后页面：F1 接入注册、F6 复核回流、F7 趋势、F8 自检、F9 管理面。
 
-## 2. 阶段详情
+6. **活文档初始化**
+   - `DEPLOYMENT.md`：持续记录三方件、版本、DDL、模型资产、启动与验收命令。
+   - `USAGE_GUIDE.md`：持续记录业务方接入、使用、结果解读和复核流程。
 
-### M0 契约冻结（纯文档 + schema，无代码）
-- **★第 0 个任务，有硬截止日期，先做**：在 **2026-11-16** 之前用 Cloud 把
-  `GET /api/public/observations`(v1)、`GET /api/public/traces`、`GET /api/public/scores`(v1)
-  的**真实响应抓成 fixture 存进仓库**（约半天）。这是 v3 适配器**唯一**的开发期验证手段，
-  过期后 Cloud 返回 404、而自托管 v3 环境短期拿不到。依据与逐端点对照见 §5.1。
-- **产出 5 份**：
-  1. **REST 契约**（OpenAPI 3）：每个端点的请求/响应示例 + 错误码。**M1~M4 所有端点一次性设计完**，
-     分批实现——否则 M4 的 lineage 会逼着改 M1 的响应结构。
-  2. **持久化 schema（DDL）**：runs / cells / **cell lineage 边表** / scores / evidence / tenants / ontologies。
-     **★lineage 与 `structure_version` 必须在 M0 就进 schema**，即使功能到 M4 才做——
-     否则 M4 要做破坏性迁移，而分数记录是审计不可变的，迁移不了。
-  3. **配置文件 schema**：**启动参数契约（`--profile <name>` · 可选 `--base-url` ·
-     可选 `--skip-version-check`）** · `endpoints.yaml` ·
-     `profiles/{cloud-v4,selfhosted-v3,selfhosted-v4}.yaml`（**出厂固定三份**，各含 `base_url` /
-     capabilities / **`version_constraint`** / throttle）·
-     `tenants/<id>.yaml`（L0，**gitignored**；**只含** `org_id` / `project_id` / `keys` / `queue_id` /
-     默认本体 —— **不含 `host` 与 `profile`**）· 本体 YAML（L1，Tier 0/1 分档）。
-     **★没有 `platform.yaml`**（原设计已删，见下面第二次简化）。
-  4. **`TraceSource` 接口定义**：`list_traces(window, sampling) -> Iterator[RawTrace]`，
-     输出符合 `contracts/schemas.md` 的 **19 键 trace / 29 键 span**，拿不到的字段**诚实置 None**。
-  5. **前端路由与页面清单**：F0~F9 哪些进 M1、哪些推后；每页的数据来自哪个端点。
-- **出口验收**：前后端各自对着 mock 能开工；每份契约评审通过。
+M0 契约文件已落盘（路径均相对仓库根目录）：
 
-### M1 纵向最小闭环（★不需要 Langfuse key）
-- **后端**：`B2` 的 `JsonlTraceSource`（读 `data/bench_v1/`）· `B3` 作业编排（异步状态机）·
-  `B4` 算法执行壳（**不改内核**）· `B5` 结果存储 · `B9` REST façade（最小子集）
-- **前端**：`F0` 版本四元组常驻页头 + 复现按钮 · `F2` 发起与进度 · `F3` 聚类结果 ·
-  `F4` 四栏工作台 · `F5` 单轨迹下钻
-- **出口验收（逐条都是非黑即白）**：
-  1. **点「复现」得到与已发表 scorecard 位级一致的 8 档结果**（← 本阶段的真正目的）
-  2. `F5` 的**零残差瀑布**：`contrib` 各项之和严格等于 `S − 100·G`（残差 ~9.5e-14），**没有「其他」桶**
-  3. `F4` **三栏不混**（★2026-11-11 由四栏改）：告警 / 异常未告警 / 弃权
-     （`misrouted` 栏已删除，依据见 `DESIGN.md` §6.5.2 / `MODULES.md` F4）
-  4. `F3` **弃权桶是一等公民**（R3 的 `novelty_rate=0.2867` 不能被藏起来读成 100% 覆盖）
-  5. `F5` **门禁与维度分分区显示**（28 条 `truncation` 轨迹 `dims.O=1.0` 却是 D 级，不分区看起来自相矛盾）
-  6. **★★R1 真的冻结了结构（待决 U，load-bearing）**：**R1 不得调用 `cluster_views`**，
-     只走「贴标签 + 刷基线」路径（`MODULES.md` B3/B4）。验收判据 = 移植 `platform/freezeexp.py`
-     的强制自检：把持久化的冻结结构在**同一批 learn 特征**上重放，必须**逐 trace、逐 key**
-     复现内核 `cluster_views` 自己产出的 `assigns`（实测 **2000 traces x 10 keys PASS**）。
-     为什么它必须是一条硬门禁而不是一句提醒：`DESIGN.md` §6.5.8 结论 5 ——
-     上面所有「噪声无害 / 外来流量 100% 自我隔离」的结论**都以冻结为前提**；
-     内核今天**不支持**冻结（`bench/runner.py:210` 永远从零聚类，`kernel/` 里没有
-     `structure_version`），所以若 B3/B4 图省事每天直接重跑，**每一天都是一次 R2**：
-     塌缩每天发生一次、lineage 每天报一堆「合并」、趋势图跨版本不可比、校准每天作废。
-     ★失败模式是静默的（功能全部「正常」，只是语义全错），所以只能靠这条自检拦住。
-- **可并行**：M0 完成后，前端 F0/F2~F5 与后端 B2~B5/B9 **完全并行**。
-- **这一阶段同时是比赛/专利的演示台**，且不阻塞在「拿到 key」这件事上。
+- `platform/contracts/openapi.yaml`
+- `platform/contracts/schema.sql`
+- `platform/contracts/TRACE_SOURCE.md`
+- `platform/contracts/FRONTEND_ROUTES.md`
+- `platform/config/endpoints.yaml`
+- `platform/config/profiles/cloud-v4.yaml`
+- `platform/config/profiles/selfhosted-v4.yaml`
 
-### M2 真实 Langfuse 接入
-- **后端**：`B0` 配置与档案 · `B2` 的 `LangfuseTraceSource` · `B1` 注册中心（含 **8 项适配度预检**）·
-  `B10` 本体合成器（Tier 0 零填写的唯一支撑）
-- **前端**：`F1` 完整向导 + **预检报告独立一屏**
-- **`B2` 的四条硬约束**（每条都对应一个静默失败，详见 `MODULES.md`）：
-  固定全字段组请求 · 必传 `expandMetadata` · `isRootObservation` 优先于 `parentObservationId` ·
-  页空但 cursor 仍在时继续翻页。
-- **出口验收**：注册一个真实租户 project → 预检报告 8 项逐项达标/不达标 → **Tier 0 零填写**发布本体 →
-  首跑出分 → 冷启动闸门如实标注（n < 1000 时写「能排序、不能卡阈值，且校准不可用」）。
-- **需要**：你提供的 Cloud project key（M1 期间不需要，所以 M1 不被它阻塞）。
+## 3. M1 纵向闭环
 
-### M3 运营闭环
-- **后端**：`B6` 回写与复核闭环 · `B7` 告警与预算 · `B8` 自检与门禁
-- **前端**：`F6` 校准闭环 · `F8` 门禁面板（含 **5 个重聚类触发信号**）· `F4` 完整版
-- **出口验收**：
-  1. 分数以 **`source=API`** 出现在**租户自己的** Langfuse UI（这让「非 LLM-as-a-Judge」在租户侧自证）
-  2. **3~5%** 入租户**原生标注队列**（10 个公开端点，全程可程序化）；标签回流触发重校准
-  3. **`ALERT_BUDGET_PER_DAY = 5` 在 B7 层被硬性截断**——这是产品承诺，不能依赖算法自觉
-  4. 单条误报处置 **≤3 分钟**：F4 能**不跳转**完成「看证据 → 判定 → 送队列」
+- 后端：已实现 `JsonlTraceSource`、作业状态机、算法执行壳、结果存储、REST 最小子集。
+- 前端：已实现 F0/F2/F3/F4/F5 的最小版本。
+- 数据：读取 `data/bench_v1/`，注册为平台内部租户。
+- 验收：
+  1. 基准 scorecard 位级复现。
+  2. Run 生命周期可追踪。
+  3. 零残差证据链可三步下钻。
+  4. R1 只做冻结结构下的贴标签与基线刷新，不允许每天触发结构重聚类。
+  当前状态：第 1~3 条已通过；第 4 条尚未完成，当前 M1 每次算法 Run 会生成新的
+  `structure_version`，冻结结构复用将在 M4 统一实现。
 
-### M4 生命周期（重聚类可运营）
-- **后端**：`B3` 扩展 **R1/R2/R3 三种作业类型** · `B5` 扩展 `structure_version` + lineage 写入
-- **前端**：`F3` lineage 视图 · `F7` 趋势 · `F2` 版本边界线 / **drift 盲区横幅** / **校准作废横幅**
-- **出口验收**：
-  1. 一次 R2 之后，lineage 正确标出 **延续 / 分裂 / 合并 / 新生 / 消亡**
-  2. **历史轨迹分数一个字节都没变**（审计不可变）；趋势图跨版本**画版本边界线**，不连成一条曲线
-  3. drift 盲区（每层攒够 `min_ref=30` 之前）与校准作废期**有显式横幅**，且**告警预算分配被禁用**
-  4. UI **不显示裸簇号**，只显示稳定 cell key + 业务命名
+## 4. M2 真实 Langfuse
 
-### M5 多租户与硬化
-- **后端**：Org/Project 开通（`POST /api/public/projects` 需 org-scoped key）· 按 profile 的限流 · 压测
-- **前端**：`F9` 管理面 · `F0` 全局租户切换器完整版
-- **出口验收**：两租户互不干扰（含限流桶隔离，Cloud 按 **Organization** 分桶）·
-  **10 万条/天 cohort 的 wall time 在预算内** · 不触发 429。
+- 实现 `LangfuseTraceSource`，只使用 Observations v2。
+- 支持游标分页、限流、字段组、`expandMetadata`、usage 映射。
+- 完成 8 项适配度预检、Tier 0 本体合成、首跑。
+- 启动时调用 `GET /api/public/health` 做 profile 版本核对，不匹配则拒绝启动。
 
----
+当前状态：
 
-## 3. 模块 → 阶段映射总表
+- 已实现 fixture 级 `LangfuseTraceSource`：Observations v2 游标分页、空页续拉、
+  跨页按 `traceId` 重组、19/29 键内核契约映射、usage/cost 映射、429/网络错误重试、
+  endpoint/profile 配置装配。
+- 已实现业务租户注册、Tier 0/Tier 1 本体注册，以及基于近 7 天样本的 8 项适配度
+  预检 REST 入口。
+- 已覆盖 7 个单测；真实 key 联通、Tier 0 YAML 合成与真实 Project 首跑尚未开始。
 
-| 模块 | M0 | M1 | M2 | M3 | M4 | M5 | 备注 |
-|---|---|---|---|---|---|---|---|
-| **B0** 配置与档案 | schema | — | **实现** | — | — | 多 profile | `kernel/` 不得 import 本层 |
-| **B1** 注册中心 | 端点 | — | **实现** | — | — | — | 含 8 项预检 |
-| **B2** 摄取适配 | 接口 | **Jsonl** | **Langfuse** | — | — | — | 一接口两实现 |
-| **B3** 作业编排 | 状态机 | **单类型** | — | — | **R1/R2/R3** | — | |
-| **B4** 执行壳 | — | **实现** | — | — | 触发作废校准 | — | 不改内核 |
-| **B5** 结果存储 | **全量 DDL** | 建表 | — | — | lineage 写入 | — | ★schema 必须 M0 一次设计到位 |
-| **B6** 回写复核 | 端点 | — | — | **实现** | — | — | |
-| **B7** 告警预算 | — | — | — | **实现** | 版本不匹配则禁用 | — | |
-| **B8** 自检门禁 | — | — | — | **实现** | 加 5 个触发信号 | — | |
-| **B9** REST façade | **全量契约** | 子集 | 扩展 | 扩展 | 扩展 | 扩展 | 前端不得直连 Langfuse |
-| **B10** 本体合成器 | — | — | **实现** | — | R3 升版 | — | Tier 0 的唯一支撑 |
-| **F0** 版本页头 | 路由 | **实现** | — | — | — | 租户切换完整版 | |
-| **F1** 注册中心 | 路由 | — | **完整向导** | — | — | — | 预检报告独立一屏 |
-| **F2** Cohort/Run | 路由 | **实现** | — | — | 版本边界线+横幅 | — | |
-| **F3** 聚类结果 | 路由 | **实现** | — | — | **lineage 视图** | — | |
-| **F4** 告警工作台 | 路由 | **四栏** | — | **完整处置** | — | — | 值班默认落地页 |
-| **F5** 单轨迹下钻 | 路由 | **实现** | — | — | — | — | ★专利演示核心画面 |
-| **F6** 校准闭环 | — | — | — | **实现** | 显示版本匹配 | — | |
-| **F7** 趋势漂移 | — | — | — | — | **实现** | — | |
-| **F8** 门禁面板 | — | — | — | **实现** | 加触发信号 | — | |
-| **F9** 管理面 | — | — | — | — | — | **实现** | |
+## 5. M3 运营闭环
 
----
+- 使用 `POST /api/public/scores` 写回租户 project。
+- 复用 Langfuse 原生标注队列做人工复核。
+- 实现告警预算与 top-K 排序。
+- 复核标签回流触发校准。
 
-## 4. 明确不做 / 已冻结（避免开工后反复）
-- **不改 `kernel/`**。它在 `code_hash` 闭包里，改一个字节（**包括注释**）就要重跑 8 档刷新 `reports/*`。
-  ~~改一个字节就要重生成 8 份 `SAMPLE.md`~~ **★已更正（`DESIGN.md` §7.7）**：`SAMPLE.md` 由 `spec_hash`/
-  生成器驱动、不内嵌 `code_hash`；那是改 `bench/generate.py` 才需要的 240 MB 级动作。
-  平台侧需要的新能力**一律走 `cluster_views` 已有的形参**，由 B4 传值。
-  **★2026-11-11：这条原则刚刚被用上了。** `pattern_count` 作为**业务字段已删除**
-  （`DESIGN.md` §7.6），但 cap 机制保留 —— 平台改为传一个 **L2 常量**
-  `n_declared_patterns = PATTERN_CAP_NDEC_DEFAULT = 3` → cap 5。
-  **走的正是本行说的既有形参，所以零内核改动、`code_hash` 不变、不用重跑 8 份报告、
-  22 条不变量与 8 份 scorecard 全部照旧。** 这是该原则价值的一次实证。
-  （★原句写"8 份 `SAMPLE.md` 不用重生成"，已按 `DESIGN.md` §7.7 更正。）
-- **不做 LLM-as-a-Judge**。判别式模型（isotonic / Platt / LogReg）允许，须 cross-fit 并报 ECE。
-- **不做范式扫描 / 自动分桶**（已实测后删除）。噪声~~靠零阈值 `foreign_ratio` 度量并隔离出告警流~~
-  ~~**★第二次修订：降为 B1 接入预检的一个建议数字**~~
-  **★2026-11-11 第三次修订（现行）：`foreign_ratio` 判据整体删除，不做任何度量。**
-  噪声的实际治理**只有一件事**：把 cap 钉成 L2 常量 `PATTERN_CAP_NDEC_DEFAULT = 3`（→ cap 5），
-  它对干净与脏流量一视同仁。实测依据 `platform/slimcap.py`，见 `DESIGN.md` §6.5 / §6.5.7。
-  **连带影响**：适配度预检 **9 项 → 8 项**（本文 3 处、`LIFECYCLE.md` 6 处、`MODULES.md` 2 处已同步）。
-- **首版不做「一个 project 混多类 agent」**。`1 project = 1 本体`，
-  **租户内噪声不清理、不隔离、不排除、不度量、不告知**；违反契约的后果**完全由业务方自己承担**。
-  ★原句「只度量+隔离」与 v2 的「预检告知」均已作废（同上）。
-- **★不做 `foreign_ratio` 的任何形态**（2026-11-11 新增本条）：不进内核、不进 B1 预检、
-  不进前端。参考实现只留在 `platform/mixexp.py` / `platform/slimcap.py` / `platform/freezeexp.py`
-  三个 post-hoc 实验脚本里。
-  ~~**唯一的替代护栏是零成本的那个**：F3 显示 `cell_size_min` / `cell_size_max` 的跨 run 趋势
-  （`DESIGN.md` 待决 **T** 项）。~~
-  **★T 项已否决（`platform/freezeexp.py` 实测，`DESIGN.md` §6.5.8）**：R1 冻结结构下外来流量
-  **100% 进弃权桶**（`nov_B = 1.0000`、`B_absorbed = 0/1333`），`n_cells` 六臂恒 **8**、
-  `cell_size_min/max` 恒 **29/630** ⟹ 趋势线是一条**恒定平线**，没有可守的东西。
-  **「静默失真」这个前提是假的**：20% 污染会显示为 `novelty_rate = 0.2088`，
-  而弃权桶本来就是 F3 的一等公民 —— **可见性早就有了**。
-- **★★R1 必须真的冻结结构（load-bearing，待决 U 项，排进 M1 出口验收）**：
-  `bench/runner.py:210` 今天永远从头调 `cluster_views`，`kernel/` 里没有 `structure_version`。
-  若 B3/B4 图省事每天直接重跑，**每一天都是一次 R2** —— 塌缩每天发生一次、
-  lineage 每天报「合并」、趋势图跨版本不可比、校准每天作废。
-  上面所有「噪声无害」的结论**都以冻结为前提**。详见 `DESIGN.md` §6.5.8 结论 5、
-  `MODULES.md` B3 / B4。
-- **不重打分历史轨迹**。审计不可变。
-- **前端首版不做用户管理与权限**，复用 Langfuse 原生 RBAC。
+## 6. M4 生命周期
 
----
+- R1：每日基线刷新，cell 定义不变。
+- R2：结构重聚类，受 novelty、drift、instability、冷启动与业务声明触发。
+- R3：本体升版，由业务规则变更触发。
+- R2 后必须记录 lineage、重置 drift、重拟合校准并显式标注盲区。
 
-## 5. ★开工前需要你拍板的 4 件事（决策 5 已定案，见 §5.1）
+## 7. M5 多租户与硬化
 
-| # | 决策 | 我的建议 | 不拍板的后果 |
-|---|---|---|---|
-| **1** | **技术栈**：后端框架 / 前端框架 / 图表库 | 后端 **FastAPI + Uvicorn**（内核是纯 stdlib Python，同进程 import 最省事，零序列化开销）；前端 **React + TypeScript + ECharts**（零残差瀑布、lineage 图、可靠性曲线都要画，ECharts 三者都能覆盖） | M0 的 REST 契约写不下去 |
-| **2** | **持久化**：SQLite 还是 PostgreSQL | **M1 用 SQLite，schema 按 PG 兼容写，M5 再切**。理由：单机零运维、便于位级复现、M1 不需要并发 | M0 的 DDL 写不下去 |
-| **3** | **异步作业**：进程内线程池 + DB 状态机，还是 Celery/Redis | **前者**。理由：R2 成本对 n 是 O(1)（结构只从 ≤400 采样学），单租户作业不重；Celery 多一层运维却换不到东西。留好接口，M5 压测不过再换 | B3 的状态机设计不下去 |
-| **4** | **代码放哪**：`traj-engine/platform/` 下开 `server/`+`web/`，还是独立仓库 | **同仓库 `platform/`**。理由：B4 要**同进程** import 冻结内核，跨仓库会把 `code_hash` 溯源链搞复杂（专利主张依赖这条链） | 无法开工 |
-
-**另外一个范围问题（不是阻塞项，但影响 M1 工期）**：
-前端不是你的绩效目标，主业是算法工程 + 后端配套。建议 **M1 的前端只做 F0/F2/F3/F4/F5 五个页面，
-且优先保证「可演示」而非「可运营」**——F5 的零残差瀑布和 F0 的复现按钮是答辩时最有说服力的两个画面，
-其余页面能看数就行。F1 的完整向导、F6/F7/F8/F9 全部推到 M2 之后。
-
-### 5.1 决策 5 已定案（2026-11-10 · 用户拍板：「我们只适配 v3 和 v4 版本，老的版本不用做」）
-
-**范围 = Langfuse 服务端 v3 与 v4，两者都支持；更早的服务端版本不做。**
-这与原计划的三个 profile（`cloud-v4` / `selfhosted-v4` / `selfhosted-v3`）一致，**范围没有变化**。
-
-**★但必须先纠正我上一条的措辞错误**——它把**两个不同的版本轴**混成了一个，会误导决策：
-「v1」**不是**一个老的 Langfuse **服务端版本**，它是**自托管 v3 唯一提供的读取 API 代次**。
-官方原文（`_tmp_lfdocs/`，2026-11-10 抓取）：
-- `public-api.md:117-118`：「Observations API v2 and Metrics API v2 are available on Langfuse Cloud
-  and self-hosted Langfuse **v4**. On self-hosted Langfuse **v3**, use the `api.legacy.*` …」
-- `public-api.md:280`：「On self-hosted Langfuse **v3**, use the **v1 Observations API**
-  (`GET /api/public/observations`) instead」
-
-**⟹ 「不适配 v1 API」与「支持自托管 v3」互相矛盾，不能分开选。v3 适配器就是 v1 映射器。**
-
-**★「适配 v3 和 v4」的精确含义（2026-11-11 前提澄清后重写）**：
-不是「同一套运行中的平台同时服务 v3 租户和 v4 租户」——**一套部署只对接一个 Langfuse 实例**，
-所有业务方共用。真实含义是：**平台制品支持两种部署形态，每次部署选定其一，整体切换只改配置文件名。**
-⟹ 推论：**任一部署里两套读取映射器只有一个会被执行到**，
-在 Cloud v4 开发环境中 **v1 映射器是不可达代码**，无法靠「跑起来试试」验证 ——
-这就是下面 fixture 行动项从「顺手做」变成 **M0 强制入口条件**的根本原因。
-
-两套映射器的逐端点差异：
-
-| | 自托管 **v3** | **v4**（Cloud + 新自托管） | 出处 |
-|---|---|---|---|
-| 读 observations | **只有** `GET /api/public/observations`（legacy v1） | `GET /api/public/v2/observations` | `public-api.md:270`、`:280` |
-| 读 traces | `GET /api/public/traces`（legacy v1） | **端点不存在**，须用 v2 按 `traceId` 客户端分组 | `deprecated-api-migration.md:123` |
-| 读 scores | `/api/public/scores`(v1) 或 `/v2/scores`；**`/v3/scores` 需 v3.179.0+** | `GET /api/public/v3/scores` | `public-api.md:429`、`:651` |
-| 写 scores | `POST /api/public/scores` | **同一端点，未废弃** | `deprecated-api-migration.md:639` |
-| legacy 端点 | **仍提供** | **返回 404** | `deprecated-api-migration.md:331` |
-| 响应 schema | v1 返回**已解析 JSON**、**无字段组** | v2 返回**原始字符串 I/O** + 字段组（未请求 = 缺席不是 null） | `MODULES.md:18` |
-| 限流 | **不强制** | Cloud 按 **Org** 分桶 | `public-api.md:390` |
-| OpenAPI 自述 | 无 | **自托管 v4.36.0+ 在 `/api/openapi.yaml` 提供自己的 spec** | `public-api.md:23` |
-
-**两个由此产生的结论：**
-1. **11-16 的截止日期只影响 Cloud，与自托管 v3 的可用性无关。** 自托管 v3 继续提供 legacy 端点。
-   它威胁的不是「能不能支持 v3」，而是「**能不能拿到 v1 的真实响应用于验证 v3 适配器**」。
-2. **抓 fixture 从「顺手做」升级为 M0 的强制入口条件**（约半天，硬截止 11-16）。
-   不做的后果：v3 适配器成为整条链路上**唯一无法在开发期验证**的代码路径。
-
-**★一个新增利好**（`public-api.md:23`）：自托管 **v4.36.0+** 在 `/api/openapi.yaml` 提供
-**它自己的** spec ⟹ 能力探测可从「按 profile 硬编码开关」升级为「**拉取实例自述 spec 并对账**」，
-不符时给出**逐端点**差异清单，而不是一个笼统的「profile 不匹配」。
-自托管 v3 无此端点，仍走逐项探测。已写进 `MODULES.md` §1.5。
-（**★此条已被下面「第二次简化」取代**：spec 对账**降级为开发期离线脚本**，不在运行时路径上。）
-
-**★再一个新增利好**（`_tmp_lfdocs/openapi_api.yml:12611`-`:12622`，Cloud 自述 spec 原文）：
-`GET /api/public/health` 返回 `HealthResponse{version, status}`，两字段**都是 required**
-⟹ 探测能拿到**精确服务端版本号**，能力由「版本→能力表」**确定性推导**，
-逐端点试错退化为**校核**（并把表未覆盖的新版本暴露出来，而不是猜）。
-另实测该 spec 的 **120 个 operation 中只有 `health_health` 一个没有 `security` 块**
-⟹ **探测完全不依赖任何租户凭据**，平台刚部署、一个业务方都没接入时就能跑完。
-§1.5 曾改写为**三层探测**（声明 → 推断 → 实证），并新增 §1.6 对照表
-区分**能力探测 vs 适配度预检**（此前二者在文档里紧挨着出现，极易混淆）。
-（**★「三层探测」已作废，不要再引用**：见下面「第二次简化」——
-只剩「一次 `health` 版本核对」，§1.6 对照表保留但左列改名为**版本核对**。）
-
-**★2026-11-11 前提纠正（上一条里「注册表单能预填 profile」的说法已作废，不要再引用）**：
-用户澄清「一套部署只对接一个 Langfuse 实例」⟹ profile 是**部署级**属性，不是租户级。连带 5 处修改：
-1. 新增 **`platform.yaml`**（`base_url` / `active_profile` / 探测周期）；`tenants/<id>.yaml` **移除 `host` 与 `profile`**。
-2. **能力探测从 B1（每租户注册时）移回 B0（平台启动时一次）** —— 我上一轮刚把它挪到 B1，是基于误解，已纠正。
-3. **接入流程 9 步 → 8 步**（删掉原第 4 步能力探测，后续顺延）。
-4. **注册表单里没有 profile 选项、也没有 Langfuse 地址输入框**（原「预填下拉框」设计作废）。
-5. 探测结果改存**一份平台级 capability snapshot**（带 `snapshot_id`），每个 Run 只引用 id，不再各存一份；
-   **snapshot 变化 = 平台级事件**（实例被升级会同时影响全部租户）。
-**但双映射器的成本一分没省**，反而更硬：见上面「v1 映射器是不可达代码」。
-
-**★★2026-11-11 第二次简化（用户提出，我接受；上面 5 条里的第 1、2、5 条已被取代）**
-
-用户方案：**开发期固定三份 profile 文件**（`cloud-v4` / `selfhosted-v3` / `selfhosted-v4`），
-**后端启动命令增加一个参数指定用哪个**，不必每次启动都探测。
-
-| 上表条目 | 现状 |
-|---|---|
-| 1 `platform.yaml` | **已删除**。`active_profile` → **启动参数 `--profile`**；`base_url` → 移进 profile（可 `--base-url` 覆盖）；`探测周期` → **取消** |
-| 2 能力探测归 B0、启动时一次 | **仍归 B0，但砍成一次 `GET /api/public/health` 的版本核对**（约 50ms，免鉴权）。逐端点实证与 `/api/openapi.yaml` 对账**降级为开发期离线脚本** |
-| 3 接入 9 步 → 8 步 | **不变** |
-| 4 注册表单无 profile 选项 | **不变**（profile 现在是后端启动参数，更不是业务方能选的） |
-| 5 capability snapshot + 周期重探 | **周期重探取消**；snapshot 降级为**一条启动记录**（profile 名 + 内容哈希 + `health.version` + 时刻 + 是否 skip），Run 引用其 id |
-
-**★并且它证伪了我上一轮的核心论据（已作废，不要再引用）**：
-我原先说「capabilities 填错 → **静默**走错分支 → `missing_field_ratio≈1.0` 却不报错」，
-以此论证必须常驻探测。逐个开关推演后发现**是错的**：`observations_api` / `scores_read_api` /
-`annotation_queue_api` / `project_provisioning` 填错**一律 404**（`deprecated-api-migration.md:331`、
-`public-api.md:429`、`openapi_org.yml` 首部），`io_pre_parsed` 与 `field_groups_supported`
-和 `observations_api` **完全耦合、无法独立填错**。
-⟹ **Langfuse 的版本差异是按端点存在与否切的，不是按语义悄悄变的**；能力错配是**响亮**失败。
-真正的静默失效来自 `field_groups` / `expandMetadata` / `usage_key_map`（数据质量），归 **B1 适配度预检**。
-**我把两类风险混为一谈，用不成立的论据支撑了过重的设计。**
-保留那一次 `health` 调用的理由只剩 **fail fast + 报错可读**：
-否则选错 `--profile` 时平台会正常启动、正常接单，直到第一个 run 排到取数才抛一个孤零零的 404。
-推演表与完整论证见 `MODULES.md` §1.5。
-
-
----
-
-## 6. 待你审核的三个时序判断（我可能错，需要你按实际情况纠）
-1. **M1 排在 M2 之前**——即先做「不需要 key 的基准闭环」，再做「真实 Langfuse 接入」。
-   如果你更希望**尽早看到真实数据跑通**（比如需要向业务方演示），可以把 M1 和 M2 的顺序对调，
-   代价是失去那个位级验收标准，且与冻结内核的集成边界要在有外部依赖的情况下调试。
-2. **REST 契约在 M0 一次性设计完（M1~M4 全部端点）**，而不是每阶段设计当阶段的。
-   代价是 M0 变重、且 M4 的端点可能设计得不准；收益是前端不用返工、schema 不用迁移。
-3. **M5（多租户硬化）排在最后**。如果你已经知道**第一个真实业务方什么时候要接**，
-   而那个时间点早于 M5，那么限流与租户隔离要提前——**这一条我无法判断，需要你给时间点。**
+- 多租户配额与隔离。
+- 10 万条/天压测。
+- SQLite → PostgreSQL 切换评估。
+- 失败恢复、重试、幂等与运维告警。

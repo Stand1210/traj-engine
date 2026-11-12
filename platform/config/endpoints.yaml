@@ -1,0 +1,59 @@
+version: 1
+description: >
+  Langfuse endpoint templates for the v4-only first release.
+  Application code must not contain Langfuse URL literals.
+endpoints:
+  health:
+    method: GET
+    path: /api/public/health
+  observations:
+    list:
+      method: GET
+      path: /api/public/v2/observations
+      query:
+        fields: core,basic,time,io,metadata,model,usage,prompt,metrics,trace_context
+        expandMetadata: subgoal_text,arg_valid,output_citations,verifier,output_facts,finish_reason,ontology_id
+        orderBy: timestamp
+        order: asc
+  scores:
+    create:
+      method: POST
+      path: /api/public/scores
+    list:
+      method: GET
+      path: /api/public/v3/scores
+      query:
+        fields: details,subject,annotation
+  projects:
+    list:
+      method: GET
+      path: /api/public/projects
+    create:
+      method: POST
+      path: /api/public/organizations/projects
+  apiKeys:
+    list:
+      method: GET
+      path: /api/public/projects/{projectId}/apiKeys
+    create:
+      method: POST
+      path: /api/public/projects/{projectId}/apiKeys
+  annotationQueues:
+    list:
+      method: GET
+      path: /api/public/annotation-queues
+    create:
+      method: POST
+      path: /api/public/annotation-queues
+    items:
+      list:
+        method: GET
+        path: /api/public/annotation-queues/{queueId}/items
+      create:
+        method: POST
+        path: /api/public/annotation-queues/{queueId}/items
+limits:
+  requestBodyBytes: 5242880
+  responseBodyBytes: 5242880
+  scoresPageMax: 100
+  observationsPageSizeDefault: 50

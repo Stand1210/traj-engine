@@ -1,6 +1,7 @@
 # 平台黑盒模块设计（前后端）+ Langfuse 端点配置化方案
 
-> 状态：**黑盒设计稿**。只定义职责 / 输入 / 输出 / 约束，不涉及实现选型。
+> 状态：**M0 已批准（2026-11-12）**。首版只支持 Cloud v4 / 自托管 v4；
+> 自托管 v3 延后，legacy v1 映射器不进入首版。
 > 前提沿用 `platform/DESIGN.md`：Organization = 租户，Project = 本体（1:1），
 > Tier 0 零声明接入 / Tier 1 加 `forbidden_actions`（**字段清单以 `LIFECYCLE.md` §2.5 为准**）。
 > 本文所有 Langfuse 事实取自 `_tmp_lfdocs/`（含 `openapi_api.yml` 120 条路径），2026-11-09/10 抓取。
@@ -10,13 +11,13 @@
 ## 1. Langfuse 依赖配置化：URL 提取是对的，但**只提 URL 不够**
 
 ### 1.1 为什么不够
-Cloud v4 与自托管 v3 的差异**不止路径**，有五类，其中三类配置文件表达不了：
+Cloud v4 与自托管 v4 的差异**不止路径**，包括区域、开通 API、限流与版本约束：
 
 | 差异 | 纯 URL 配置能否表达 | 说明 |
 |---|---|---|
 | base_url / 区域 / 路径 | ✅ 能 | `cloud.langfuse.com` vs `us.` vs `jp.` vs `hipaa.` vs 自托管域名 |
-| **响应 schema** | ❌ **不能** | `/v2/observations` 返回 **原始字符串** I/O + 字段组语义（未请求=**缺席**不是 null）；`/observations`(v1) 返回**已解析 JSON**、无字段组 |
-| **能力有无** | ❌ **不能** | v2 observations 需自托管 **v4+**；`/v3/scores` 需自托管 **v3.179.0+**；标注队列 API 在自托管 v3 上**待实测** |
+| **响应 schema** | ❌ **不能** | `/v2/observations` 返回**原始字符串 I/O** + 字段组语义（未请求 = **缺席**不是 null） |
+| **能力有无** | ❌ **不能** | Observations v2 需自托管 **v4+**；首版启动时用 `health.version` 约束核对 |
 | **开通 API 完全不同** | ❌ **不能** | Cloud：`POST /api/public/projects`（org-scoped key）；自托管：`POST /api/admin/organizations`（需 `ADMIN_API_KEY`，Bearer 鉴权） |
 | **限流行为** | ❌ **不能** | Cloud 按 **Organization** 分桶（General API：Hobby 30 / Core 100 / Pro+ 1000 req/min）；**自托管不强制限流** → 照搬节流只会白白增加延迟 |
 
@@ -24,7 +25,7 @@ Cloud v4 与自托管 v3 的差异**不止路径**，有五类，其中三类配
 - **第 1 层 `endpoints.yaml`** —— 你要的那个文件。`base_url` + `api_prefix` + **全部路径模板** +
   每路径的请求旋钮。代码里**不允许出现字面量 URL**。
 - **第 2 层 `profiles/<name>.yaml`** —— 一个 profile = 一组 **capabilities 开关** + **throttle 数值** +
-  指向哪个 endpoints 文件。三档出厂：`cloud-v4` / `selfhosted-v3` / `selfhosted-v4`。
+  指向哪个 endpoints 文件。首版两档：`cloud-v4` / `selfhosted-v4`。
   **迁移 = 换一个启动参数 `--profile <name>`，不改代码**（见 §1.2.1）。
 
 `capabilities` 决定**走哪条代码路径**，`endpoints` 决定**打到哪个 URL**。二者缺一不可。
@@ -37,17 +38,17 @@ Cloud v4 与自托管 v3 的差异**不止路径**，有五类，其中三类配
   并把能力探测设计成**每租户注册时各跑一次**。
 - **实际前提（用户明示）**：**一套平台部署只对接一个 Langfuse 实例**，所有接入业务共用它
   （各自是不同的 Organization / Project，但 `base_url` 与版本完全相同）。
-- **配置文件要解决的真实问题**：当**整个平台**在 Cloud ↔ 自托管、v3 ↔ v4 之间**整体迁移**时
-  （开发期用 Cloud v4，生产迁自托管 v3，将来再升 v4），**只换启动参数 + 重启**即可，不改代码。
+- **配置文件要解决的真实问题**：当**整个平台**在 Cloud ↔ 自托管 v4 之间整体迁移时，
+  **只换启动参数 + 重启**即可，不改代码。
 
 **★2026-11-11 第二次简化（用户提出）**：profile 由**后端启动命令的参数**选定，
-不需要额外的平台配置文件；三个 profile 文件在**开发期就固定**下来。
+不需要额外的平台配置文件；两个 profile 文件在**开发期就固定**下来。
 据此**删除了原设计的 `platform.yaml`** —— 它的三个字段全被吸收（见 §1.5）。
 
 | 配置 | 作用域 | 谁改 | 何时改 | 内容 |
 |---|---|---|---|---|
-| **启动参数 `--profile <name>`**（**取代原 `platform.yaml`**） | **部署级 · 单值** | 部署时的启动命令 | 整体迁移时 | `cloud-v4` / `selfhosted-v3` / `selfhosted-v4` 三选一 |
-| `profiles/<name>.yaml`（**出厂固定三份**） | 部署级 | 平台工程 | 升级 Langfuse 版本时 | `base_url`（可被 `--base-url` / 环境变量覆盖）· capabilities · **`version_constraint`** · throttle 数值 · 指向哪个 endpoints |
+| **启动参数 `--profile <name>`**（**取代原 `platform.yaml`**） | **部署级 · 单值** | 部署时的启动命令 | 整体迁移时 | `cloud-v4` / `selfhosted-v4` 二选一 |
+| `profiles/<name>.yaml`（**首版固定两份**） | 部署级 | 平台工程 | 升级 Langfuse 版本时 | `base_url`（可被 `--base-url` / 环境变量覆盖）· capabilities · **`version_constraint`** · throttle 数值 · 指向哪个 endpoints |
 | `endpoints.yaml` | 部署级 | 平台工程 | 路径变更时 | 全部路径模板 + 每路径旋钮 |
 | `tenants/<id>.yaml`（L0） | **租户级** | 平台（接入时录入） | 每接入一个业务方 | **只剩** `org_id` / `project_id` / `keys` / `queue_id` / 默认本体 —— **不再有 `host`，不再有 `profile`** |
 
@@ -55,20 +56,13 @@ Cloud v4 与自托管 v3 的差异**不止路径**，有五类，其中三类配
 1. **限流仍是租户级配额，但数值来自部署级配置。** Cloud 按 **Organization** 分桶
    （`public-api.md:390`），一租户一 Org（决策 1.A）⟹ 每租户各有独立桶；
    桶的**大小**由 profile 给出，全平台一致。**别把「配置上移」误读成「全平台共享一个桶」。**
-2. **任一部署里只有一个 Observation 映射器是活的**（见 §1.3 的强化论据）。
+2. **首版只有一个 Observation v2 映射器是活的**；legacy v1 映射器随自托管 v3 一并延后。
 
-### 1.3 必须承认的代价
-`observations_api: v2 | v1` 意味着**必须存在两个 Observation 映射器**（v2 原始串 + 字段组 vs
-v1 已解析 JSON + 无字段组）。这是"兼容两种部署形态"的**真实成本**，配置得再好也省不掉。
-但它是有界的：一个 `ObservationMapper` 接口、两个实现、由 capability 开关选择。
+### 1.3 首版代价已收敛：只实现 Observation v2 映射器
+2026-11-12 用户拍定：**首版只支持 Cloud v4 + 自托管 v4，自托管 v3 不做**。
+因此首版不存在 `v2 | v1` 双映射器，也没有 v1 fixture 抓取硬截止。
 
-**★1.2.1 的前提把这笔代价的性质改变了，而且是往坏的方向：**
-既然一套部署只对接一个实例，那么**任一部署里两个映射器中只有一个会被执行到，另一个是死代码**。
-⟹ **在 Cloud v4 的开发环境里，v1 映射器永远走不到，无法靠"跑起来试试"验证。**
-而生产恰恰可能是自托管 v3。**这就是 §1.4 抓 fixture 从"顺手做"升级为 M0 强制入口条件的根本原因**：
-fixture 是**唯一**能在 v4 开发环境里验证 v1 代码路径的手段。
-
-### 1.4 ★一个时间敏感的行动项（今天 2026-11-10，硬截止 11-16，**M0 的强制入口条件**）
+### 1.4 v3 延后决策（历史结论存档，不再是行动项）
 **官方原文（`_tmp_lfdocs/`，2026-11-10 抓取）**：
 - `public-api.md:117-118`：「Observations API v2 and Metrics API v2 are available on Langfuse Cloud
   and self-hosted Langfuse **v4**. On self-hosted Langfuse **v3**, use the `api.legacy.*` …」
@@ -78,18 +72,11 @@ fixture 是**唯一**能在 v4 开发环境里验证 v1 代码路径的手段。
   **November 16, 2026**; migrate to v4 before this date.」
 - `deprecated-api-migration.md:331`：「**On Langfuse v4, these will return `404`.**」
 
-**⟹ 两个必须分清的结论：**
-1. **11-16 只影响 Cloud，与自托管 v3 的可用性无关。** 自托管 v3 **继续**提供 legacy 端点。
-   所以这个日期威胁的**不是「能不能支持 v3」**，而是「**能不能拿到 v1 的真实响应用于验证
-   v3 适配器**」——11-16 之后 Cloud 返回 404，而我们手上没有自托管 v3 实例。
-2. **v3 适配器 = legacy v1 映射器，二者是同一个东西，不是可选项。**
-   「不适配 v1」与「支持自托管 v3」互相矛盾。范围已定案为 **v3 + v4 都支持**
-   （`ROADMAP.md` §5.1），所以这个映射器**必须写**。
-
-**行动**：在 11-16 之前用 Cloud 把 `GET /api/public/observations`(v1)、`GET /api/public/traces`、
-`GET /api/public/scores`(v1) 的**真实响应抓成 fixture 存进仓库**（约半天），
-之后 v3 映射器对着 fixture 做契约测试。
-**不做的话，v3 适配器会是整条链路上唯一无法在开发期验证的代码路径，而生产环境恰恰就是自托管 v3。**
+**当前结论**：
+1. Langfuse Server 版本（v3/v4）与 API 代际（v1/v2/v3）是两套概念。
+2. 自托管 v3 没有 Observations v2，需走 legacy v1 读取路径。
+3. 首版已明确不做自托管 v3，因此 **v1 映射器和 fixture 抓取均不进入 M0/M1**。
+4. 若未来真实客户要求 v3，需要重新立项并补 v1 响应契约测试。
 
 ### 1.5 ★profile 由启动参数选定；运行时只做一次「版本核对」，不做探测套件
 
@@ -98,8 +85,8 @@ fixture 是**唯一**能在 v4 开发环境里验证 v1 代码路径的手段。
 
 **★2026-11-11 第二次简化（用户提出，我接受；并且它证伪了我上一轮的核心论据）**
 
-**用户的方案**：开发期就把三个 profile 文件固定下来 —— `cloud-v4`（Cloud 只支持 v4）·
-`selfhosted-v3` · `selfhosted-v4`；**后端启动命令增加一个参数指定用哪个配置文件**，
+**用户的方案**：开发期就固定 profile 文件 —— 首版只有 `cloud-v4` 与 `selfhosted-v4`；
+**后端启动命令增加一个参数指定用哪个配置文件**，
 不做每次启动的探测。
 
 **采纳，并连带两处简化：**
@@ -117,11 +104,11 @@ fixture 是**唯一**能在 v4 开发环境里验证 v1 代码路径的手段。
 
 | capability 开关 | 填错后的实际表现 | 响亮还是静默 |
 |---|---|---|
-| `observations_api: v2 或 v1` | v4 上打 legacy、或 v3 上打 v2 → **404**（`deprecated-api-migration.md:331`：「On Langfuse v4, these will return `404`」） | **响亮** |
+| `observations_api: v2` | 首版只实现 v2；配置错误或版本不支持 → **404** | **响亮** |
 | `scores_read_api` | `/v3/scores` 需 v3.179.0+，版本不够 → **404** | **响亮** |
 | `annotation_queue_api` | 端点不存在 → **404** | **响亮** |
 | `project_provisioning` | `/api/admin/organizations` **仅自托管**（`openapi_org.yml` 首部原文）→ **404 / 401 / 403** | **响亮** |
-| `io_pre_parsed` · `field_groups_supported` | 与 `observations_api` **完全耦合**（v1 端点在 v4 上不存在，反之亦然）⟹ **无法独立填错** | 不适用 |
+| `io_pre_parsed` · `field_groups_supported` | 与 Observations v2 语义耦合 | 不适用 |
 
 ⟹ **能力错配几乎全部表现为 404，是响亮的，不是静默的。**
 Langfuse 的版本差异是**按端点存在与否**切的，不是**按语义悄悄变**的。
@@ -141,8 +128,7 @@ Langfuse 的版本差异是**按端点存在与否**切的，不是**按语义�
 | 连不上 | 重试若干次；仍失败则**区分两种错误**：「无法核对版本（网络/实例不可达）」vs「版本不符」 |
 | 逃生口 | `--skip-version-check`（打警告并记进溯源），供离线开发与气隙环境 |
 
-**`version_constraint` 出厂值**：`cloud-v4` → `>=4.0.0` · `selfhosted-v4` → `>=4.0.0` ·
-`selfhosted-v3` → `>=3.0.0,<4.0.0`。
+**`version_constraint` 出厂值**：`cloud-v4` → `>=4.0.0` · `selfhosted-v4` → `>=4.0.0`。
 
 **留这一次调用的唯一价值**：没有它，运维选错 `--profile` 时平台会**正常启动**、
 正常接单、直到第一个 run 排到取数阶段才抛一个孤零零的 404，
@@ -166,7 +152,7 @@ HealthResponse:
 平台刚部署、一个业务方都没接入时就能跑。
 
 **为什么不做周期重探（原设计取消）**：运维在底下升级 Langfuse 之后，
-若跨大版本（v3→v4），legacy 端点直接 **404**，下一个 run 会**响亮地失败**，
+若 API 端点不再存在，下一个 run 会**响亮地失败**，
 不需要我们主动轮询去发现；若是小版本升级，能力集不变，重探没有信息量。
 ⟹ 替代方案：**run 期遇到 404/400 时给出可操作的错误信息**
 （「实例能力与 `--profile` 不符，请核对 `GET /api/public/health` 返回的 `version`」），
@@ -181,8 +167,8 @@ HealthResponse:
 「Self-hosted: every instance running Langfuse **v4.36.0 or later** serves its own spec at
 `/api/openapi.yaml` and an interactive reference at `/api/docs`」（`openapi_api.yml:39`-`:40` 同）。
 ⟹ 写一个**人工运行**的脚本：拉实例自述 spec，与 profile + endpoints **逐端点对账**，输出差异清单。
-用途是**升级 Langfuse 版本时更新那三个 profile 文件**，不是每次启动都跑。
-v3 与 v4.36.0 以下无此端点，脚本对它们退化为逐项试调（同样只在开发期跑）。
+用途是**升级 Langfuse 版本时更新那两个 profile 文件**，不是每次启动都跑。
+低于 v4.36.0 的实例无此端点，脚本退化为逐项试调（同样只在开发期跑）。
 
 **两个静默截断源仍然挡不住，仍归 B2**（与版本核对无关，别指望它）：
 ① 老 SDK（Python <4.7.0 / JS <5.4.0）或 OTel 未发 `x-langfuse-ingestion-version: 4` →
@@ -203,7 +189,7 @@ v2 端点**最多延迟 15 分钟**；② 游标分页**可能返回空页而 `m
 | 结果形态 | **一次版本比对**（约束满足 / 不满足） | **分级**、**逐字段**（0~1 比率 + 是否达标） |
 | 典型条目 | `health.version` vs profile 的 `version_constraint` | `kind_map` 命中率、`isRootObservation` 唯一性、`usageDetails` 键名、`expandMetadata` 必要性、`golden_facts` 是否有值 |
 | 防的是什么 | **选错 profile**（响亮失败，但要等到第一个 run 才炸） | **静默算错**（`missing_field_ratio`、`traceable_number_ratio`、C 维退化） |
-| 决定了什么 | **走哪条代码路径**（v2 还是 v1 映射器） | **是否允许发布本体** + **L2 映射如何自动生成** |
+| 决定了什么 | 是否允许按该 profile 继续启动 | **是否允许发布本体** + **L2 映射如何自动生成** |
 | 不通过的后果 | **拒绝启动**，一行错误说出病因 | **阻断该租户发布**，但给出「补哪个字段」的处方 |
 | 何时跑 · 跑几次 | **平台启动时一次**，与租户数无关；**无周期重探** | **每个租户注册时都跑一次** |
 | 归属模块 | **B0**（配置与档案 / 启动自检） | **B1**（注册中心） |
@@ -222,7 +208,7 @@ v2 端点**最多延迟 15 分钟**；② 游标分页**可能返回空页而 `m
 
 ### B0 配置与档案
 - **输入**：**启动参数 `--profile <name>`**（+ 可选 `--base-url` 覆盖 / `--skip-version-check`）·
-  `profiles/<name>.yaml`（出厂固定三份，含 `base_url` / capabilities / `version_constraint` / throttle）·
+  `profiles/<name>.yaml`（首版固定两份，含 `base_url` / capabilities / `version_constraint` / throttle）·
   `endpoints.yaml` · `tenants/*.yaml`（L0，**租户级**：`org_id` / `project_id` /
   `keys` / `queue_id` / 默认本体 —— **依 §1.2.1 已移除 `host` 与 `profile`**）
   ·**没有 `platform.yaml`**（已删，见 §1.2.1 / §1.5）
@@ -231,9 +217,9 @@ v2 端点**最多延迟 15 分钟**；② 游标分页**可能返回空页而 `m
 - **约束**：`kernel/` **不得** import 本层；只有适配层可以。所有 Langfuse 字面量收敛于此。
 - **★启动时版本核对归本模块**（§1.5）：一次 `GET /api/public/health`（免鉴权，约 50ms），
   把 `version` 与 profile 的 `version_constraint` 比对，**不符则拒绝启动并说出病因**。
-  capabilities **直接取自 profile 文件**（决定 B2 走 v2 还是 v1 映射器），**不做逐端点探测** ——
+  capabilities **直接取自 profile 文件**（首版固定为 Observations v2），**不做逐端点探测** ——
   依据见 §1.5 的开关推演表：能力错配一律表现为 **404**，是响亮的，不值得为它常驻探测。
-- **不做周期重探**：跨大版本升级会让 legacy 端点 **404**，下一个 run 会响亮失败；
+- **不做周期重探**：实例升级导致端点不可用时，下一个 run 会响亮失败；
   小版本升级能力集不变。替代做法是 **run 期 404/400 的错误信息里直接提示核对 `--profile`**。
 - **与 B1 的分工**：B0 管**实例形态**（`--profile` 选对没有，启动时一次、全局）；
   B1 管**每个租户的数据**（埋点够不够，每租户一次）。B1 **不做**版本核对，只**读** B0 的启动记录。
@@ -390,6 +376,8 @@ v2 端点**最多延迟 15 分钟**；② 游标分页**可能返回空页而 `m
 ### B9 REST façade
 - **约束**：**前端不得直连 Langfuse**，全部经平台 —— 否则字段组、`expandMetadata`、
   分页陷阱、限流会在前端**再犯一遍**。
+- **M0 契约**：`contracts/openapi.yaml`（相对 `platform/`）。所有新增端点必须先改契约、
+  再改实现；不允许实现反向生成契约。
 
 ### B10 本体合成器（**Tier 0「零填写」能成立的唯一支撑**）
 - **输入**：L0 租户档案 + B1 预检产出的 L2 观测事实
@@ -574,7 +562,7 @@ n 距 `COLD_START_MIN_TRACES=1000` 还有多少 · 距上次 R2 的天数）—�
   **限流配额消耗（按租户 Org 分桶展示，数值来自部署级 profile）** · 作业队列
 - **P2 的理由**：版本核对不通过时平台**根本起不来**，运维看启动日志即可，UI 不在关键路径上。
   **原先「snapshot 变更告警不能推后」的说法已随周期重探一并取消** ——
-  实例被升级后 legacy 端点会 404，run 失败本身就是告警，不需要额外的轮询与横幅。
+  实例被升级后端点若不可用，run 失败本身就是告警，不需要额外的轮询与横幅。
 
 ---
 
@@ -594,6 +582,5 @@ F0 点复现按钮验位级一致 → **同一个 UI 复现已发表的 scorecar
 
 ---
 
-## 5. 本轮唯一有硬截止日期的事
-**2026-11-16 Cloud legacy API 下线（今天 2026-11-11，距今 5 天）** → 在此之前把 v1 端点的真实响应抓成 fixture 入库，
-否则 v1 映射器将成为整条链路上**唯一无法验证**的代码路径。见 §1.4。
+## 5. 首版无时间敏感行动项
+自托管 v3 已延后，v1 映射器与 fixture 抓取不进入首版。后续若重启 v3 支持，再单独立项。

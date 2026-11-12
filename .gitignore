@@ -31,3 +31,15 @@ Thumbs.db
 .env
 *.pem
 *.key
+
+# 平台租户档案：示例可入库，真实凭据不入库
+platform/config/tenants/*.yaml
+!platform/config/tenants/example.yaml
+
+# M1 本地运行产物
+platform/var/
+
+# 前端依赖与构建产物
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo

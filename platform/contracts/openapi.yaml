@@ -1,0 +1,823 @@
+openapi: 3.0.3
+info:
+  title: Traj Engine Platform API
+  version: 0.1.0
+  description: |
+    M0 contract for the agent trajectory quality platform.
+    The frontend must call only this API and must not call Langfuse directly.
+servers:
+  - url: /api/v1
+tags:
+  - name: system
+  - name: tenants
+  - name: ontologies
+  - name: runs
+  - name: results
+  - name: reviews
+paths:
+  /health:
+    get:
+      tags: [system]
+      operationId: getHealth
+      summary: Get platform health
+      responses:
+        '200':
+          description: Platform healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /config/profile:
+    get:
+      tags: [system]
+      operationId: getCurrentProfile
+      summary: Get effective deployment profile
+      responses:
+        '200':
+          description: Effective profile without credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileInfo'
+  /startup-records/current:
+    get:
+      tags: [system]
+      operationId: getCurrentStartupRecord
+      summary: Get the startup version check record
+      responses:
+        '200':
+          description: Startup record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartupRecord'
+  /tenants:
+    get:
+      tags: [tenants]
+      operationId: listTenants
+      summary: List tenants
+      parameters:
+        - $ref: '#/components/parameters/pageLimit'
+        - $ref: '#/components/parameters/pageCursor'
+      responses:
+        '200':
+          description: Tenant page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Tenant'
+    post:
+      tags: [tenants]
+      operationId: createTenant
+      summary: Register a tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantInput'
+      responses:
+        '201':
+          description: Tenant created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /tenants/{tenantId}:
+    get:
+      tags: [tenants]
+      operationId: getTenant
+      summary: Get tenant
+      parameters:
+        - $ref: '#/components/parameters/tenantId'
+      responses:
+        '200':
+          description: Tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /ontologies:
+    get:
+      tags: [ontologies]
+      operationId: listOntologies
+      summary: List ontologies
+      parameters:
+        - name: tenantId
+          in: query
+          schema: {type: string}
+        - $ref: '#/components/parameters/pageLimit'
+        - $ref: '#/components/parameters/pageCursor'
+      responses:
+        '200':
+          description: Ontology page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Ontology'
+    post:
+      tags: [ontologies]
+      operationId: createOntology
+      summary: Create an ontology
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OntologyInput'
+      responses:
+        '201':
+          description: Ontology created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ontology'
+  /ontologies/{ontologyId}:
+    get:
+      tags: [ontologies]
+      operationId: getOntology
+      summary: Get ontology
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+      responses:
+        '200':
+          description: Ontology
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ontology'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /ontologies/{ontologyId}/versions:
+    post:
+      tags: [ontologies]
+      operationId: publishOntologyVersion
+      summary: Publish an immutable ontology version
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OntologyVersionInput'
+      responses:
+        '201':
+          description: Version published
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OntologyVersion'
+  /ontologies/{ontologyId}/prechecks:
+    get:
+      tags: [ontologies]
+      operationId: listPrechecks
+      summary: List adapter prechecks
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+      responses:
+        '200':
+          description: Precheck page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Precheck'
+    post:
+      tags: [ontologies]
+      operationId: createPrecheck
+      summary: Run adapter precheck
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrecheckInput'
+      responses:
+        '202':
+          description: Precheck accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Precheck'
+  /runs:
+    get:
+      tags: [runs]
+      operationId: listRuns
+      summary: List runs
+      parameters:
+        - name: tenantId
+          in: query
+          schema: {type: string}
+        - name: ontologyId
+          in: query
+          schema: {type: string}
+        - name: status
+          in: query
+          schema: {$ref: '#/components/schemas/RunStatus'}
+        - $ref: '#/components/parameters/pageLimit'
+        - $ref: '#/components/parameters/pageCursor'
+      responses:
+        '200':
+          description: Run page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Run'
+    post:
+      tags: [runs]
+      operationId: createRun
+      summary: Create a run
+      description: |
+        R1 refreshes baselines under a frozen structure.
+        R2 creates a new structure version and requires a trigger reason.
+        R3 is ontology version promotion.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunInput'
+      responses:
+        '201':
+          description: Run created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /runs/{runId}:
+    get:
+      tags: [runs]
+      operationId: getRun
+      summary: Get run
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      responses:
+        '200':
+          description: Run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /runs/{runId}/cancel:
+    post:
+      tags: [runs]
+      operationId: cancelRun
+      summary: Cancel a queued or running run
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      responses:
+        '200':
+          description: Run canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /runs/{runId}/steps:
+    get:
+      tags: [runs]
+      operationId: listRunSteps
+      summary: List run execution steps
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      responses:
+        '200':
+          description: Steps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RunStep'
+  /runs/{runId}/cells:
+    get:
+      tags: [results]
+      operationId: listCells
+      summary: List clustering cells
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      responses:
+        '200':
+          description: Cells
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Cell'
+  /runs/{runId}/traces:
+    get:
+      tags: [results]
+      operationId: listTraceScores
+      summary: List trace scores
+      parameters:
+        - $ref: '#/components/parameters/runId'
+        - name: cellId
+          in: query
+          schema: {type: string}
+        - name: alertOnly
+          in: query
+          schema: {type: boolean}
+        - name: abstainOnly
+          in: query
+          schema: {type: boolean}
+        - name: minScore
+          in: query
+          schema: {type: number}
+        - name: maxScore
+          in: query
+          schema: {type: number}
+        - $ref: '#/components/parameters/pageLimit'
+        - $ref: '#/components/parameters/pageCursor'
+      responses:
+        '200':
+          description: Trace score page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TraceScore'
+  /runs/{runId}/traces/{traceId}:
+    get:
+      tags: [results]
+      operationId: getTraceScore
+      summary: Get one trace score and evidence
+      parameters:
+        - $ref: '#/components/parameters/runId'
+        - $ref: '#/components/parameters/traceId'
+      responses:
+        '200':
+          description: Trace score
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceScoreDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /runs/{runId}/alerts:
+    get:
+      tags: [results]
+      operationId: listAlerts
+      summary: List alert-ranked traces
+      parameters:
+        - $ref: '#/components/parameters/runId'
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100}
+      responses:
+        '200':
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TraceScore'
+  /runs/{runId}/lineage:
+    get:
+      tags: [results]
+      operationId: getRunLineage
+      summary: Get cell lineage for an R2 run
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      responses:
+        '200':
+          description: Lineage
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LineageEdge'
+  /runs/{runId}/reviews:
+    post:
+      tags: [reviews]
+      operationId: submitReview
+      summary: Submit human review result
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+      responses:
+        '201':
+          description: Review accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+  /reviews:
+    get:
+      tags: [reviews]
+      operationId: listReviews
+      summary: List human reviews
+      parameters:
+        - name: tenantId
+          in: query
+          schema: {type: string}
+        - name: runId
+          in: query
+          schema: {type: string}
+        - $ref: '#/components/parameters/pageLimit'
+        - $ref: '#/components/parameters/pageCursor'
+      responses:
+        '200':
+          description: Review page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Review'
+  /trace-scores/{traceScoreId}/evidence:
+    get:
+      tags: [results]
+      operationId: listEvidence
+      summary: List score evidence
+      parameters:
+        - name: traceScoreId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Evidence
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Evidence'
+  /runs/{runId}/calibration:
+    get:
+      tags: [results]
+      operationId: getCalibration
+      summary: Get calibration status for a run
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      responses:
+        '200':
+          description: Calibration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calibration'
+components:
+  parameters:
+    tenantId:
+      name: tenantId
+      in: path
+      required: true
+      schema: {type: string}
+    ontologyId:
+      name: ontologyId
+      in: path
+      required: true
+      schema: {type: string}
+    runId:
+      name: runId
+      in: path
+      required: true
+      schema: {type: string}
+    traceId:
+      name: traceId
+      in: path
+      required: true
+      schema: {type: string}
+    pageLimit:
+      name: limit
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 50}
+    pageCursor:
+      name: cursor
+      in: query
+      schema: {type: string}
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServiceUnavailable:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        details: {type: object, additionalProperties: true}
+    PageEnvelope:
+      type: object
+      required: [data, page]
+      properties:
+        data:
+          type: array
+          items: {}
+        page:
+          type: object
+          properties:
+            nextCursor: {type: string, nullable: true}
+            limit: {type: integer}
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [ok, degraded]}
+        version: {type: string}
+    ProfileInfo:
+      type: object
+      required: [profile]
+      properties:
+        profile: {type: string, enum: [cloud-v4, selfhosted-v4]}
+        baseUrl: {type: string}
+        versionConstraint: {type: string}
+    StartupRecord:
+      type: object
+      required: [id, profile, checkedAt, skipped]
+      properties:
+        id: {type: string}
+        profile: {type: string}
+        profileHash: {type: string}
+        langfuseVersion: {type: string}
+        checkedAt: {type: string, format: date-time}
+        skipped: {type: boolean}
+    Tenant:
+      type: object
+      required: [id, orgId, projectId, displayName, createdAt]
+      properties:
+        id: {type: string}
+        orgId: {type: string}
+        projectId: {type: string}
+        queueId: {type: string}
+        displayName: {type: string}
+        createdAt: {type: string, format: date-time}
+    TenantInput:
+      type: object
+      required: [orgId, projectId, displayName, publicKey, secretKey]
+      properties:
+        orgId: {type: string}
+        projectId: {type: string}
+        queueId: {type: string}
+        displayName: {type: string}
+        publicKey: {type: string, writeOnly: true}
+        secretKey: {type: string, writeOnly: true}
+    Ontology:
+      type: object
+      required: [id, tenantId, currentVersion, tier]
+      properties:
+        id: {type: string}
+        tenantId: {type: string}
+        currentVersion: {type: integer}
+        tier: {type: string, enum: [tier0, tier1]}
+        createdAt: {type: string, format: date-time}
+    OntologyInput:
+      type: object
+      required: [tenantId, tier]
+      properties:
+        tenantId: {type: string}
+        tier: {type: string, enum: [tier0, tier1]}
+        displayName: {type: string}
+    OntologyVersion:
+      type: object
+      required: [ontologyId, version, yaml, codeHash, createdAt]
+      properties:
+        ontologyId: {type: string}
+        version: {type: integer}
+        yaml: {type: string}
+        codeHash: {type: string}
+        createdAt: {type: string, format: date-time}
+    OntologyVersionInput:
+      type: object
+      required: [yaml]
+      properties:
+        yaml: {type: string}
+    RunStatus:
+      type: string
+      enum: [queued, running, succeeded, failed, canceled]
+    RunType:
+      type: string
+      enum: [R1, R2, R3]
+    SourceType:
+      type: string
+      enum: [jsonl, langfuse]
+    Run:
+      type: object
+      required: [id, tenantId, ontologyId, runType, source, status, createdAt]
+      properties:
+        id: {type: string}
+        tenantId: {type: string}
+        ontologyId: {type: string}
+        ontologyVersion: {type: integer}
+        parentRunId: {type: string, nullable: true}
+        runType: {$ref: '#/components/schemas/RunType'}
+        source: {$ref: '#/components/schemas/SourceType'}
+        windowStart: {type: string, format: date-time}
+        windowEnd: {type: string, format: date-time}
+        samplingRate: {type: number}
+        status: {$ref: '#/components/schemas/RunStatus'}
+        structureVersion: {type: string}
+        anchorVersion: {type: string}
+        codeHash: {type: string}
+        error: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+        startedAt: {type: string, format: date-time, nullable: true}
+        endedAt: {type: string, format: date-time, nullable: true}
+    RunInput:
+      type: object
+      required: [tenantId, ontologyId, runType, source, windowStart, windowEnd]
+      properties:
+        tenantId: {type: string}
+        ontologyId: {type: string}
+        sourceRef: {type: string}
+        limit: {type: integer, minimum: 1}
+        runType: {$ref: '#/components/schemas/RunType'}
+        source: {$ref: '#/components/schemas/SourceType'}
+        sourceRef: {type: string}
+        windowStart: {type: string, format: date-time}
+        windowEnd: {type: string, format: date-time}
+        samplingRate: {type: number, minimum: 0, maximum: 1}
+        parentRunId: {type: string}
+        triggerReason: {type: string}
+        idempotencyKey: {type: string}
+    RunStep:
+      type: object
+      required: [id, runId, name, status, startedAt]
+      properties:
+        id: {type: string}
+        runId: {type: string}
+        name: {type: string}
+        status: {type: string, enum: [running, succeeded, failed, skipped]}
+        startedAt: {type: string, format: date-time}
+        endedAt: {type: string, format: date-time, nullable: true}
+        payload: {type: object, additionalProperties: true}
+    Cell:
+      type: object
+      required: [id, runId, structureVersion, cellKey, size]
+      properties:
+        id: {type: string}
+        runId: {type: string}
+        structureVersion: {type: string}
+        cellKey: {type: string}
+        label: {type: string}
+        size: {type: integer}
+        parentId: {type: string, nullable: true}
+        dominantAction: {type: string}
+        metrics: {type: object, additionalProperties: true}
+    TraceScore:
+      type: object
+      required: [id, runId, traceId, totalScore, isAlert, isAbstain]
+      properties:
+        id: {type: string}
+        runId: {type: string}
+        traceId: {type: string}
+        cellId: {type: string, nullable: true}
+        totalScore: {type: number}
+        resultScore: {type: number}
+        processScore: {type: number}
+        latencyScore: {type: number}
+        costScore: {type: number}
+        robustnessScore: {type: number}
+        isAlert: {type: boolean}
+        isAbstain: {type: boolean}
+        structureVersion: {type: string}
+        ontologyVersion: {type: integer}
+        codeHash: {type: string}
+    TraceScoreDetail:
+      allOf:
+        - $ref: '#/components/schemas/TraceScore'
+        - type: object
+          properties:
+            evidence:
+              type: array
+              items:
+                $ref: '#/components/schemas/Evidence'
+    Evidence:
+      type: object
+      required: [id, dimension, contribution, explanation]
+      properties:
+        id: {type: string}
+        traceScoreId: {type: string}
+        dimension: {type: string, enum: [result, process, latency, cost, robustness]}
+        spanId: {type: string, nullable: true}
+        contribution: {type: number}
+        explanation: {type: string}
+        payload: {type: object, additionalProperties: true}
+    LineageEdge:
+      type: object
+      required: [oldCellId, newCellId, relation, overlap]
+      properties:
+        oldCellId: {type: string}
+        newCellId: {type: string}
+        relation: {type: string, enum: [continued, split, merged, born, died]}
+        overlap: {type: number}
+    Review:
+      type: object
+      required: [id, traceScoreId, verdict, createdAt]
+      properties:
+        id: {type: string}
+        traceScoreId: {type: string}
+        reviewer: {type: string}
+        verdict: {type: string, enum: [agree, disagree, uncertain]}
+        label: {type: string}
+        comment: {type: string}
+        createdAt: {type: string, format: date-time}
+    ReviewInput:
+      type: object
+      required: [traceScoreId, verdict]
+      properties:
+        traceScoreId: {type: string}
+        reviewer: {type: string}
+        verdict: {type: string, enum: [agree, disagree, uncertain]}
+        label: {type: string}
+        comment: {type: string}
+    Precheck:
+      type: object
+      required: [id, ontologyId, status, createdAt]
+      properties:
+        id: {type: string}
+        ontologyId: {type: string}
+        status: {type: string, enum: [running, passed, warning, failed]}
+        report: {type: object, additionalProperties: true}
+        createdAt: {type: string, format: date-time}
+    PrecheckInput:
+      type: object
+      required: [sampleSize]
+      properties:
+        sampleSize: {type: integer, minimum: 100}
+    Calibration:
+      type: object
+      required: [runId, kind]
+      properties:
+        runId: {type: string}
+        kind: {type: string, enum: [none, isotonic, Platt]}
+        labelCount: {type: integer, nullable: true}
+        ece: {type: number, nullable: true}
+        metrics: {type: object, additionalProperties: true}
