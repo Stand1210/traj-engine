@@ -12,7 +12,7 @@ endpoints:
       path: /api/public/v2/observations
       query:
         fields: core,basic,time,io,metadata,model,usage,prompt,metrics,trace_context
-        expandMetadata: subgoal_text,arg_valid,output_citations,verifier,output_facts,finish_reason,ontology_id
+        expandMetadata: subgoal_text,arg_valid,output_citations,verifier,output_facts,finish_reason,ontology_id,answer_facts,answer_numbers,golden_answer,golden_facts,goal_text,query_lang,raw_flags,session_turn_count,turn_index,user_feedback
         orderBy: timestamp
         order: asc
   otelTraces:

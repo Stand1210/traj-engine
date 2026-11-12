@@ -1,6 +1,10 @@
 import unittest
 
-from platform.app.langfuse_ingestion import LangfuseOTLPTraceIngestor, build_otlp_trace_payload
+from platform.app.langfuse_ingestion import (
+    LangfuseOTLPTraceIngestor,
+    build_otlp_trace_payload,
+    build_otlp_traces_payload,
+)
 
 
 class FakeIngestTransport:
@@ -47,13 +51,24 @@ def trace():
 
 class LangfuseOTLPTraceIngestorTest(unittest.TestCase):
     def test_builds_v4_otlp_payload(self):
-        payload = build_otlp_trace_payload(trace())
+        source = trace()
+        source["answer_numbers"] = [1, 2]
+        source["spans"][1]["output_facts"] = [1, 2]
+        payload = build_otlp_trace_payload(source)
         spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        attribute_keys = {
+            attribute["key"]
+            for span in spans
+            for attribute in span["attributes"]
+        }
 
         self.assertEqual("0123456789abcdef0123456789abcdef", spans[0]["traceId"])
         self.assertIsNone(spans[0]["parentSpanId"])
         self.assertEqual("0123456789abcdef", spans[1]["parentSpanId"])
         self.assertEqual("1760000000000000000", spans[0]["startTimeUnixNano"])
+        self.assertIn("langfuse.trace.metadata.answer_numbers", attribute_keys)
+        self.assertIn("langfuse.observation.metadata.answer_numbers", attribute_keys)
+        self.assertIn("langfuse.observation.metadata.output_facts", attribute_keys)
 
     def test_ingest_uses_configured_endpoint_and_headers(self):
         transport = FakeIngestTransport()
@@ -61,7 +76,13 @@ class LangfuseOTLPTraceIngestorTest(unittest.TestCase):
         result = ingestor.ingest(trace())
 
         self.assertEqual(
-            {"status": "accepted", "mode": "sync", "trace_id": "0123456789abcdef0123456789abcdef", "spans": 2},
+            {
+                "status": "accepted",
+                "mode": "sync",
+                "request_mode": "single",
+                "trace_id": "0123456789abcdef0123456789abcdef",
+                "spans": 2,
+            },
             result,
         )
         self.assertEqual("https://langfuse.example/custom/traces", transport.requests[0]["url"])
@@ -89,6 +110,23 @@ class LangfuseOTLPTraceIngestorTest(unittest.TestCase):
         ingestor = LangfuseOTLPTraceIngestor("https://langfuse.example", "pk", "sk", transport=transport)
 
         self.assertEqual("async", ingestor.ingest(trace())["mode"])
+
+    def test_builds_batch_payload_and_reports_counts(self):
+        first = trace()
+        second = trace()
+        second["trace_id"] = "ffffffffffffffffffffffffffffffff"
+        second["spans"][0]["span_id"] = "ffffffffffffffff"
+        second["spans"][1]["span_id"] = "eeeeeeeeeeeeeeee"
+        second["spans"][1]["parent_id"] = "ffffffffffffffff"
+        payload = build_otlp_traces_payload([first, second])
+        transport = FakeIngestTransport()
+        ingestor = LangfuseOTLPTraceIngestor("https://langfuse.example", "pk", "sk", transport=transport)
+        result = ingestor.ingest_many([first, second])
+
+        spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
+        self.assertEqual(4, len(spans))
+        self.assertEqual(2, result["traces"])
+        self.assertEqual(4, result["spans"])
 
 
 if __name__ == "__main__":

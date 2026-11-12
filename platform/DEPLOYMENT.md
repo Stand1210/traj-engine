@@ -104,6 +104,17 @@
   生产算法壳并落库。已实测 `run-1a703e4a8c584836` 成功：20 条轨迹、1 个
   cell、冷启动降级 true、`code_hash=2064664e6aa5fb46`。
   该脚本仅用于开发验收，不是业务方日常入口。
+- M2 千条级基准导入与非冷启动验证：
+  ```powershell
+  python platform/scripts/langfuse_benchmark_import.py --profile cloud-v4 --regime R1 --count 1000 --batch-size 50 --wait-seconds 30 --spread-seconds 3600 --id-offset 400000000000
+  python platform/scripts/langfuse_production_smoke.py --profile cloud-v4 --project-name development_env --minutes 120 --limit 1000 --id-offset 400000000000 --id-count 1000
+  ```
+  第一条命令写入 1000 条基准轨迹并读回校验；第二条命令只分析该 ID 段，
+  避免混入同项目中的历史导入数据。已实测 `run-35339336f1e24ab4`：
+  1000 条轨迹、5 个 cell、冷启动 false、40 条告警、85 条弃权、平均分
+  89.9738。
+  Cloud OTLP ingestion 为异步落库；子观测可能先于根观测可见，因此读回
+  路径会跳过并统计 incomplete traces，等待后再执行 Run。
 - M2 新增 REST 能力：
   - `POST /api/v1/tenants`：注册 Langfuse org/project 与项目 API key。
   - `POST /api/v1/ontologies`：创建 Tier 0/Tier 1 本体占位。

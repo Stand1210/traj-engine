@@ -69,6 +69,10 @@ Content-Type: application/json
   Run 结果包含轨迹分数、聚类 cell、异常/弃权标记与扣分证据。
 - 样本量低于 `COLD_START_MIN_TRACES=1000` 时，Run 会明确标记冷启动降级：
   可以查看分数与排序，但不会产出正式告警。
+- 结果维度评估依赖 trace 级 `answer_facts`、`answer_numbers`、
+  `golden_answer`、`golden_facts` 等可选元数据；业务侧上报时应尽量携带。
+  缺失时平台不会伪造数据，但结果符合度相关证据会降级，部分可判定问题
+  可能无法进入告警流。
 
 ## 4. 结果解读
 

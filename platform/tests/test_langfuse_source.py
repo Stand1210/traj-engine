@@ -104,6 +104,19 @@ class LangfuseTraceSourceTest(unittest.TestCase):
         self.assertEqual(1, len(traces))
         self.assertEqual(0, source.traversal["empty_pages"])
 
+    def test_incomplete_trace_is_skipped_and_reported(self):
+        child = observation(
+            "obs-2",
+            parentObservationId="obs-missing",
+            isRootObservation=False,
+        )
+        pages = [{"data": [child], "meta": {"cursor": None}}]
+        source = LangfuseTraceSource("https://langfuse.example", "pk", "sk", transport=FakeTransport(pages))
+        traces = list(source.list_traces({"start": "2026-01-01T00:00:00Z", "end": "2026-01-03T00:00:00Z"}, {}))
+
+        self.assertEqual([], traces)
+        self.assertEqual(1, source.traversal["incomplete_traces"])
+
     def test_retries_rate_limit_once(self):
         class RetryTransport(FakeTransport):
             def __init__(self):

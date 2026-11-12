@@ -24,6 +24,8 @@ def main() -> int:
     parser.add_argument("--project-name", default="development_env")
     parser.add_argument("--minutes", type=int, default=30)
     parser.add_argument("--limit", type=int, default=20)
+    parser.add_argument("--id-offset", type=int, default=None)
+    parser.add_argument("--id-count", type=int, default=None)
     args = parser.parse_args()
 
     profile = load_profile(args.profile)
@@ -84,8 +86,14 @@ def main() -> int:
         profile,
         endpoints,
         keys,
-        max_traces=args.limit,
+        max_traces=None if args.id_offset is not None else args.limit,
+        max_retries=5,
+        retry_backoff_seconds=1.0,
     )
+    if args.id_offset is not None:
+        if args.id_count is None or args.id_count < 1:
+            raise SystemExit("--id-offset requires --id-count >= 1")
+        source = IdRangeTraceSource(source, args.id_offset, args.id_count)
     engine = RunEngine()
     try:
         engine.submit(
@@ -147,6 +155,27 @@ def _find_project(profile: dict, endpoints: dict, keys: dict, project_name: str)
         if project.get("name") == project_name:
             return project
     return projects[0]
+
+
+class IdRangeTraceSource:
+    source_type = "langfuse-id-range"
+
+    def __init__(self, source, id_offset: int, count: int):
+        self.source = source
+        self.id_offset = id_offset
+        self.count = count
+        self.traversal = {}
+
+    def list_traces(self, window: dict, sampling: dict):
+        traces = [
+            trace for trace in self.source.list_traces(window, sampling)
+            if self.id_offset <= int(trace["trace_id"], 16) < self.id_offset + self.count
+        ]
+        self.traversal = {
+            **self.source.traversal,
+            "id_range_matched": len(traces),
+        }
+        yield from traces
 
 
 if __name__ == "__main__":

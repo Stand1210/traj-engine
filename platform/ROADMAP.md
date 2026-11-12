@@ -125,6 +125,15 @@ M0 契约文件已落盘（路径均相对仓库根目录）：
 - 真实 Cloud Project 首跑已通过：
   `run-1a703e4a8c584836`，20 条轨迹、1 个 cell、Run 成功、冷启动降级为 true，
   内核 `code_hash=2064664e6aa5fb46` 未变化。
+- 已实现基准数据批量导入脚本
+  `platform/scripts/langfuse_benchmark_import.py`：支持批量 OTLP 写入、
+  ID 偏移、历史时间窗展开、异步等待与读回校验；导入时保留
+  `answer_numbers` / `output_facts` 等结果评估字段，避免结果维度被误判。
+- 真实 Cloud Project 千条级非冷启动 Run 已通过：
+  `run-35339336f1e24ab4`，1000 条轨迹、5 个 cell、冷启动 false、
+  40 条告警、85 条弃权、平均分 89.9738，内核
+  `code_hash=2064664e6aa5fb46` 未变化。该结果证明读写链路、动态 Tier 0
+  本体、结果评估字段回传和生产打分链路均可用。
 
 ## 5. M3 运营闭环
 

@@ -52,12 +52,34 @@ class LangfuseOTLPTraceIngestor:
 
     def ingest(self, trace: dict) -> dict:
         payload = build_otlp_trace_payload(trace)
+        result = self._post_payload(payload, mode="single")
+        result["trace_id"] = trace["trace_id"]
+        result["spans"] = len(trace["spans"])
+        return result
+
+    def ingest_many(self, traces: list[dict]) -> dict:
+        if not traces:
+            raise ValueError("Langfuse OTLP batch must contain at least one trace")
+        payload = build_otlp_traces_payload(traces)
+        return self._post_payload(payload, mode="batch", traces=traces)
+
+    def _post_payload(self, payload: dict, mode: str, traces: list[dict] | None = None) -> dict:
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         response = self.transport(f"{self.base_url}{self.traces_path}", body, self._headers())
         accepted = response == {} or self._is_valid_ingestion_job(response)
         if not accepted:
             raise ValueError(f"Langfuse OTLP ingestion returned an unrecognized response: {response!r}")
-        return {"status": "accepted", "mode": "sync" if response == {} else "async", "trace_id": trace["trace_id"], "spans": len(trace["spans"])}
+        result = {
+            "status": "accepted",
+            "mode": "sync" if response == {} else "async",
+            "request_mode": mode,
+        }
+        if traces is not None:
+            result.update({
+                "traces": len(traces),
+                "spans": sum(len(trace["spans"]) for trace in traces),
+            })
+        return result
 
     def _headers(self) -> dict:
         token = base64.b64encode(f"{self.public_key}:{self.secret_key}".encode("utf-8")).decode("ascii")
@@ -92,6 +114,15 @@ def build_otlp_trace_payload(trace: dict) -> dict:
     return {"resourceSpans": [{"scopeSpans": [{"spans": spans}]}]}
 
 
+def build_otlp_traces_payload(traces: list[dict]) -> dict:
+    spans = []
+    for trace in traces:
+        spans.extend(_build_otlp_span(span, trace) for span in trace["spans"])
+    if not spans:
+        raise ValueError("Langfuse OTLP batch must contain at least one span")
+    return {"resourceSpans": [{"scopeSpans": [{"spans": spans}]}]}
+
+
 def _build_otlp_span(span: dict, trace: dict) -> dict:
     trace_id = _hex_id(trace["trace_id"], 32, "trace_id")
     span_id = _hex_id(span["span_id"], 16, "span_id")
@@ -101,9 +132,36 @@ def _build_otlp_span(span: dict, trace: dict) -> dict:
     attributes = []
     trace_name = trace.get("intent_text") or "traj-engine-trace"
     observation_type = "agent" if not span.get("parent_id") else _observation_type(span)
+    trace_metadata_keys = (
+        "answer_citations",
+        "answer_facts",
+        "answer_numbers",
+        "contradicted_facts",
+        "golden_answer",
+        "golden_facts",
+        "goal_text",
+        "query_lang",
+        "raw_flags",
+        "session_turn_count",
+        "turn_index",
+        "user_feedback",
+    )
+    span_metadata_keys = (
+        "arg_valid",
+        "finish_reason",
+        "output_citations",
+        "output_facts",
+        "subgoal_text",
+        "tokens_system_prompt",
+        "verifier",
+    )
     _add_string(attributes, "langfuse.observation.type", observation_type)
+    _add_string(attributes, "langfuse.observation.level", _level(span))
     _add_string(attributes, "langfuse.trace.name", trace_name)
     _add_string(attributes, "langfuse.trace.metadata.ontology_id", trace.get("ontology_id"))
+    for key in trace_metadata_keys:
+        _add_json(attributes, f"langfuse.trace.metadata.{key}", trace.get(key))
+        _add_json(attributes, f"langfuse.observation.metadata.{key}", trace.get(key))
     if trace.get("session_id"):
         _add_string(attributes, "langfuse.session.id", trace["session_id"])
     if trace.get("ontology_id"):
@@ -114,6 +172,14 @@ def _build_otlp_span(span: dict, trace: dict) -> dict:
         _add_string(attributes, "langfuse.observation.metadata.tool_name", span["tool_name"])
     if span.get("tool_params") is not None:
         _add_json(attributes, "langfuse.observation.metadata.tool_params", span["tool_params"])
+    for key in span_metadata_keys:
+        _add_json(attributes, f"langfuse.observation.metadata.{key}", span.get(key))
+    if span.get("cost_details") is not None:
+        _add_json(attributes, "langfuse.observation.cost_details", span["cost_details"])
+    if span.get("ttft") is not None:
+        _add_json(attributes, "langfuse.observation.metadata.ttft", span["ttft"])
+    if span.get("prompt_version") is not None:
+        _add_string(attributes, "langfuse.observation.prompt", span["prompt_version"])
     if span.get("model"):
         _add_string(attributes, "langfuse.observation.model.name", span["model"])
     usage = _usage_details(span)
@@ -152,6 +218,15 @@ def _usage_details(span: dict) -> dict | None:
         "cacheWrite": span.get("tokens_cache_write"),
     }
     return {key: value for key, value in values.items() if value is not None} or None
+
+
+def _level(span: dict) -> str | None:
+    status = str(span.get("status") or "").upper()
+    if status == "ERROR":
+        return "ERROR"
+    if status == "WARNING":
+        return "WARNING"
+    return "DEFAULT"
 
 
 def _add_string(attributes: list, key: str, value) -> None:

@@ -117,7 +117,17 @@ class LangfuseTraceSource:
             if cursor is None:
                 break
 
-        traces = [_map_trace(items) for _, items in sorted(observations.items())]
+        traces = []
+        incomplete_traces = []
+        for trace_id, items in sorted(observations.items()):
+            roots = [
+                item for item in items
+                if item.get("isRootObservation") is True or item.get("parentObservationId") is None
+            ]
+            if len(roots) != 1:
+                incomplete_traces.append(trace_id)
+                continue
+            traces.append(_map_trace(items))
         traces = _sample(traces, sampling)
         if self.max_traces is not None:
             traces = traces[: self.max_traces]
@@ -132,6 +142,8 @@ class LangfuseTraceSource:
             "last_page_size": last_page_size,
             "observations": sum(len(items) for items in observations.values()),
             "traces": len(observations),
+            "incomplete_traces": len(incomplete_traces),
+            "incomplete_trace_ids": incomplete_traces[:20],
             "returned_traces": len(traces),
             "cursors": cursors,
         }
