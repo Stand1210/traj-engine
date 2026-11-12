@@ -81,7 +81,21 @@
   - `LangfuseTraceSource` 使用 Python 标准库 `urllib.request` 访问
     `GET /api/public/v2/observations`，通过 `platform/config/endpoints.yaml`
     与 v4 profile 装配 URL 和请求参数。
+  - `LangfuseOTLPTraceIngestor` 使用 Python 标准库访问
+    `POST /api/public/otel/v1/traces`，携带
+    `x-langfuse-ingestion-version: 4`；仅用于开发环境播种与连通性自检。
+  - 配置加载支持仓库根目录 `.env`，可设置
+    `LANGFUSE_BASE_URL`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY`；
+    `.env` 已被 gitignore，真实凭据不得入库。
   - 本阶段验证命令：`python -m unittest discover -s platform/tests -v`
+- M2 真实 Cloud v4 冒烟：
+  ```powershell
+  python platform/scripts/langfuse_v4_smoke.py --profile cloud-v4 --wait-seconds 10
+  ```
+  脚本会写入一条固定 `trace_id`、3 个 span 的开发轨迹，等待异步 ingestion
+  落库后按时间窗读回，输出 kind/action/tool/model/token 映射结果。
+  已实测通过：`agent`、`tool`、`llm` 三类 span 均保留，工具名、模型名与
+  prompt token 可读回。
 - M2 新增 REST 能力：
   - `POST /api/v1/tenants`：注册 Langfuse org/project 与项目 API key。
   - `POST /api/v1/ontologies`：创建 Tier 0/Tier 1 本体占位。

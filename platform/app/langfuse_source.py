@@ -49,13 +49,14 @@ class LangfuseTraceSource:
         capabilities = profile.get("capabilities", {})
         if capabilities.get("observationsApi") != "v2":
             raise ValueError("Langfuse profile must expose observationsApi=v2")
+        default_page_size = int(endpoints.get("limits", {}).get("observationsPageSizeDefault", 50))
         return cls(
             base_url=profile["baseUrl"],
             public_key=keys["publicKey"],
             secret_key=keys["secretKey"],
             observations_path=observation_endpoint["path"],
             fields=query.get("fields", DEFAULT_FIELDS),
-            page_size=int(endpoints.get("limits", {}).get("observationsPageSizeDefault", 50)),
+            page_size=int(kwargs.pop("page_size", default_page_size)),
             expand_metadata=query.get("expandMetadata"),
             **kwargs,
         )
@@ -176,8 +177,6 @@ def _validate_page(response: dict, page_number: int) -> None:
     meta = response.get("meta")
     if not isinstance(data, list) or not isinstance(meta, dict):
         raise ValueError(f"invalid Langfuse observations page {page_number}: data must be a list and meta an object")
-    if "cursor" not in meta:
-        raise ValueError(f"invalid Langfuse observations page {page_number}: meta.cursor must be present (null means end)")
 
 
 def _validate_observation(observation: object, page_number: int) -> None:

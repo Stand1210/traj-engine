@@ -61,6 +61,9 @@ Content-Type: application/json
   trace 唯一性、根节点、父子闭合、时间戳、usage、本体 metadata 与 action 覆盖。
 - 预检结果会给出 `passed` / `warning` / `failed` 与逐项指标，用于判断数据是否足够
   启动首跑；本阶段尚未开放真实 Langfuse 数据的分析 Run。
+- 平台开发自检可通过 `platform/scripts/langfuse_v4_smoke.py` 验证当前
+  Langfuse v4 项目的写入、异步落库、读回与内核契约映射；该脚本面向平台开发，
+  不是业务方日常操作入口。
 
 ## 4. 结果解读
 

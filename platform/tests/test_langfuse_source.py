@@ -87,11 +87,22 @@ class LangfuseTraceSourceTest(unittest.TestCase):
         self.assertIsNone(trace["embedding"])
         self.assertIsNone(trace["spans"][0]["tokens_system_prompt"])
 
-    def test_rejects_missing_cursor_key(self):
+    def test_empty_page_without_cursor_is_terminal(self):
         pages = [{"data": [], "meta": {}}]
         source = LangfuseTraceSource("https://langfuse.example", "pk", "sk", transport=FakeTransport(pages))
-        with self.assertRaisesRegex(ValueError, "meta.cursor"):
-            list(source.list_traces({"start": "2026-01-01T00:00:00Z", "end": "2026-01-03T00:00:00Z"}, {}))
+        traces = list(source.list_traces({"start": "2026-01-01T00:00:00Z", "end": "2026-01-03T00:00:00Z"}, {}))
+
+        self.assertEqual([], traces)
+        self.assertEqual(1, source.traversal["pages"])
+        self.assertEqual(1, source.traversal["empty_pages"])
+
+    def test_non_empty_page_without_cursor_is_terminal(self):
+        pages = [{"data": [observation("obs-1")], "meta": {}}]
+        source = LangfuseTraceSource("https://langfuse.example", "pk", "sk", transport=FakeTransport(pages))
+        traces = list(source.list_traces({"start": "2026-01-01T00:00:00Z", "end": "2026-01-03T00:00:00Z"}, {}))
+
+        self.assertEqual(1, len(traces))
+        self.assertEqual(0, source.traversal["empty_pages"])
 
     def test_retries_rate_limit_once(self):
         class RetryTransport(FakeTransport):

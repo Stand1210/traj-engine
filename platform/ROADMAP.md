@@ -108,7 +108,13 @@ M0 契约文件已落盘（路径均相对仓库根目录）：
   endpoint/profile 配置装配。
 - 已实现业务租户注册、Tier 0/Tier 1 本体注册，以及基于近 7 天样本的 8 项适配度
   预检 REST 入口。
-- 已覆盖 7 个单测；真实 key 联通、Tier 0 YAML 合成与真实 Project 首跑尚未开始。
+- 已覆盖 11 个单测；真实 Langfuse Cloud v4 key 联通已通过。
+- 已新增 `LangfuseOTLPTraceIngestor` 与
+  `platform/scripts/langfuse_v4_smoke.py`：向
+  `POST /api/public/otel/v1/traces` 写入一条 3-span 开发轨迹，再通过
+  Observations v2 读回并映射为内核契约。
+- Cloud v4 实测返回 `otel-ingestion-job` 异步任务对象而非文档示例的空对象；
+  两种响应均已按合法成功处理。Tier 0 YAML 合成与真实 Project 首跑尚未开始。
 
 ## 5. M3 运营闭环
 

@@ -9,7 +9,22 @@ CONFIG_ROOT = ROOT / "platform" / "config"
 VAR_ROOT = ROOT / "platform" / "var"
 
 
+def load_env_file(path: Path = ROOT / ".env") -> None:
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
 def load_profile(profile_name: str, base_url_override: str | None = None) -> dict:
+    load_env_file()
     path = CONFIG_ROOT / "profiles" / f"{profile_name}.yaml"
     if not path.exists():
         raise ValueError(f"unknown profile: {profile_name}")
