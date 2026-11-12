@@ -500,6 +500,46 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Review'
+  /runs/{runId}/review-queue:
+    post:
+      tags: [reviews]
+      operationId: createReviewQueue
+      summary: Push selected run scores to a Langfuse annotation queue
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewQueueInput'
+      responses:
+        '201':
+          description: Queue items created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewQueuePushResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /runs/{runId}/review-queue/sync:
+    post:
+      tags: [reviews]
+      operationId: syncReviewQueue
+      summary: Import completed Langfuse annotations as human reviews
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewQueueSyncResult'
+        '400':
+          description: Review queue not created
+        '404':
+          $ref: '#/components/responses/NotFound'
   /trace-scores/{traceScoreId}/evidence:
     get:
       tags: [results]
@@ -816,6 +856,40 @@ components:
         verdict: {type: string, enum: [agree, disagree, uncertain]}
         label: {type: string}
         comment: {type: string}
+    ReviewQueueInput:
+      type: object
+      properties:
+        scope: {type: string, enum: [alerts, abstains, all], default: all}
+        limit: {type: integer, minimum: 1, maximum: 100, default: 50}
+        queueName: {type: string, default: traj-engine-review}
+    ReviewQueuePushResult:
+      type: object
+      required: [runId, queueId, scope, selected, pushed, items]
+      properties:
+        runId: {type: string}
+        queueId: {type: string}
+        scope: {type: string}
+        selected: {type: integer}
+        pushed: {type: integer}
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: string}
+              traceScoreId: {type: string}
+              traceId: {type: string}
+              itemId: {type: string}
+              status: {type: string}
+    ReviewQueueSyncResult:
+      type: object
+      required: [runId, queueId, statusUpdates, awaitingReview, imported]
+      properties:
+        runId: {type: string}
+        queueId: {type: string}
+        statusUpdates: {type: integer}
+        awaitingReview: {type: integer}
+        imported: {type: integer}
     Precheck:
       type: object
       required: [id, ontologyId, status, createdAt]

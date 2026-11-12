@@ -124,6 +124,15 @@ export interface RunInput {
   writebackStrict?: boolean;
 }
 
+export interface ReviewQueueResult {
+  runId: string;
+  queueId: string;
+  pushed?: number;
+  imported?: number;
+  statusUpdates?: number;
+  awaitingReview?: number;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     headers: { "Content-Type": "application/json" },
@@ -160,4 +169,12 @@ export const api = {
   calibration: (id: string) => request<Calibration>(`/api/v1/runs/${id}/calibration`),
   createRun: (input: RunInput) =>
     request<Run>("/api/v1/runs", { method: "POST", body: JSON.stringify(input) })
+  ,
+  createReviewQueue: (runId: string, input: { scope: "alerts" | "abstains" | "all"; limit?: number }) =>
+    request<ReviewQueueResult>(`/api/v1/runs/${runId}/review-queue`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  syncReviewQueue: (runId: string) =>
+    request<ReviewQueueResult>(`/api/v1/runs/${runId}/review-queue/sync`, { method: "POST" })
 };

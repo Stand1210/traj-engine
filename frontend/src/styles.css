@@ -55,6 +55,7 @@ main { padding: 24px 28px; }
 .alert-row { background: #fff7f7; }
 .score { font-weight: 700; color: #0a2540; }
 .error-banner { margin-bottom: 12px; padding: 10px; color: #8a0d07; background: #fdecea; border-radius: 5px; }
+.success-banner { margin-bottom: 12px; padding: 10px; color: #00643d; background: #e8f7f1; border-radius: 5px; }
 
 .score-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .score-head span:first-child { font-size: 12px; color: #627d98; }

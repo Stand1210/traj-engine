@@ -208,6 +208,25 @@ CREATE TABLE IF NOT EXISTS human_reviews (
     FOREIGN KEY (trace_score_id) REFERENCES trace_scores (id)
 );
 
+CREATE TABLE IF NOT EXISTS review_queue_items (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL,
+    trace_score_id TEXT NOT NULL,
+    trace_id TEXT NOT NULL,
+    queue_id TEXT NOT NULL,
+    item_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('PENDING', 'COMPLETED')),
+    human_review_id TEXT,
+    pushed_at TEXT NOT NULL,
+    completed_at TEXT,
+    synced_at TEXT,
+    FOREIGN KEY (run_id) REFERENCES cohort_runs (id),
+    FOREIGN KEY (trace_score_id) REFERENCES trace_scores (id),
+    FOREIGN KEY (human_review_id) REFERENCES human_reviews (id),
+    UNIQUE (run_id, trace_score_id),
+    UNIQUE (queue_id, item_id)
+);
+
 CREATE TABLE IF NOT EXISTS audit_events (
     id TEXT PRIMARY KEY,
     actor TEXT NOT NULL,
@@ -228,3 +247,5 @@ CREATE INDEX IF NOT EXISTS idx_trace_scores_cell
     ON trace_scores (run_id, cell_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_score
     ON human_reviews (trace_score_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_review_queue_items_run
+  ON review_queue_items (run_id, status);

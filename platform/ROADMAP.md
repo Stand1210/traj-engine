@@ -155,7 +155,18 @@ M0 契约文件已落盘（路径均相对仓库根目录）：
   模式下可勾选「评分写回 Langfuse Scores」。
 - 真实 Cloud v4 冒烟已通过：1 条 trace、3 个 Score，全部 accepted，
   rejected=0。
-- 复用 Langfuse 原生标注队列做人工复核。
+- 复用 Langfuse 原生标注队列做人工复核：
+  - 平台自动创建/复用 `traj-engine-review` 队列。
+  - 自动创建/复用 3 个人工复核 Score Config：
+    `traj-engine-human-verdict`（Agree / Disagree / Uncertain）、
+    `traj-engine-human-label`、`traj-engine-human-comment`。
+  - `POST /api/v1/runs/{runId}/review-queue` 可把告警/弃权轨迹推入队列，
+    本地 `review_queue_items` 记录 run、trace、queue item 的映射。
+  - `POST /api/v1/runs/{runId}/review-queue/sync` 同步队列完成状态，
+    并把该 queue 的 ANNOTATION Scores 转成 `human_reviews`。
+  - 前端 Run 概览提供「推送复核队列」与「同步 Langfuse 人工复核」。
+  - 真实 Cloud v4 已完成队列、Score Config、队列 item、人工 Score、
+    完成状态与读回验证。
 - 实现告警预算与 top-K 排序。
 - 复核标签回流触发校准。
 

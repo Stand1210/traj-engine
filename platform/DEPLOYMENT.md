@@ -150,6 +150,30 @@
   代理环境下读取阶段可能挂起；这是开发网络问题，不代表 Scores API
   写回失败。
 
+### 3.1.1 M3 人工复核队列部署记录
+
+- 新增数据表：`review_queue_items`，记录 Run、trace score、Langfuse
+  queue item 与人工复核导入结果的映射。建表语句在
+  `platform/contracts/schema.sql`，应用启动时自动创建。
+- 新增后端源：`LangfuseAnnotationQueueClient`，使用 Python 标准库访问：
+  - `GET/POST /api/public/score-configs`
+  - `GET/POST /api/public/annotation-queues`
+  - `GET/POST/PATCH /api/public/annotation-queues/{queueId}/items`
+  - `GET /api/public/v3/scores`
+  所有 URL 均由 `platform/config/endpoints.yaml` 装配。
+- 平台自动创建的复核资产：
+  - 队列：`traj-engine-review`
+  - categorical config：`traj-engine-human-verdict`
+  - text configs：`traj-engine-human-label`、`traj-engine-human-comment`
+- 无新增三方件、无 embedding 模型；人工结论最终落在 SQLite 表
+  `human_reviews`。
+- 真实 Cloud v4 验证记录：
+  - queue id：`cmwdd9lhj000uad0khg1zb4zn`
+  - queue item id：`cmwdd9uzi005rad0el1kr4rh5`
+  - 已推入 1 条 trace、写入 1 条 `ANNOTATION` verdict Score、
+    将 item 置为 `COMPLETED`，并可通过 Scores v3 按 `queueId + traceId`
+    读回。
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

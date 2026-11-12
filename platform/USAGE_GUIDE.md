@@ -93,6 +93,19 @@ Content-Type: application/json
 - 前端发起 Run 时可选择「Langfuse Project」数据源，并勾选
   「评分写回 Langfuse Scores」。
 
+### 3.3.1 人工复核队列
+
+- Run 成功后，在 Run 概览点击「推送告警/弃权到复核队列」。
+- 平台会把该 Run 中尚未推送的告警或弃权轨迹推入 Langfuse 原生
+  `traj-engine-review` 队列，每条队列 item 指向一个 trace。
+- 复核人在 Langfuse UI 中打开队列 item，填写三个人工 Score：
+  - `traj-engine-human-verdict`：Agree / Disagree / Uncertain。
+  - `traj-engine-human-label`：可选，问题标签。
+  - `traj-engine-human-comment`：可选，补充说明。
+- 完成队列 item 后，回到平台点击「同步 Langfuse 人工复核」。
+  平台会把已完成 item 的人工结论导入本地 `human_reviews`。
+- 同步结果会显示导入条数和待复核条数；同一条队列 item 只会导入一次。
+
 ## 4. 结果解读
 
 | 页面内容 | 业务含义 | 判断动作 |

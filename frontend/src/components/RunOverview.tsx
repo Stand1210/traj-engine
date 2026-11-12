@@ -11,6 +11,8 @@ export default function RunOverview({ runId, onSelect }: Props) {
   const [steps, setSteps] = useState<RunStep[]>([]);
   const [calibration, setCalibration] = useState<Calibration | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reviewMessage, setReviewMessage] = useState<string | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -36,6 +38,36 @@ export default function RunOverview({ runId, onSelect }: Props) {
     };
   }, [runId]);
 
+  async function pushReviewQueue(scope: "alerts" | "abstains" | "all") {
+    setReviewBusy(true);
+    setError(null);
+    setReviewMessage(null);
+    try {
+      const result = await api.createReviewQueue(runId, { scope, limit: 50 });
+      setReviewMessage(`已推送 ${result.pushed ?? 0} 条轨迹到 Langfuse 复核队列。`);
+    } catch (submitError) {
+      setError(String(submitError));
+    } finally {
+      setReviewBusy(false);
+    }
+  }
+
+  async function syncReviewQueue() {
+    setReviewBusy(true);
+    setError(null);
+    setReviewMessage(null);
+    try {
+      const result = await api.syncReviewQueue(runId);
+      setReviewMessage(
+        `同步完成：导入 ${result.imported ?? 0} 条人工复核，${result.awaitingReview ?? 0} 条待复核。`
+      );
+    } catch (submitError) {
+      setError(String(submitError));
+    } finally {
+      setReviewBusy(false);
+    }
+  }
+
   return (
     <section className="panel-grid">
       <div className="panel wide">
@@ -52,9 +84,20 @@ export default function RunOverview({ runId, onSelect }: Props) {
           </div>
         )}
         {run?.error && <div className="error-banner">{run.error}</div>}
+        {reviewMessage && <div className="success-banner">{reviewMessage}</div>}
         <div className="button-row">
           <button onClick={() => onSelect(`/runs/${runId}/cells`)}>查看聚类</button>
           <button onClick={() => onSelect(`/runs/${runId}/traces`)}>查看轨迹</button>
+          {run?.source === "langfuse" && run.status === "succeeded" && (
+            <>
+              <button disabled={reviewBusy} onClick={() => void pushReviewQueue("all")}>
+                推送告警/弃权到复核队列
+              </button>
+              <button disabled={reviewBusy} onClick={() => void syncReviewQueue()}>
+                同步 Langfuse 人工复核
+              </button>
+            </>
+          )}
         </div>
       </div>
       <div className="panel">

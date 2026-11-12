@@ -14,6 +14,12 @@ from platform.app.algorithm import load_frozen_state
 from platform.app.engine import ENGINE
 from platform.app.langfuse_source import LangfuseHttpError, LangfuseTraceSource
 from platform.app.langfuse_scores import LangfuseScoreWriter
+from platform.app.langfuse_reviews import (
+    COMMENT_SCORE_NAME,
+    LABEL_SCORE_NAME,
+    LangfuseAnnotationQueueClient,
+    VERDICT_SCORE_NAME,
+)
 
 
 app = FastAPI(
@@ -45,6 +51,12 @@ class ReviewInput(BaseModel):
     verdict: Literal["agree", "disagree", "uncertain"]
     label: str | None = None
     comment: str | None = None
+
+
+class ReviewQueueInput(BaseModel):
+    scope: Literal["alerts", "abstains", "all"] = "all"
+    limit: int = Field(default=50, ge=1, le=100)
+    queueName: str = Field(default="traj-engine-review", min_length=1, max_length=120)
 
 
 class TenantInput(BaseModel):
@@ -573,6 +585,153 @@ def list_reviews(
     return page([dict(row) for row in rows], limit, offset, total)
 
 
+@app.post("/api/v1/runs/{run_id}/review-queue", status_code=201)
+def create_review_queue(run_id: str, input_data: ReviewQueueInput, connection=Depends(get_connection)) -> dict:
+    ensure_run(connection, run_id)
+    tenant = _tenant_for_run(connection, run_id)
+    client = _annotation_client(tenant)
+    assets = client.ensure_review_assets(input_data.queueName)
+    queue = assets["queue"]
+    connection.execute(
+        "UPDATE tenants SET queue_id = ?, updated_at = ? WHERE id = ?",
+        (queue["id"], store.utcnow(), tenant["id"]),
+    )
+    conditions = {
+        "alerts": "s.is_alert = 1",
+        "abstains": "s.is_abstain = 1",
+        "all": "(s.is_alert = 1 OR s.is_abstain = 1)",
+    }
+    rows = connection.execute(
+        f"""SELECT s.id, s.trace_id FROM trace_scores s
+            LEFT JOIN review_queue_items rqi ON rqi.trace_score_id = s.id
+            WHERE s.run_id = ? AND rqi.id IS NULL AND {conditions[input_data.scope]}
+            ORDER BY s.total_score ASC, s.trace_id LIMIT ?""",
+        (run_id, input_data.limit),
+    ).fetchall()
+    items = client.push_items(queue["id"], [row["trace_id"] for row in rows])
+    inserted = []
+    for score_row, item in zip(rows, items):
+        queue_item_id = store.new_id("review-item")
+        connection.execute(
+            """INSERT INTO review_queue_items
+               (id, run_id, trace_score_id, trace_id, queue_id, item_id,
+                status, pushed_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (queue_item_id, run_id, score_row["id"], score_row["trace_id"],
+             queue["id"], item["id"], item.get("status") or "PENDING", store.utcnow()),
+        )
+        inserted.append({
+            "id": queue_item_id,
+            "traceScoreId": score_row["id"],
+            "traceId": score_row["trace_id"],
+            "itemId": item["id"],
+            "status": item.get("status") or "PENDING",
+        })
+    connection.commit()
+    store.upsert_run_step(
+        connection, run_id, "review_queue", "succeeded",
+        {"queueId": queue["id"], "scope": input_data.scope, "pushed": len(inserted)},
+        ended=True,
+    )
+    return {
+        "runId": run_id,
+        "queueId": queue["id"],
+        "scope": input_data.scope,
+        "selected": len(rows),
+        "pushed": len(inserted),
+        "items": inserted,
+    }
+
+
+@app.post("/api/v1/runs/{run_id}/review-queue/sync")
+def sync_review_queue(run_id: str, connection=Depends(get_connection)) -> dict:
+    ensure_run(connection, run_id)
+    tenant = _tenant_for_run(connection, run_id)
+    if not tenant["queue_id"]:
+        raise HTTPException(status_code=400, detail={"code": "review_queue_not_created"})
+    client = _annotation_client(tenant)
+    remote_items = {item["id"]: item for item in client.list_items(tenant["queue_id"])}
+    local_items = connection.execute(
+        "SELECT * FROM review_queue_items WHERE run_id = ? AND queue_id = ?",
+        (run_id, tenant["queue_id"]),
+    ).fetchall()
+    completed = 0
+    for item in local_items:
+        remote = remote_items.get(item["item_id"])
+        if remote is None:
+            continue
+        if remote.get("status") != item["status"]:
+            connection.execute(
+                "UPDATE review_queue_items SET status = ?, completed_at = ? WHERE id = ?",
+                (remote["status"], remote.get("completedAt"), item["id"]),
+            )
+            if remote["status"] == "COMPLETED":
+                completed += 1
+
+    pending_sync = connection.execute(
+        """SELECT * FROM review_queue_items
+           WHERE run_id = ? AND queue_id = ? AND status = 'COMPLETED'
+             AND human_review_id IS NULL""",
+        (run_id, tenant["queue_id"]),
+    ).fetchall()
+    scores = client.list_annotation_scores(
+        [item["trace_id"] for item in pending_sync], tenant["queue_id"]
+    )
+    scores_by_trace: dict[str, dict] = {}
+    for score in scores:
+        trace_id = score.get("traceId")
+        if not trace_id or score.get("name") not in {VERDICT_SCORE_NAME, LABEL_SCORE_NAME, COMMENT_SCORE_NAME}:
+            continue
+        current = scores_by_trace.setdefault(trace_id, {})
+        previous = current.get(score["name"])
+        if previous is None or (score.get("updatedAt") or "") >= (previous.get("updatedAt") or ""):
+            current[score["name"]] = score
+
+    imported = 0
+    for item in pending_sync:
+        annotations = scores_by_trace.get(item["trace_id"], {})
+        verdict_score = annotations.get(VERDICT_SCORE_NAME)
+        if not verdict_score:
+            continue
+        verdict_value = verdict_score.get("value")
+        numeric_verdicts = {1: "agree", 2: "disagree", 3: "uncertain"}
+        if isinstance(verdict_value, (int, float)):
+            verdict = numeric_verdicts.get(int(verdict_value), "")
+        else:
+            verdict = str(verdict_value or "").lower()
+        if verdict not in {"agree", "disagree", "uncertain"}:
+            continue
+        reviewer = verdict_score.get("authorUserId") or "langfuse-annotation"
+        review_id = store.new_id("review")
+        connection.execute(
+            """INSERT INTO human_reviews
+               (id, trace_score_id, reviewer, verdict, label, comment, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (review_id, item["trace_score_id"], reviewer, verdict,
+             annotations.get(LABEL_SCORE_NAME, {}).get("value"),
+             annotations.get(COMMENT_SCORE_NAME, {}).get("value"),
+             store.utcnow()),
+        )
+        connection.execute(
+            "UPDATE review_queue_items SET human_review_id = ?, synced_at = ? WHERE id = ?",
+            (review_id, store.utcnow(), item["id"]),
+        )
+        imported += 1
+    connection.commit()
+    store.upsert_run_step(
+        connection, run_id, "review_sync", "succeeded",
+        {"queueId": tenant["queue_id"], "statusUpdates": completed, "imported": imported},
+        ended=True,
+    )
+    return {
+        "runId": run_id,
+        "queueId": tenant["queue_id"],
+        "statusUpdates": completed,
+        "awaitingReview": len(pending_sync),
+        "imported": imported,
+    }
+
+
 @app.get("/api/v1/trace-scores/{trace_score_id}/evidence")
 def list_evidence(trace_score_id: str, connection=Depends(get_connection)) -> list[dict]:
     rows = connection.execute(
@@ -588,6 +747,27 @@ def ensure_run(connection, run_id: str) -> None:
     row = connection.execute("SELECT id FROM cohort_runs WHERE id = ?", (run_id,)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail={"code": "run_not_found"})
+
+
+def _tenant_for_run(connection, run_id: str):
+    tenant = connection.execute(
+        """SELECT t.* FROM cohort_runs r
+           JOIN ontologies o ON o.id = r.ontology_id
+           JOIN tenants t ON t.id = o.tenant_id
+           WHERE r.id = ?""",
+        (run_id,),
+    ).fetchone()
+    if tenant is None:
+        raise HTTPException(status_code=404, detail={"code": "tenant_not_found"})
+    return tenant
+
+
+def _annotation_client(tenant) -> LangfuseAnnotationQueueClient:
+    return LangfuseAnnotationQueueClient.from_config(
+        resolve_profile_from_args(),
+        load_endpoints(),
+        {"publicKey": tenant["public_key"], "secretKey": tenant["secret_key"]},
+    )
 
 
 def decode_cursor(cursor: str | None) -> int:

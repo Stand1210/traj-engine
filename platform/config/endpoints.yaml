@@ -28,6 +28,13 @@ endpoints:
       path: /api/public/v3/scores
       query:
         fields: details,subject,annotation
+  scoreConfigs:
+    list:
+      method: GET
+      path: /api/public/score-configs
+    create:
+      method: POST
+      path: /api/public/score-configs
   projects:
     list:
       method: GET
