@@ -7,9 +7,11 @@ import TraceWorkbench from "./components/TraceWorkbench";
 import TraceDetail from "./components/TraceDetail";
 import AlertWorkbench from "./components/AlertWorkbench";
 import CalibrationWorkbench from "./components/CalibrationWorkbench";
+import LifecycleWorkbench from "./components/LifecycleWorkbench";
 
 type Route =
   | { name: "runs" }
+  | { name: "lifecycle" }
   | { name: "run"; runId: string }
   | { name: "cells"; runId: string }
   | { name: "traces"; runId: string; mode: "all" | "alerts" | "abstain" }
@@ -19,6 +21,9 @@ type Route =
 
 function parseHash(): Route {
   const parts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  if (parts[0] === "lifecycle") {
+    return { name: "lifecycle" };
+  }
   if (parts[0] === "runs" && parts[1] && parts[2] === "cells") {
     return { name: "cells", runId: parts[1] };
   }
@@ -69,7 +74,10 @@ export default function App() {
   }, []);
 
   const refreshRuns = useCallback(() => setRunsVersion(value => value + 1), []);
-  const activeRunId = useMemo(() => (route.name === "runs" ? null : route.runId), [route]);
+  const activeRunId = useMemo(
+    () => (route.name === "runs" || route.name === "lifecycle" ? null : route.runId),
+    [route]
+  );
 
   return (
     <div className="app-shell">
@@ -86,6 +94,7 @@ export default function App() {
       </header>
       <nav className="app-nav">
         <button className={route.name === "runs" ? "active" : ""} onClick={() => navigate("/")}>Run 列表</button>
+        <button className={route.name === "lifecycle" ? "active" : ""} onClick={() => navigate("/lifecycle")}>生命周期</button>
         {activeRunId && (
           <>
             <button onClick={() => navigate(`/runs/${activeRunId}`)}>Run 概览</button>
@@ -101,6 +110,7 @@ export default function App() {
         {route.name === "runs" && (
           <RunLauncher onCreated={refreshRuns} runsVersion={runsVersion} onSelect={navigate} />
         )}
+        {route.name === "lifecycle" && <LifecycleWorkbench onSelect={navigate} />}
         {route.name === "run" && <RunOverview runId={route.runId} onSelect={navigate} />}
         {route.name === "cells" && <ClusterView runId={route.runId} onSelect={navigate} />}
         {route.name === "traces" && <TraceWorkbench runId={route.runId} initialMode={route.mode} onSelect={navigate} />}

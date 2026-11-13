@@ -189,10 +189,31 @@ M3.4 calibration record: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 
 ## 6. M4 生命周期
 
-- R1：每日基线刷新，cell 定义不变；冻结结构贴标签路径已实现。
-- R2：结构重聚类，受 novelty、drift、instability、冷启动与业务声明触发。
-- R3：本体升版，由业务规则变更触发。
-- R2 后必须记录 lineage、重置 drift、重拟合校准并显式标注盲区。
+### 6.1 已实现
+
+- `lifecycle_schedules` / `lifecycle_evaluations` 两张表与 REST 契约：
+  - `GET/PUT /api/v1/ontologies/{id}/lifecycle`
+  - `POST /api/v1/ontologies/{id}/lifecycle/evaluate`
+  - `GET /api/v1/ontologies/{id}/lifecycle/evaluations`
+- 显式评估入口：按调度策略创建 R1/R2 Run；`forceR2=true` 可人工强制重聚类。
+- R1：固定 active structure，周期到期时刷新簇内基线与分数。
+- R2：冷启动、强制触发、novelty 阈值或告警率阈值触发新结构版本。
+- 幂等：按 R1 周期把当前时间切成固定评估桶；同一桶且调度未更新时
+  idempotency key 为
+  `lifecycle:{ontologyId}:{evaluationBucket}:{scheduleUpdatedAt}`，
+  重复评估会复用已创建的 Run。
+- R2 结构演化写入 `cell_lineage`，按相同 trace 在新旧 cell 的重叠计数生成
+  `continued / split / merged` 关系，overlap 用旧 cell 中被延续的样本比例表示。
+- 前端新增「生命周期」页：选择本体、保存调度、手动评估、强制 R2、
+  查看评估历史并跳转 Run。
+
+### 6.2 尚未实现
+
+- 常驻定时器与调度锁：当前采用 REST 显式评估，避免首版引入后台任务竞态。
+- R3：本体升版流程。
+- novelty 积累到最小样本数后的自动 R2 提案。
+
+R3：本体升级仍由业务规则变更触发，后续独立实现。
 
 ## 7. M5 多租户与硬化
 

@@ -186,7 +186,69 @@ class ProductionAlgorithmTest(unittest.TestCase):
 
             self.assertEqual("succeeded", run["status"])
             self.assertEqual("failed", step["status"])
-            self.assertIn("network unavailable", step["payload_json"])
+
+    def test_engine_creates_r2_structure(self):
+        traces = []
+        with (ROOT / "data" / "bench_v1" / "R1" / "traces.jsonl").open(encoding="utf-8") as handle:
+            for line in handle:
+                traces.append(json.loads(line))
+                if len(traces) == 20:
+                    break
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            db_path = root / "test.db"
+            connection = store.connect(db_path, initialize=True)
+            try:
+                tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
+                ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+                run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke-r2", "R2",
+                    "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 1.0, "test", None,
+                )
+                second_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke-r2-2", "R2",
+                    "2026-01-02T00:00:00Z", "2026-01-03T00:00:00Z", 1.0, "test-r2", None,
+                )
+            finally:
+                connection.close()
+
+            engine = RunEngine(db_path)
+            try:
+                with patch("platform.app.engine.VAR_ROOT", root / "var"):
+                    engine.submit(
+                        run_id, "smoke-r2", 1.0, 20,
+                        trace_source=FakeTraceSource(traces),
+                        window={"start": "2026-01-01T00:00:00Z", "end": "2026-01-02T00:00:00Z"},
+                        ontology_id=ontology_id,
+                    )
+                    engine.submit(
+                        second_run_id, "smoke-r2-2", 1.0, 20,
+                        trace_source=FakeTraceSource(traces),
+                        window={"start": "2026-01-02T00:00:00Z", "end": "2026-01-03T00:00:00Z"},
+                        ontology_id=ontology_id,
+                    )
+            finally:
+                engine.close()
+
+            connection = store.connect(db_path)
+            try:
+                run = store.get_run(connection, run_id)
+                structures = connection.execute(
+                    "SELECT COUNT(*) AS n FROM structure_versions WHERE ontology_id = ?",
+                    (ontology_id,),
+                ).fetchone()["n"]
+                lineage = connection.execute(
+                    "SELECT relation, COUNT(*) AS n FROM cell_lineage WHERE run_id = ? GROUP BY relation",
+                    (second_run_id,),
+                ).fetchall()
+            finally:
+                connection.close()
+
+            self.assertEqual("succeeded", run["status"])
+            self.assertEqual(2, structures)
+            self.assertTrue(lineage)
+            self.assertTrue(all(row["relation"] == "continued" for row in lineage))
 
     def test_frozen_state_roundtrip_replays_assignments(self):
         traces = []

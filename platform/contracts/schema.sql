@@ -271,6 +271,36 @@ CREATE TABLE IF NOT EXISTS review_calibrations (
     FOREIGN KEY (source_run_id) REFERENCES cohort_runs (id)
 );
 
+CREATE TABLE IF NOT EXISTS lifecycle_schedules (
+    id TEXT PRIMARY KEY,
+    ontology_id TEXT NOT NULL UNIQUE,
+    enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+    source TEXT NOT NULL CHECK (source IN ('jsonl', 'langfuse')),
+    source_ref TEXT NOT NULL,
+    interval_hours REAL NOT NULL CHECK (interval_hours > 0),
+    window_hours REAL NOT NULL CHECK (window_hours > 0),
+    sampling_rate REAL NOT NULL DEFAULT 1.0 CHECK (sampling_rate > 0 AND sampling_rate <= 1.0),
+    max_traces INTEGER CHECK (max_traces IS NULL OR max_traces > 0),
+    r2_novelty_threshold REAL NOT NULL CHECK (r2_novelty_threshold >= 0 AND r2_novelty_threshold <= 1),
+    r2_alert_rate_threshold REAL NOT NULL CHECK (r2_alert_rate_threshold >= 0 AND r2_alert_rate_threshold <= 1),
+    writeback_to_langfuse INTEGER NOT NULL DEFAULT 0 CHECK (writeback_to_langfuse IN (0, 1)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (ontology_id) REFERENCES ontologies (id)
+);
+
+CREATE TABLE IF NOT EXISTS lifecycle_evaluations (
+    id TEXT PRIMARY KEY,
+    ontology_id TEXT NOT NULL,
+    decision TEXT NOT NULL CHECK (decision IN ('created_r1', 'created_r2', 'skipped')),
+    reason TEXT NOT NULL,
+    metrics_json TEXT NOT NULL,
+    created_run_id TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (ontology_id) REFERENCES ontologies (id),
+    FOREIGN KEY (created_run_id) REFERENCES cohort_runs (id)
+);
+
 CREATE TABLE IF NOT EXISTS audit_events (
     id TEXT PRIMARY KEY,
     actor TEXT NOT NULL,
@@ -297,3 +327,5 @@ CREATE INDEX IF NOT EXISTS idx_alert_decisions_run_status
   ON alert_decisions (run_id, status, priority_rank);
 CREATE INDEX IF NOT EXISTS idx_review_calibrations_tenant_created
   ON review_calibrations (tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_lifecycle_evaluations_ontology_created
+  ON lifecycle_evaluations (ontology_id, created_at DESC);

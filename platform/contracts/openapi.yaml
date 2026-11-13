@@ -244,6 +244,103 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Precheck'
+  /ontologies/{ontologyId}/lifecycle:
+    get:
+      tags: [ontologies]
+      operationId: getLifecycleSchedule
+      summary: Get lifecycle schedule for an ontology
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+      responses:
+        '200':
+          description: Lifecycle schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifecycleSchedule'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [ontologies]
+      operationId: configureLifecycleSchedule
+      summary: Create or update lifecycle schedule
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LifecycleInput'
+      responses:
+        '200':
+          description: Saved lifecycle schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifecycleSchedule'
+        '400':
+          description: Invalid lifecycle configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /ontologies/{ontologyId}/lifecycle/evaluate:
+    post:
+      tags: [ontologies]
+      operationId: evaluateLifecycle
+      summary: Evaluate lifecycle and create an R1 or R2 run when due
+      description: |
+        The evaluator is idempotent for one evaluation window. R1 refreshes baselines
+        with the active frozen structure; R2 creates a new structure version.
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LifecycleEvaluateInput'
+      responses:
+        '201':
+          description: Lifecycle evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LifecycleEvaluation'
+        '400':
+          description: Lifecycle evaluation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /ontologies/{ontologyId}/lifecycle/evaluations:
+    get:
+      tags: [ontologies]
+      operationId: listLifecycleEvaluations
+      summary: List lifecycle evaluation history
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+        - $ref: '#/components/parameters/pageLimit'
+        - $ref: '#/components/parameters/pageCursor'
+      responses:
+        '200':
+          description: Lifecycle evaluation page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LifecycleEvaluation'
   /runs:
     get:
       tags: [runs]
@@ -1140,6 +1237,84 @@ components:
       required: [sampleSize]
       properties:
         sampleSize: {type: integer, minimum: 100}
+    LifecycleSchedule:
+      type: object
+      required:
+        - id
+        - ontologyId
+        - enabled
+        - source
+        - sourceRef
+        - intervalHours
+        - windowHours
+        - samplingRate
+        - r2NoveltyThreshold
+        - r2AlertRateThreshold
+        - writebackToLangfuse
+        - createdAt
+        - updatedAt
+      properties:
+        id: {type: string}
+        ontologyId: {type: string}
+        enabled: {type: boolean}
+        source: {type: string, enum: [jsonl, langfuse]}
+        sourceRef: {type: string}
+        intervalHours: {type: number, exclusiveMinimum: 0}
+        windowHours: {type: number, exclusiveMinimum: 0}
+        samplingRate: {type: number, exclusiveMinimum: 0, maximum: 1}
+        maxTraces: {type: integer, minimum: 1, nullable: true}
+        r2NoveltyThreshold: {type: number, minimum: 0, maximum: 1}
+        r2AlertRateThreshold: {type: number, minimum: 0, maximum: 1}
+        writebackToLangfuse: {type: boolean}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+    LifecycleInput:
+      type: object
+      properties:
+        enabled: {type: boolean, default: true}
+        source: {type: string, enum: [jsonl, langfuse], default: langfuse}
+        sourceRef: {type: string, minLength: 1, maxLength: 120, default: lifecycle}
+        intervalHours: {type: number, exclusiveMinimum: 0, default: 24}
+        windowHours: {type: number, exclusiveMinimum: 0, default: 24}
+        samplingRate: {type: number, exclusiveMinimum: 0, maximum: 1, default: 1}
+        maxTraces: {type: integer, minimum: 1, nullable: true}
+        r2NoveltyThreshold: {type: number, minimum: 0, maximum: 1, default: 0.15}
+        r2AlertRateThreshold: {type: number, minimum: 0, maximum: 1, default: 0.20}
+        writebackToLangfuse: {type: boolean, default: false}
+    LifecycleEvaluateInput:
+      type: object
+      properties:
+        forceR2: {type: boolean, default: false}
+    LifecycleEvaluation:
+      type: object
+      required: [id, ontologyId, decision, reason, metrics, createdAt]
+      properties:
+        id: {type: string}
+        ontologyId: {type: string}
+        decision:
+          type: string
+          enum: [skipped, created_r1, created_r2]
+        reason:
+          type: string
+          enum:
+            - schedule_disabled
+            - run_in_progress
+            - cold_start
+            - forced_r2
+            - novelty_threshold
+            - alert_rate_threshold
+            - interval_due
+            - not_due
+        metrics: {type: object, additionalProperties: true}
+        createdRunId: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+        run:
+          allOf:
+            - $ref: '#/components/schemas/Run'
+          nullable: true
+        windowStart: {type: string, format: date-time}
+        windowEnd: {type: string, format: date-time}
+        evaluationBucket: {type: string, format: date-time}
     Calibration:
       type: object
       required: [runId, kind]

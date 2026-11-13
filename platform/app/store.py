@@ -253,6 +253,84 @@ def get_run(connection: sqlite3.Connection, run_id: str) -> dict | None:
     return row_to_dict(row)
 
 
+def upsert_lifecycle_schedule(
+    connection: sqlite3.Connection,
+    ontology_id: str,
+    enabled: bool,
+    source: str,
+    source_ref: str,
+    interval_hours: float,
+    window_hours: float,
+    sampling_rate: float,
+    max_traces: int | None,
+    r2_novelty_threshold: float,
+    r2_alert_rate_threshold: float,
+    writeback_to_langfuse: bool,
+) -> str:
+    if connection.execute("SELECT id FROM ontologies WHERE id = ?", (ontology_id,)).fetchone() is None:
+        raise ValueError("ontology not found")
+    if source not in {"jsonl", "langfuse"}:
+        raise ValueError("invalid source")
+    if interval_hours <= 0 or window_hours <= 0:
+        raise ValueError("interval and window must be positive")
+    if not 0 < sampling_rate <= 1:
+        raise ValueError("sampling rate must be in (0, 1]")
+    if not 0 <= r2_novelty_threshold <= 1 or not 0 <= r2_alert_rate_threshold <= 1:
+        raise ValueError("thresholds must be in [0, 1]")
+
+    row = connection.execute(
+        "SELECT id FROM lifecycle_schedules WHERE ontology_id = ?", (ontology_id,)
+    ).fetchone()
+    now = utcnow()
+    if row is None:
+        schedule_id = new_id("schedule")
+        connection.execute(
+            """INSERT INTO lifecycle_schedules
+               (id, ontology_id, enabled, source, source_ref, interval_hours,
+                window_hours, sampling_rate, max_traces, r2_novelty_threshold,
+                r2_alert_rate_threshold, writeback_to_langfuse, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (schedule_id, ontology_id, int(enabled), source, source_ref, interval_hours,
+             window_hours, sampling_rate, max_traces, r2_novelty_threshold,
+             r2_alert_rate_threshold, int(writeback_to_langfuse), now, now),
+        )
+    else:
+        schedule_id = row["id"]
+        connection.execute(
+            """UPDATE lifecycle_schedules
+               SET enabled = ?, source = ?, source_ref = ?, interval_hours = ?,
+                   window_hours = ?, sampling_rate = ?, max_traces = ?,
+                   r2_novelty_threshold = ?, r2_alert_rate_threshold = ?,
+                   writeback_to_langfuse = ?, updated_at = ?
+               WHERE id = ?""",
+            (int(enabled), source, source_ref, interval_hours, window_hours, sampling_rate,
+             max_traces, r2_novelty_threshold, r2_alert_rate_threshold,
+             int(writeback_to_langfuse), now, schedule_id),
+        )
+    connection.commit()
+    return schedule_id
+
+
+def record_lifecycle_evaluation(
+    connection: sqlite3.Connection,
+    ontology_id: str,
+    decision: str,
+    reason: str,
+    metrics: dict,
+    created_run_id: str | None,
+) -> str:
+    evaluation_id = new_id("evaluation")
+    connection.execute(
+        """INSERT INTO lifecycle_evaluations
+           (id, ontology_id, decision, reason, metrics_json, created_run_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (evaluation_id, ontology_id, decision, reason,
+         json.dumps(metrics, ensure_ascii=False, sort_keys=True), created_run_id, utcnow()),
+    )
+    connection.commit()
+    return evaluation_id
+
+
 def set_run_status(
     connection: sqlite3.Connection,
     run_id: str,

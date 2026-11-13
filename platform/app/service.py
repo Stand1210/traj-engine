@@ -36,6 +36,12 @@ from platform.app.langfuse_reviews import (
     LangfuseAnnotationQueueClient,
     VERDICT_SCORE_NAME,
 )
+from platform.app.lifecycle import (
+    evaluate_lifecycle_state,
+    get_lifecycle_schedule,
+    serialize_evaluation,
+    serialize_schedule,
+)
 
 
 app = FastAPI(
@@ -96,6 +102,23 @@ class OntologyInput(BaseModel):
 
 class PrecheckInput(BaseModel):
     sampleSize: int = Field(default=100, ge=100)
+
+
+class LifecycleInput(BaseModel):
+    enabled: bool = True
+    source: Literal["jsonl", "langfuse"] = "langfuse"
+    sourceRef: str = Field(default="lifecycle", min_length=1, max_length=120)
+    intervalHours: float = Field(default=24.0, gt=0.0)
+    windowHours: float = Field(default=24.0, gt=0.0)
+    samplingRate: float = Field(default=1.0, gt=0.0, le=1.0)
+    maxTraces: int | None = Field(default=None, ge=1)
+    r2NoveltyThreshold: float = Field(default=0.15, ge=0.0, le=1.0)
+    r2AlertRateThreshold: float = Field(default=0.20, ge=0.0, le=1.0)
+    writebackToLangfuse: bool = False
+
+
+class LifecycleEvaluateInput(BaseModel):
+    forceR2: bool = False
 
 
 def get_connection() -> Any:
@@ -309,6 +332,131 @@ def run_precheck(
     return serialize_precheck(result)
 
 
+@app.get("/api/v1/ontologies/{ontology_id}/lifecycle")
+def get_lifecycle(ontology_id: str, connection=Depends(get_connection)) -> dict:
+    row = get_lifecycle_schedule(connection, ontology_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail={"code": "lifecycle_not_configured"})
+    return serialize_schedule(row)
+
+
+@app.put("/api/v1/ontologies/{ontology_id}/lifecycle")
+def configure_lifecycle(
+    ontology_id: str,
+    input_data: LifecycleInput,
+    connection=Depends(get_connection),
+) -> dict:
+    try:
+        store.upsert_lifecycle_schedule(
+            connection,
+            ontology_id,
+            input_data.enabled,
+            input_data.source,
+            input_data.sourceRef,
+            input_data.intervalHours,
+            input_data.windowHours,
+            input_data.samplingRate,
+            input_data.maxTraces,
+            input_data.r2NoveltyThreshold,
+            input_data.r2AlertRateThreshold,
+            input_data.writebackToLangfuse,
+        )
+    except ValueError as error:
+        if str(error) == "ontology not found":
+            raise HTTPException(status_code=404, detail={"code": "ontology_not_found"})
+        raise HTTPException(status_code=400, detail={"code": "invalid_lifecycle_config"})
+    row = get_lifecycle_schedule(connection, ontology_id)
+    return serialize_schedule(row)
+
+
+@app.post("/api/v1/ontologies/{ontology_id}/lifecycle/evaluate", status_code=201)
+def evaluate_lifecycle(
+    ontology_id: str,
+    input_data: LifecycleEvaluateInput,
+    connection=Depends(get_connection),
+) -> dict:
+    try:
+        state = evaluate_lifecycle_state(connection, ontology_id, input_data.forceR2)
+    except ValueError as error:
+        if str(error) == "lifecycle schedule not found":
+            raise HTTPException(status_code=404, detail={"code": "lifecycle_not_configured"})
+        raise HTTPException(status_code=400, detail={"code": "lifecycle_evaluation_failed"})
+
+    created_run = None
+    if state["decision"] in {"created_r1", "created_r2"}:
+        schedule = state["schedule"]
+        ontology = connection.execute(
+            "SELECT tenant_id FROM ontologies WHERE id = ?", (ontology_id,)
+        ).fetchone()
+        if ontology is None:
+            raise HTTPException(status_code=404, detail={"code": "ontology_not_found"})
+        run_type = "R2" if state["decision"] == "created_r2" else "R1"
+        idempotency_key = (
+            f"lifecycle:{ontology_id}:{state['evaluationBucket']}:{schedule['updated_at']}"
+        )
+        existing_run = connection.execute(
+            """SELECT * FROM cohort_runs
+               WHERE tenant_id = ? AND idempotency_key = ?""",
+            (ontology["tenant_id"], idempotency_key),
+        ).fetchone()
+        if existing_run is not None:
+            created_run = serialize_run(existing_run)
+        else:
+            run_input = RunInput(
+                tenantId=ontology["tenant_id"],
+                ontologyId=ontology_id,
+                source=schedule["source"],
+                sourceRef=schedule["source_ref"],
+                runType=run_type,
+                windowStart=state["windowStart"],
+                windowEnd=state["windowEnd"],
+                samplingRate=float(schedule["sampling_rate"]),
+                limit=int(schedule["max_traces"]) if schedule["max_traces"] is not None else None,
+                triggerReason=f"lifecycle:{state['reason']}",
+                idempotencyKey=idempotency_key,
+                writebackToLangfuse=bool(schedule["writeback_to_langfuse"]),
+                writebackStrict=False,
+            )
+            created_run = create_run(run_input, connection)
+
+    evaluation_id = store.record_lifecycle_evaluation(
+        connection,
+        ontology_id,
+        state["decision"],
+        state["reason"],
+        state["metrics"],
+        created_run["id"] if created_run is not None else None,
+    )
+    row = connection.execute(
+        "SELECT * FROM lifecycle_evaluations WHERE id = ?", (evaluation_id,)
+    ).fetchone()
+    result = serialize_evaluation(row)
+    result["run"] = created_run
+    result["windowStart"] = state["windowStart"]
+    result["windowEnd"] = state["windowEnd"]
+    return result
+
+
+@app.get("/api/v1/ontologies/{ontology_id}/lifecycle/evaluations")
+def list_lifecycle_evaluations(
+    ontology_id: str,
+    limit: int = Query(default=50, ge=1, le=100),
+    cursor: str | None = None,
+    connection=Depends(get_connection),
+) -> dict:
+    offset = decode_cursor(cursor)
+    rows = connection.execute(
+        """SELECT * FROM lifecycle_evaluations WHERE ontology_id = ?
+           ORDER BY created_at DESC, id LIMIT ? OFFSET ?""",
+        (ontology_id, limit, offset),
+    ).fetchall()
+    total = connection.execute(
+        "SELECT COUNT(*) AS n FROM lifecycle_evaluations WHERE ontology_id = ?",
+        (ontology_id,),
+    ).fetchone()["n"]
+    return page([serialize_evaluation(row) for row in rows], limit, offset, total)
+
+
 @app.post("/api/v1/runs", status_code=201)
 def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict:
     if input_data.source == "jsonl" and input_data.sourceRef not in {f"R{i}" for i in range(1, 9)}:
@@ -323,8 +471,6 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
         ).fetchone()
         if langfuse_tenant is None:
             raise HTTPException(status_code=400, detail={"code": "ontology_version_not_published"})
-    if input_data.runType != "R1":
-        raise HTTPException(status_code=400, detail={"code": "current_release_only_supports_r1"})
     if input_data.samplingRate <= 0:
         raise HTTPException(status_code=400, detail={"code": "sampling_rate_must_be_positive"})
     if input_data.idempotencyKey:
@@ -344,13 +490,14 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
     except ValueError as error:
         raise HTTPException(status_code=400, detail={"code": "invalid_run_request", "message": str(error)})
     frozen_state = None
-    active_structure = store.get_active_structure(connection, input_data.ontologyId)
-    if active_structure is not None and active_structure["state_json"]:
-        try:
-            frozen_state = load_frozen_state(active_structure["state_json"])
-            frozen_state["structure_id"] = active_structure["id"]
-        except ValueError:
-            frozen_state = None
+    if input_data.runType == "R1":
+        active_structure = store.get_active_structure(connection, input_data.ontologyId)
+        if active_structure is not None and active_structure["state_json"]:
+            try:
+                frozen_state = load_frozen_state(active_structure["state_json"])
+                frozen_state["structure_id"] = active_structure["id"]
+            except ValueError:
+                frozen_state = None
     trace_source = None
     window = None
     score_writer = None

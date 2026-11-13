@@ -10,7 +10,7 @@
 | Langfuse | Cloud v4 或自托管 v4 | 已定；自托管 v3 延后 |
 | 平后端 | FastAPI `0.115.6` + Uvicorn `0.34.0` | M1 最小闭环已实现 |
 | 前端 | Node.js `24.x` + Vite `6.0.7` + React `18.3.1` + ECharts `5.6.0` | M1 最小闭环已实现 |
-| 数据库 | SQLite（内置于 Python 3.11） | M1 DDL 已冻结：15 张表 |
+| 数据库 | SQLite（内置于 Python 3.11） | 当前契约：20 张表 |
 | Embedding | 待定 | 选型后记录模型名、版本、维度、输入截断规则与哈希 |
 
 ## 2. 持续记录规则
@@ -73,7 +73,7 @@
   - 应用启动时自动执行；本地运行产物目录已 gitignore
 - M1 已验证：
   - 5 个 YAML 契约解析通过
-  - SQLite DDL 建表 15 张通过
+  - SQLite DDL 建表 20 张通过
   - R1 全量 4000 条 Run 成功
   - `reports/R1/scores.jsonl` 位级复现通过
   - 前端 `npm run build` 通过
@@ -200,6 +200,30 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   - 正式告警 5
   - 预算外候选 16
   - 同组去重 19
+
+## 3.2 M4 生命周期部署记录
+
+- 新增数据表：
+  - `lifecycle_schedules`：保存每个本体的调度策略、分析窗口、阈值与写回开关。
+  - `lifecycle_evaluations`：保存每次评估的决策、原因、指标与创建的 Run。
+  建表语句在 `platform/contracts/schema.sql`，应用启动时自动执行。
+- 新增后端模块：`platform/app/lifecycle.py`，只依赖 Python 标准库与现有
+  SQLite 存储层；无新增三方件、无 embedding 模型。
+- 新增 REST：
+  - `GET/PUT /api/v1/ontologies/{id}/lifecycle`
+  - `POST /api/v1/ontologies/{id}/lifecycle/evaluate`
+  - `GET /api/v1/ontologies/{id}/lifecycle/evaluations`
+- 生命周期触发 Run 时复用现有 `POST /runs` 作业链路，并用
+  `lifecycle:{ontologyId}:{evaluationBucket}:{scheduleUpdatedAt}` 作为幂等键；
+  同一评估桶内重复触发会复用已创建的 Run。
+- R2 结构演化复用 `cell_lineage` 表，无额外迁移。
+- 前端新增路由 `#/lifecycle`；依赖仍是现有 React/Vite/TypeScript 栈。
+- 验证命令：
+  ```powershell
+  python -m unittest platform.tests.test_lifecycle platform.tests.test_algorithm.ProductionAlgorithmTest.test_engine_creates_r2_structure -v
+  cd frontend
+  npm run build
+  ```
 
 ## 4. 待补充清单
 

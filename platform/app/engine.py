@@ -3,6 +3,7 @@ import json
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -210,6 +211,22 @@ class RunEngine:
                 raise ValueError("frozen structure version not found")
             structure_id = reuse_structure_id
         else:
+            previous_run = connection.execute(
+                """SELECT id FROM cohort_runs
+                   WHERE ontology_id = ? AND id <> ? AND status = 'succeeded'
+                   ORDER BY COALESCE(ended_at, created_at) DESC LIMIT 1""",
+                (run["ontology_id"], run_id),
+            ).fetchone()
+            old_assignments = {}
+            if previous_run is not None:
+                old_assignments = {
+                    row["trace_id"]: row["cell_id"]
+                    for row in connection.execute(
+                        """SELECT trace_id, cell_id FROM trace_scores
+                           WHERE run_id = ? AND cell_id IS NOT NULL""",
+                        (previous_run["id"],),
+                    ).fetchall()
+                }
             structure_id = store.new_id("structure")
             next_structure_version = 1 + int(
                 connection.execute(
@@ -258,6 +275,11 @@ class RunEngine:
                    VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?)""",
                 (cell_id, run_id, structure_id, cell_key, cell_key, size,
                  json.dumps({"size": size}, sort_keys=True), store.utcnow()),
+            )
+
+        if reuse_structure_id is None:
+            self._record_cell_lineage(
+                connection, run_id, old_assignments, score_rows, cell_ids
             )
 
         trace_score_ids: dict[str, str] = {}
@@ -309,6 +331,51 @@ class RunEngine:
              json.dumps(calibration, ensure_ascii=False, sort_keys=True), store.utcnow()),
         )
         connection.commit()
+
+    def _record_cell_lineage(
+        self,
+        connection: Any,
+        run_id: str,
+        old_assignments: dict[str, str],
+        score_rows: list[dict],
+        new_cell_ids: dict[str, str],
+    ) -> None:
+        if not old_assignments or not new_cell_ids:
+            return
+        new_assignments = {
+            row["trace_id"]: row.get("cell")
+            for row in score_rows
+            if row.get("cell") is not None
+        }
+        overlap: dict[tuple[str, str], int] = {}
+        for trace_id, old_cell_id in old_assignments.items():
+            new_cell_key = new_assignments.get(trace_id)
+            if new_cell_key is not None:
+                key = (old_cell_id, new_cell_ids[new_cell_key])
+                overlap[key] = overlap.get(key, 0) + 1
+        if not overlap:
+            return
+
+        old_out: dict[str, int] = {}
+        new_in: dict[str, int] = {}
+        for (old_cell_id, new_cell_id), count in overlap.items():
+            old_out[old_cell_id] = old_out.get(old_cell_id, 0) + 1
+            new_in[new_cell_id] = new_in.get(new_cell_id, 0) + 1
+        old_sizes = dict(Counter(old_assignments.values()))
+        for (old_cell_id, new_cell_id), count in overlap.items():
+            if old_out[old_cell_id] == 1 and new_in[new_cell_id] == 1:
+                relation = "continued"
+            elif old_out[old_cell_id] > 1:
+                relation = "split"
+            else:
+                relation = "merged"
+            connection.execute(
+                """INSERT INTO cell_lineage
+                   (id, run_id, old_cell_id, new_cell_id, relation, overlap, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (store.new_id("lineage"), run_id, old_cell_id, new_cell_id, relation,
+                 count / max(old_sizes.get(old_cell_id, count), 1), store.utcnow()),
+            )
 
     def close(self) -> None:
         self.executor.shutdown(wait=True)

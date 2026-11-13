@@ -174,6 +174,56 @@ export interface RunInput {
   writebackStrict?: boolean;
 }
 
+export interface LifecycleSchedule {
+  id: string;
+  ontologyId: string;
+  enabled: boolean;
+  source: "jsonl" | "langfuse";
+  sourceRef: string;
+  intervalHours: number;
+  windowHours: number;
+  samplingRate: number;
+  maxTraces: number | null;
+  r2NoveltyThreshold: number;
+  r2AlertRateThreshold: number;
+  writebackToLangfuse: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LifecycleInput {
+  enabled: boolean;
+  source: "jsonl" | "langfuse";
+  sourceRef: string;
+  intervalHours: number;
+  windowHours: number;
+  samplingRate: number;
+  maxTraces?: number | null;
+  r2NoveltyThreshold: number;
+  r2AlertRateThreshold: number;
+  writebackToLangfuse: boolean;
+}
+
+export interface LifecycleEvaluation {
+  id: string;
+  ontologyId: string;
+  decision: "skipped" | "created_r1" | "created_r2";
+  reason: string;
+  metrics: {
+    runId?: string | null;
+    traceCount?: number;
+    noveltyRate?: number | null;
+    alertRate?: number | null;
+    elapsedHours?: number | null;
+  };
+  createdRunId: string | null;
+  createdAt: string;
+  run: Run | null;
+  windowStart: string;
+  windowEnd: string;
+  evaluationBucket: string;
+}
+
 export interface ReviewQueueResult {
   runId: string;
   queueId: string;
@@ -245,6 +295,20 @@ export const api = {
   createRun: (input: RunInput) =>
     request<Run>("/api/v1/runs", { method: "POST", body: JSON.stringify(input) })
   ,
+  lifecycle: (ontologyId: string) =>
+    request<LifecycleSchedule>(`/api/v1/ontologies/${ontologyId}/lifecycle`),
+  saveLifecycle: (ontologyId: string, input: LifecycleInput) =>
+    request<LifecycleSchedule>(`/api/v1/ontologies/${ontologyId}/lifecycle`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  evaluateLifecycle: (ontologyId: string, forceR2 = false) =>
+    request<LifecycleEvaluation>(`/api/v1/ontologies/${ontologyId}/lifecycle/evaluate`, {
+      method: "POST",
+      body: JSON.stringify({ forceR2 })
+    }),
+  lifecycleEvaluations: (ontologyId: string) =>
+    request<Page<LifecycleEvaluation>>(`/api/v1/ontologies/${ontologyId}/lifecycle/evaluations?limit=50`),
   createReviewQueue: (runId: string, input: { scope: "alerts" | "abstains" | "all"; limit?: number }) =>
     request<ReviewQueueResult>(`/api/v1/runs/${runId}/review-queue`, {
       method: "POST",
