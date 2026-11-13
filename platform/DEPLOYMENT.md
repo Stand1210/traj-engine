@@ -249,6 +249,18 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   `8034d5948a0b6bff80527971d60745ac5a7980648ee5ca4405d2742131d1e198`。
 - 真实 Cloud v4 受控 R2 尝试在当前代理环境下读取 Langfuse 长时间无响应，
   已中断；与既有 M3 记录的 Cloud readback 网络问题一致，待网络恢复后执行。
+- 真实 Cloud v4 复验通过（2026-11-13）：
+  - `firstRunId=run-581704123cc249ee`
+  - `secondRunId=run-991e8373bdf8442f`
+  - `firstTraceCount=274`
+  - `lineageEdgeCount=3`，全部为 `continued`
+  - `firstScoreDigest=491ebf2a4a87f89bdfe9bbc33499b0fb0ec58f84a0881ac60b5a7c9025b9a5f4`
+  - `structureVersionsBefore=7`，`structureVersionsAfter=9`
+  - 全部检查项通过，`code_hash=2064664e6aa5fb46`
+- 复验命令示例：
+  ```powershell
+  python platform/scripts/r2_lineage_validation.py --source langfuse --profile cloud-v4 --project-name development_env --window-start 2026-11-12T08:00:00Z --window-end 2026-11-12T09:30:00Z --id-offset 400000000000 --id-count 1000 --limit 1000 --page-size 100
+  ```
 
 ## 4. 待补充清单
 

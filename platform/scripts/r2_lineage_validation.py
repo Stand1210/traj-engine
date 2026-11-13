@@ -28,9 +28,12 @@ def main() -> int:
     parser.add_argument("--profile", default="cloud-v4", choices=["cloud-v4", "selfhosted-v4"])
     parser.add_argument("--project-name", default="development_env")
     parser.add_argument("--minutes", type=int, default=240)
+    parser.add_argument("--window-start", default=None, help="Exact ISO8601 start; overrides --minutes")
+    parser.add_argument("--window-end", default=None, help="Exact ISO8601 end; overrides --minutes")
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--id-offset", type=int, default=None)
     parser.add_argument("--id-count", type=int, default=None)
+    parser.add_argument("--page-size", type=int, default=50)
     parser.add_argument("--benchmark-regime", default="R1")
     parser.add_argument(
         "--db",
@@ -59,13 +62,18 @@ def main() -> int:
         project = _find_project(profile, endpoints, keys, args.project_name)
         if args.id_offset is not None and (args.id_count is None or args.id_count < 1):
             raise SystemExit("--id-offset requires --id-count >= 1")
-        end = datetime.now(timezone.utc) + timedelta(minutes=5)
-        start = end - timedelta(minutes=args.minutes)
+        if args.window_start and args.window_end:
+            start = datetime.fromisoformat(args.window_start.replace("Z", "+00:00"))
+            end = datetime.fromisoformat(args.window_end.replace("Z", "+00:00"))
+        else:
+            end = datetime.now(timezone.utc) + timedelta(minutes=5)
+            start = end - timedelta(minutes=args.minutes)
         window = {"start": start.isoformat(), "end": end.isoformat()}
 
         def langfuse_factory():
             source = LangfuseTraceSource.from_config(
                 profile, endpoints, keys,
+                page_size=args.page_size,
                 max_traces=None if args.id_offset is not None else args.limit,
                 max_retries=5,
                 retry_backoff_seconds=1.0,
