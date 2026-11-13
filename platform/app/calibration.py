@@ -6,7 +6,7 @@ from platform.app import store
 
 DEFAULT_CALIBRATION_CONFIG = {
     "minimumLabels": 20,
-    "minimumReviewedAlerts": 10,
+    "minimumReviewedAlerts": 5,
     "minimumCauseSamples": 5,
     "scoreBins": 10,
     "targetAlertPrecision": 0.8,
@@ -62,7 +62,7 @@ def compute_review_calibration(
     alert_disagree = sum(1 for item in alert_decided if item["verdict"] == "disagree")
     alert_precision = _ratio(alert_agree, len(alert_decided))
 
-    cause_stats = _cause_stats(alerted_reviewed)
+    cause_stats = _cause_stats(alert_reviewed)
     overall_decided = alert_decided or [
         item for item in aggregated if item["verdict"] != "uncertain"
     ]
@@ -77,7 +77,7 @@ def compute_review_calibration(
     reliability = _reliability(decided_scored, int(config.get("scoreBins", 10)))
     eligible = (
         label_count >= int(config.get("minimumLabels", 20))
-        and len(alerted_reviewed) >= int(config.get("minimumReviewedAlerts", 10))
+        and len(alerted_reviewed) >= int(config.get("minimumReviewedAlerts", 5))
     )
 
     metrics = {
@@ -87,6 +87,7 @@ def compute_review_calibration(
         "runTraceCount": len(score_rows),
         "alertTotal": alert_total,
         "alertReviewed": len(alerted_reviewed),
+        "alertSignalReviewed": len(alert_reviewed),
         "alertAgree": alert_agree,
         "alertDisagree": alert_disagree,
         "alertPrecision": alert_precision,

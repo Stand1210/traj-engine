@@ -7,6 +7,7 @@ from unittest.mock import patch
 from fastapi import HTTPException
 
 from platform.app.alerts import compute_alert_decisions
+from platform.app.calibration import compute_review_calibration
 from platform.app import store
 from platform.app.service import (
     CalibrationTriggerInput,
@@ -115,6 +116,36 @@ class ReviewCalibrationTest(unittest.TestCase):
         self.assertEqual(2, len(adjusted))
         self.assertLess(adjusted[0]["priority"], baseline[0]["priority"])
         self.assertEqual(baseline[0]["cause"], "rule:result_broken")
+
+    def test_cause_calibration_uses_reviewed_candidates_too(self):
+        score_rows = [self._score_row(f"score-{index}", 40.0) for index in range(1, 6)]
+        alert_rows = [
+            {
+                "trace_score_id": row["id"],
+                "status": "alerted" if index == 1 else "candidate",
+                "cause": "rule:result_broken",
+            }
+            for index, row in enumerate(score_rows, start=1)
+        ]
+        review_rows = [
+            {
+                "trace_score_id": row["id"],
+                "verdict": "agree" if index == 1 else "disagree",
+            }
+            for index, row in enumerate(score_rows, start=1)
+        ]
+
+        result = compute_review_calibration(
+            score_rows,
+            review_rows,
+            alert_rows,
+            {"minimumLabels": 5, "minimumReviewedAlerts": 1, "minimumCauseSamples": 5},
+        )
+
+        self.assertEqual(1, result["alert_reviewed"])
+        self.assertEqual(5, result["metrics"]["alertSignalReviewed"])
+        self.assertEqual(5, result["metrics"]["causeStats"][0]["sampleCount"])
+        self.assertEqual(0.5, result["parameters"]["causeSeverityAdjustments"]["rule:result_broken"])
 
     def _insert_scores(self, connection, run_id, tenant_id, ontology_id):
         score_ids = []

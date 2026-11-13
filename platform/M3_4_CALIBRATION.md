@@ -26,7 +26,9 @@ does not modify the algorithm kernel or historical alert decisions.
 The default production gate is:
 
 - at least 20 review labels;
-- at least 10 reviewed formal alerts.
+- at least 5 reviewed formal alerts. This matches the default alert budget of
+  5. Cause calibration additionally uses reviewed candidates and suppressed
+  duplicates to collect enough per-cause samples.
 
 If either threshold is not met, trigger returns HTTP 400 with
 `calibration_insufficient_labels` and no version is created.
@@ -61,7 +63,29 @@ activate action.
 
 ## Validation
 
-Real Cloud run `run-35339336f1e24ab4` currently has no imported review labels.
-Triggering calibration returns HTTP 400 with
-`calibration_insufficient_labels`, required counts of 20 labels and 10
-reviewed alerts, actual counts of 0, and creates no calibration version.
+Before synthetic validation, real Cloud run `run-35339336f1e24ab4` had no
+imported review labels. Triggering calibration returned HTTP 400 with
+`calibration_insufficient_labels`, required counts of 20 labels and 5
+reviewed formal alerts, actual counts of 0, and created no calibration
+version.
+
+### Synthetic development validation
+
+The development-only script
+`platform/scripts/validate_synthetic_calibration.py` creates 20 deterministic
+labels with reviewer `synthetic-benchmark`: all 5 formal alerts are `agree`
+and 15 candidates/suppressed duplicates are `disagree`.
+
+Validated result:
+
+- calibration version created;
+- version activated;
+- alert precision 1.0;
+- ECE 0.122373;
+- Brier 0.199428;
+- `rule:untraceable_answer_number` and `rule:unfinished`
+  adjustments both 0.5;
+- its top priority changed from 80.089 to 73.089.
+
+Synthetic labels are for engineering validation only and must not be treated
+as real business review evidence.

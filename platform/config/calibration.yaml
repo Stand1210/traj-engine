@@ -1,7 +1,7 @@
 version: 1
 description: Human-review calibration gate and algorithm settings.
 minimumLabels: 20
-minimumReviewedAlerts: 10
+minimumReviewedAlerts: 5
 minimumCauseSamples: 5
 scoreBins: 10
 targetAlertPrecision: 0.8

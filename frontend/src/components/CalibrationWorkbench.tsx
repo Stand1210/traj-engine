@@ -93,7 +93,7 @@ export default function CalibrationWorkbench({ runId }: Props) {
           </button>
         </div>
         <p className="calibration-note">
-          默认门槛：20 条复核标签、10 条已复核正式告警。不足时不会生成校准版本，避免小样本误校准。
+          默认门槛：20 条复核标签、5 条已复核正式告警。不足时不会生成校准版本，避免小样本误校准。
         </p>
       </div>
       <div className="panel wide">
