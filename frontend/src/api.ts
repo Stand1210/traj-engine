@@ -68,6 +68,20 @@ export interface Cell {
   metrics: Record<string, unknown>;
 }
 
+export interface LineageEdge {
+  id: string;
+  runId: string;
+  oldCellId: string;
+  newCellId: string;
+  relation: "continued" | "split" | "merged" | "born" | "died";
+  overlap: number;
+  oldCellKey: string | null;
+  newCellKey: string | null;
+  oldCellSize: number | null;
+  newCellSize: number | null;
+  createdAt: string;
+}
+
 export interface TraceScore {
   id: string;
   runId: string;
@@ -270,6 +284,7 @@ export const api = {
   run: (id: string) => request<Run>(`/api/v1/runs/${id}`),
   runSteps: (id: string) => request<RunStep[]>(`/api/v1/runs/${id}/steps`),
   cells: (id: string) => request<Cell[]>(`/api/v1/runs/${id}/cells`),
+  lineage: (id: string) => request<LineageEdge[]>(`/api/v1/runs/${id}/lineage`),
   traces: (id: string, query = "") =>
     request<Page<TraceScore>>(`/api/v1/runs/${id}/traces?limit=100${query}`),
   trace: (runId: string, traceId: string) =>

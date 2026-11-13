@@ -8,12 +8,14 @@ import TraceDetail from "./components/TraceDetail";
 import AlertWorkbench from "./components/AlertWorkbench";
 import CalibrationWorkbench from "./components/CalibrationWorkbench";
 import LifecycleWorkbench from "./components/LifecycleWorkbench";
+import LineageView from "./components/LineageView";
 
 type Route =
   | { name: "runs" }
   | { name: "lifecycle" }
   | { name: "run"; runId: string }
   | { name: "cells"; runId: string }
+  | { name: "lineage"; runId: string }
   | { name: "traces"; runId: string; mode: "all" | "alerts" | "abstain" }
   | { name: "alerts"; runId: string }
   | { name: "calibration"; runId: string }
@@ -26,6 +28,9 @@ function parseHash(): Route {
   }
   if (parts[0] === "runs" && parts[1] && parts[2] === "cells") {
     return { name: "cells", runId: parts[1] };
+  }
+  if (parts[0] === "runs" && parts[1] && parts[2] === "lineage") {
+    return { name: "lineage", runId: parts[1] };
   }
   if (parts[0] === "runs" && parts[1] && parts[2] === "traces") {
     const mode = parts[3] === "alerts" || parts[3] === "abstain" ? parts[3] : "all";
@@ -99,6 +104,7 @@ export default function App() {
           <>
             <button onClick={() => navigate(`/runs/${activeRunId}`)}>Run 概览</button>
             <button onClick={() => navigate(`/runs/${activeRunId}/cells`)}>聚类结果</button>
+            <button onClick={() => navigate(`/runs/${activeRunId}/lineage`)}>结构演化</button>
             <button onClick={() => navigate(`/runs/${activeRunId}/traces`)}>轨迹工作台</button>
             <button onClick={() => navigate(`/runs/${activeRunId}/alerts`)}>告警工作台</button>
             <button onClick={() => navigate(`/runs/${activeRunId}/calibration`)}>校准工作台</button>
@@ -113,6 +119,7 @@ export default function App() {
         {route.name === "lifecycle" && <LifecycleWorkbench onSelect={navigate} />}
         {route.name === "run" && <RunOverview runId={route.runId} onSelect={navigate} />}
         {route.name === "cells" && <ClusterView runId={route.runId} onSelect={navigate} />}
+        {route.name === "lineage" && <LineageView runId={route.runId} onSelect={navigate} />}
         {route.name === "traces" && <TraceWorkbench runId={route.runId} initialMode={route.mode} onSelect={navigate} />}
         {route.name === "alerts" && <AlertWorkbench runId={route.runId} onSelect={navigate} />}
         {route.name === "calibration" && <CalibrationWorkbench runId={route.runId} />}

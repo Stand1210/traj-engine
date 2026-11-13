@@ -87,6 +87,7 @@ export default function RunOverview({ runId, onSelect }: Props) {
         {reviewMessage && <div className="success-banner">{reviewMessage}</div>}
         <div className="button-row">
           <button onClick={() => onSelect(`/runs/${runId}/cells`)}>查看聚类</button>
+          <button onClick={() => onSelect(`/runs/${runId}/lineage`)}>查看演化</button>
           <button onClick={() => onSelect(`/runs/${runId}/traces`)}>查看轨迹</button>
           <button onClick={() => onSelect(`/runs/${runId}/alerts`)}>查看告警</button>
           <button onClick={() => onSelect(`/runs/${runId}/calibration`)}>查看校准</button>

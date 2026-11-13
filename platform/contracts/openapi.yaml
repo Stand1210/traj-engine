@@ -1123,12 +1123,26 @@ components:
         payload: {type: object, additionalProperties: true}
     LineageEdge:
       type: object
-      required: [oldCellId, newCellId, relation, overlap]
+      required:
+        - id
+        - runId
+        - oldCellId
+        - newCellId
+        - relation
+        - overlap
+        - createdAt
       properties:
+        id: {type: string}
+        runId: {type: string}
         oldCellId: {type: string}
         newCellId: {type: string}
         relation: {type: string, enum: [continued, split, merged, born, died]}
         overlap: {type: number}
+        oldCellKey: {type: string, nullable: true}
+        newCellKey: {type: string, nullable: true}
+        oldCellSize: {type: integer, nullable: true}
+        newCellSize: {type: integer, nullable: true}
+        createdAt: {type: string, format: date-time}
     Review:
       type: object
       required: [id, traceScoreId, verdict, createdAt]

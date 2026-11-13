@@ -733,9 +733,34 @@ def get_alert_config() -> dict:
 def get_lineage(run_id: str, connection=Depends(get_connection)) -> list[dict]:
     ensure_run(connection, run_id)
     rows = connection.execute(
-        "SELECT * FROM cell_lineage WHERE run_id = ? ORDER BY relation", (run_id,)
+        """SELECT l.*,
+                  old_cell.cell_key AS old_cell_key,
+                  old_cell.size AS old_cell_size,
+                  new_cell.cell_key AS new_cell_key,
+                  new_cell.size AS new_cell_size
+           FROM cell_lineage l
+           LEFT JOIN cells old_cell ON old_cell.id = l.old_cell_id
+           LEFT JOIN cells new_cell ON new_cell.id = l.new_cell_id
+           WHERE l.run_id = ?
+           ORDER BY l.relation, old_cell.cell_key, new_cell.cell_key""",
+        (run_id,),
     ).fetchall()
-    return [dict(row) for row in rows]
+    return [
+        {
+            "id": row["id"],
+            "runId": row["run_id"],
+            "oldCellId": row["old_cell_id"],
+            "newCellId": row["new_cell_id"],
+            "relation": row["relation"],
+            "overlap": row["overlap"],
+            "oldCellKey": row["old_cell_key"],
+            "newCellKey": row["new_cell_key"],
+            "oldCellSize": row["old_cell_size"],
+            "newCellSize": row["new_cell_size"],
+            "createdAt": row["created_at"],
+        }
+        for row in rows
+    ]
 
 
 @app.get("/api/v1/runs/{run_id}/calibration")

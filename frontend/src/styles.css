@@ -60,6 +60,14 @@ main { padding: 24px 28px; }
 .alert-group { display: grid; gap: 3px; padding: 10px; background: #f7fafc; border-radius: 5px; }
 .alert-group span { font-size: 12px; color: #627d98; }
 .calibration-note { margin-top: 12px; font-size: 12px; color: #627d98; }
+.lineage-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.relation-pill { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 12px; background: #edf2f7; }
+.relation-pill.continued { color: #00643d; background: #d9f5e6; }
+.relation-pill.split { color: #005f73; background: #d9f5ff; }
+.relation-pill.merged { color: #855c00; background: #fff3d5; }
+.relation-pill.born { color: #5b21b6; background: #ede9fe; }
+.relation-pill.died { color: #8a0d07; background: #fdecea; }
+.lineage-note { margin-top: 12px; font-size: 12px; color: #627d98; line-height: 1.6; }
 
 .score-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .score-head span:first-child { font-size: 12px; color: #627d98; }

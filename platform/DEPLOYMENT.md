@@ -225,6 +225,31 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   npm run build
   ```
 
+### 3.2.1 M4.1 受控 R2 对账部署记录
+
+- 无新增数据表、三方件或 embedding 模型。
+- `GET /api/v1/runs/{runId}/lineage` 通过 SQL JOIN 补充新旧 cell 的
+  `cellKey` 和 `size`。
+- 前端新增 `#/runs/{runId}/lineage`，依赖现有 React/Vite/TypeScript 栈。
+- 新增验证脚本：`platform/scripts/r2_lineage_validation.py`。
+- 本地基准验收命令：
+  ```powershell
+  python platform/scripts/r2_lineage_validation.py --source benchmark --limit 40 --db platform/var/r2-lineage-validation.db
+  ```
+- 真实 Cloud v4 验收命令（需先配置 `LANGFUSE_PUBLIC_KEY` 与
+  `LANGFUSE_SECRET_KEY`）：
+  ```powershell
+  python platform/scripts/r2_lineage_validation.py --source langfuse --profile cloud-v4 --project-name development_env --minutes 2880 --id-offset 400000000000 --id-count 1000
+  ```
+- 验收项：两个 R2 Run 成功、结构版本新增两个、第二个结构 active、
+  第一个 Run 分数摘要不变、lineage 非空且 overlap 在 `(0, 1]`、
+  kernel hash 不变。
+- 本地基准实测（2026-11-13，40 条 R1 轨迹）：全部检查通过；
+  生成 2 个结构版本、9 条 `continued` lineage，第一个 Run 分数摘要为
+  `8034d5948a0b6bff80527971d60745ac5a7980648ee5ca4405d2742131d1e198`。
+- 真实 Cloud v4 受控 R2 尝试在当前代理环境下读取 Langfuse 长时间无响应，
+  已中断；与既有 M3 记录的 Cloud readback 网络问题一致，待网络恢复后执行。
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

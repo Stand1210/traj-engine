@@ -213,6 +213,21 @@ M3.4 calibration record: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - R3：本体升版流程。
 - novelty 积累到最小样本数后的自动 R2 提案。
 
+### 6.3 M4.1 受控 R2 对账
+
+- `GET /runs/{runId}/lineage` 返回新旧 cell 的 key、规模、关系与 overlap，
+  前端无需再拼装多个接口。
+- 前端新增 `#/runs/{runId}/lineage` 结构演化页：
+  - 汇总延续 / 拆分 / 合并 / 新生 / 消亡数量。
+  - 逐行展示旧 cell → 新 cell、overlap 和规模变化。
+  - 明确提示 R2 不改写历史分数，R1 不会生成 lineage。
+- 新增 `platform/scripts/r2_lineage_validation.py`：
+  - `--source benchmark`：本地基准快速验收，不依赖 Langfuse key。
+  - `--source langfuse`：真实 Project 受控验收。
+  - 连续创建两次 R2，校验结构版本 +2、第二个结构 active、
+    第一个 Run 分数摘要不变、lineage 非空、overlap 合法、
+    `code_hash=2064664e6aa5fb46`。
+
 R3：本体升级仍由业务规则变更触发，后续独立实现。
 
 ## 7. M5 多租户与硬化

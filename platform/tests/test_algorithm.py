@@ -13,6 +13,7 @@ from platform.app.algorithm import (
 )
 from platform.app import store
 from platform.app.engine import RunEngine
+from platform.app.service import get_lineage
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -242,6 +243,7 @@ class ProductionAlgorithmTest(unittest.TestCase):
                     "SELECT relation, COUNT(*) AS n FROM cell_lineage WHERE run_id = ? GROUP BY relation",
                     (second_run_id,),
                 ).fetchall()
+                lineage_edges = get_lineage(second_run_id, connection)
             finally:
                 connection.close()
 
@@ -249,6 +251,11 @@ class ProductionAlgorithmTest(unittest.TestCase):
             self.assertEqual(2, structures)
             self.assertTrue(lineage)
             self.assertTrue(all(row["relation"] == "continued" for row in lineage))
+            self.assertTrue(lineage_edges)
+            self.assertTrue(all(
+                edge["oldCellKey"] is not None and edge["newCellKey"] is not None
+                for edge in lineage_edges
+            ))
 
     def test_frozen_state_roundtrip_replays_assignments(self):
         traces = []
