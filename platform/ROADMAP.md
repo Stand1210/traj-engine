@@ -269,7 +269,23 @@ R3：本体升级仍由业务规则变更触发，后续独立实现。
 
 ## 7. M5 多租户与硬化
 
+### 7.1 M5.0 性能与生产可行性基线
+
+- 新增 `platform/scripts/performance_baseline.py`：
+  - 可配置轨迹规模，生成独立 `trace_id` 的规模化源。
+  - 完整执行 R2、R1、生命周期调度扫描和核心 SQL 查询计时。
+  - 输出 JSON 报告，默认在 `platform/var/performance-baseline.json`。
+  - 压测数据库与 Run 产物使用临时目录，执行后自动清理。
+- RunEngine 的 Run 产物目录已参数化，压测不再污染真实运行产物。
+- 首轮实测结论见 [`M5_0_PERFORMANCE_BASELINE.md`](M5_0_PERFORMANCE_BASELINE.md)：
+  - 100 条：R2 180.890s，R1 1.835s，查询毫秒级。
+  - 1,000 条：R2 600s 未完成。
+  - 当前硬瓶颈为 R2 冷启动聚类，而不是 R1、SQLite 查询或调度扫描。
+
+### 7.2 后续硬化
+
 - 多租户配额与隔离。
+- R2 抽样训练与训练规模上限。
 - 10 万条/天压测。
 - SQLite → PostgreSQL 切换评估。
 - 失败恢复、重试、幂等与运维告警。

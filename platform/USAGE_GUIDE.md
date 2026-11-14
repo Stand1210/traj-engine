@@ -193,3 +193,20 @@ M3.4 calibration usage: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - [ ] 告警处置建议
 - [ ] Langfuse Scores 页面筛选与 trace 详情联动截图
 
+## 6. 运维与性能
+
+### 6.1 性能基线
+
+```powershell
+python platform/scripts/performance_baseline.py --traces 100000 --output platform/var/performance-baseline.json
+```
+
+- `--traces`：压测轨迹数，默认 100,000。
+- `--query-repeat`：每类查询重复次数，默认 20，报告取 median/min/max。
+- `--timeout-seconds`：单个 Run 的最长等待时间，默认 3,600。
+- `--skip-r1` / `--skip-scheduler` / `--skip-queries`：调试时跳过对应阶段。
+- 报告默认在 `platform/var/`，该目录不入库。
+
+首轮结论见 `platform/M5_0_PERFORMANCE_BASELINE.md`：当前主要瓶颈是
+R2 冷启动聚类；R1、查询和调度扫描在 100 条基线下均为秒级或毫秒级。
+

@@ -306,6 +306,16 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 该值表示自当前 active 结构生成后，成功 Run 中去重累计的 novelty 轨迹数
   门槛；0 表示关闭护栏。
 
+### 3.5 M5.0 性能基线部署记录
+
+- 新增脚本：`platform/scripts/performance_baseline.py`。
+- 无新增数据库三方件、无新增数据表、无 embedding 模型变更。
+- RunEngine 新增 `var_root` 参数；默认仍使用 `platform/var/runs`，生产行为不变。
+- 压测临时文件位于 `platform/var/perf-*`，脚本结束后自动删除。
+- 性能报告默认输出到 `platform/var/performance-baseline.json`，该目录已被
+  `.gitignore` 忽略。
+- 首轮实测与瓶颈分析见 `platform/M5_0_PERFORMANCE_BASELINE.md`。
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

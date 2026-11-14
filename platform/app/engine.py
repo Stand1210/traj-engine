@@ -27,8 +27,14 @@ DIMENSION_MAP = {
 
 
 class RunEngine:
-    def __init__(self, db_path: str | Path = store.DEFAULT_DB_PATH, max_workers: int = 1):
+    def __init__(
+        self,
+        db_path: str | Path = store.DEFAULT_DB_PATH,
+        max_workers: int = 1,
+        var_root: str | Path = VAR_ROOT,
+    ):
         self.db_path = Path(db_path)
+        self.var_root = Path(var_root)
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="traj-run")
         self.canceled_runs: set[str] = set()
 
@@ -70,7 +76,7 @@ class RunEngine:
         score_writer=None,
         writeback_strict: bool = False,
     ) -> None:
-        run_dir = VAR_ROOT / "runs" / run_id
+        run_dir = self.var_root / "runs" / run_id
         data_root = run_dir / "data"
         out_root = run_dir / "reports"
         try:
