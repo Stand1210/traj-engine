@@ -10,6 +10,7 @@ from platform.app.algorithm import (
     load_frozen_state,
     run_production,
     write_production_report,
+    write_production_scores,
 )
 from platform.app import store
 from platform.app.engine import RunEngine
@@ -52,6 +53,35 @@ class ProductionAlgorithmTest(unittest.TestCase):
             report_dir = write_production_report(Path(directory), result, scores)
             persisted = [json.loads(line) for line in (report_dir / "scores.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(100, len(persisted))
+
+    def test_streaming_score_output_is_equivalent_to_list_output(self):
+        traces = []
+        with (ROOT / "data" / "bench_v1" / "R1" / "traces.jsonl").open(encoding="utf-8") as handle:
+            for line in handle:
+                traces.append(json.loads(line))
+                if len(traces) == 100:
+                    break
+
+        list_result, list_scores = run_production(traces, "ontology-stream-test")
+        streamed_rows = []
+        streaming_result, returned_scores = run_production(
+            traces,
+            "ontology-stream-test",
+            score_sink=streamed_rows.append,
+            score_batch_size=7,
+        )
+
+        self.assertEqual([], returned_scores)
+        self.assertEqual(100, len(streamed_rows))
+        self.assertEqual(list_result["scoring"], streaming_result["scoring"])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            list_report = write_production_scores(root / "list", list_scores)
+            stream_report = write_production_scores(root / "stream", streamed_rows)
+            self.assertEqual(
+                (list_report / "scores.jsonl").read_bytes(),
+                (stream_report / "scores.jsonl").read_bytes(),
+            )
 
     def test_engine_persists_production_run(self):
         traces = []

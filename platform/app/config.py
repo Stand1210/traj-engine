@@ -70,9 +70,19 @@ def load_scheduler_config(path: Path = CONFIG_ROOT / "scheduler.yaml") -> dict:
 def load_performance_config(path: Path = CONFIG_ROOT / "performance.yaml") -> dict:
     config = yaml.safe_load(path.read_text(encoding="utf-8"))
     limit = int(config.get("r2TrainingLimit", 64))
+    batch_size = int(config.get("persistBatchSize", 500))
+    score_batch_size = int(config.get("scoreBatchSize", 1000))
     if limit < 2:
         raise ValueError("R2 training limit must be at least 2")
-    return {"r2TrainingLimit": limit}
+    if batch_size < 1:
+        raise ValueError("persist batch size must be positive")
+    if score_batch_size < 1:
+        raise ValueError("score batch size must be positive")
+    return {
+        "r2TrainingLimit": limit,
+        "persistBatchSize": batch_size,
+        "scoreBatchSize": score_batch_size,
+    }
 
 
 def resolve_profile_from_args(profile_name: str | None = None) -> dict:

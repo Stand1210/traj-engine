@@ -171,6 +171,15 @@ def run_baseline(
 
         report["peakAllocatedBytes"] = tracemalloc.get_traced_memory()[1]
         report["artifactSizeBytes"] = _directory_size(artifact_root)
+        snapshot = tracemalloc.take_snapshot()
+        report["memoryTop"] = [
+            {
+                "sizeBytes": statistic.size,
+                "count": statistic.count,
+                "trace": statistic.traceback.format(),
+            }
+            for statistic in snapshot.statistics("lineno")[:20]
+        ]
         report["status"] = "completed"
         return report
     finally:

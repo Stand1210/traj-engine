@@ -1,7 +1,10 @@
 import hashlib
 import json
 import sys
+import tempfile
 from pathlib import Path
+from typing import Iterable
+from typing import Callable
 
 from bench.runner import code_hash
 from kernel import baseline as BL
@@ -96,13 +99,17 @@ def build_dynamic_ontology(traces: list[dict], ontology_id: str) -> dict:
 
 
 def run_production(
-    traces: list[dict],
+    traces: Iterable[dict],
     ontology_id: str,
     frozen_state: dict | None = None,
     run_mode: str | None = None,
+    score_sink: Callable[[dict], None] | None = None,
+    score_batch_size: int = 1000,
 ) -> tuple[dict, list[dict]]:
+    traces = list(traces)
     if not traces:
         raise ValueError("production run requires at least one trace")
+    trace_count = len(traces)
 
     spec_hash = _spec_hash(traces)
     if frozen_state is not None:
@@ -119,6 +126,8 @@ def run_production(
     normalized = [ingest.normalize(trace, ontology) for trace in traces]
     feature_rows = [FEAT.extract(item, ontology) for item in normalized]
     FEAT.annotate_sessions(feature_rows, traces)
+    del normalized
+    del traces
 
     if frozen_state is None:
         assigns, cluster_info, frozen_state = _cluster_views_with_frozen_state(
@@ -173,19 +182,35 @@ def run_production(
         }
 
     drift_ids = set(drift_result.get("suspects") or [])
-    score_rows = score.score_all(
-        feature_rows,
-        assigns,
-        stage,
-        artifact,
-        ontology,
-        cold_start=cold_start,
-        drift_map={trace_id: True for trace_id in drift_ids},
-        anchor_version=anchor_version,
-        model_version=PIPELINE_VERSION,
-    )
-    for row in score_rows:
-        row["a_cal"] = None
+    if score_sink is None:
+        score_rows = score.score_all(
+            feature_rows,
+            assigns,
+            stage,
+            artifact,
+            ontology,
+            cold_start=cold_start,
+            drift_map={trace_id: True for trace_id in drift_ids},
+            anchor_version=anchor_version,
+            model_version=PIPELINE_VERSION,
+        )
+        for row in score_rows:
+            row["a_cal"] = None
+        scoring_summary = _scoring_summary(score_rows)
+    else:
+        score_rows = []
+        scoring_summary = _stream_score_rows(
+            feature_rows,
+            assigns,
+            stage,
+            artifact,
+            ontology,
+            cold_start,
+            set(drift_ids),
+            anchor_version,
+            score_sink,
+            score_batch_size,
+        )
 
     result = {
         "pipeline_version": PIPELINE_VERSION,
@@ -195,7 +220,7 @@ def run_production(
         "run_mode": run_mode or (
             "R1" if frozen_state is not None and cluster_info.get("frozen_structure") else "R2"
         ),
-        "n": len(traces),
+        "n": trace_count,
         "n_pool": sum(1 for assign in assigns if not assign["novelty"]),
         "cold_start": cold_start,
         "cluster_info": cluster_info,
@@ -211,48 +236,159 @@ def run_production(
             "cold_start_suppressed": cold_start,
         },
         "drift": drift_result,
-        "scoring": _scoring_summary(score_rows),
+        "scoring": scoring_summary,
         "calibration": {"kind": "none", "n_labels": 0, "ece_oof": None},
         "frozen_state": frozen_state,
     }
     return result, score_rows
 
 
-def write_production_report(report_dir: Path, result: dict, score_rows: list[dict]) -> Path:
+def write_production_metrics(report_dir: Path, result: dict) -> Path:
     report_dir.mkdir(parents=True, exist_ok=True)
-    slim = []
-    for row in score_rows:
-        slim.append({
-            "trace_id": row["trace_id"],
-            "cell": row["cell"],
-            "S": round(row["S"], 4),
-            "G": round(row["G"], 6),
-            "grade_abs": row["grade_abs"],
-            "grade_rel": row["grade_rel"],
-            "dims": {key: round(value, 5) for key, value in row["dims"].items()},
-            "gates": row["gates"],
-            "contrib": {key: round(value, 6) for key, value in row["contrib"].items()},
-            "conf": round(row["conf"], 4),
-            "alert": row["alert"],
-            "a_raw": round(row["a_raw"], 5),
-            "a_cal": row["a_cal"],
-            "tier": row["tier"],
-            "graded": round(row["graded"], 5),
-            "alert_rule": row["alert_rule"],
-            "alert_stat": row["alert_stat"],
-            "novelty": row["novelty"],
-            "cold_start": row["cold_start"],
-            "anchor_version": row["anchor_version"],
-            "model_version": row["model_version"],
-            "evidence": row["evidence"][:3],
-        })
-    with (report_dir / "scores.jsonl").open("w", encoding="utf-8", newline="\n") as handle:
-        for row in slim:
-            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     report_result = {key: value for key, value in result.items() if key != "frozen_state"}
     with (report_dir / "metrics.json").open("w", encoding="utf-8", newline="\n") as handle:
         json.dump(report_result, handle, ensure_ascii=False, indent=2, sort_keys=True)
         handle.write("\n")
+    return report_dir
+
+
+def write_production_scores(report_dir: Path, score_rows: Iterable[dict]) -> Path:
+    report_dir.mkdir(parents=True, exist_ok=True)
+    with (report_dir / "scores.jsonl").open("w", encoding="utf-8", newline="\n") as handle:
+        for row in score_rows:
+            handle.write(json.dumps(_slim_score_row(row), ensure_ascii=False, sort_keys=True) + "\n")
+    return report_dir
+
+
+def _slim_score_row(row: dict) -> dict:
+    return {
+        "trace_id": row["trace_id"],
+        "cell": row["cell"],
+        "S": round(row["S"], 4),
+        "G": round(row["G"], 6),
+        "grade_abs": row["grade_abs"],
+        "grade_rel": row["grade_rel"],
+        "dims": {key: round(value, 5) for key, value in row["dims"].items()},
+        "gates": row["gates"],
+        "contrib": {key: round(value, 6) for key, value in row["contrib"].items()},
+        "conf": round(row["conf"], 4),
+        "alert": row["alert"],
+        "a_raw": round(row["a_raw"], 5),
+        "a_cal": row["a_cal"],
+        "tier": row["tier"],
+        "graded": round(row["graded"], 5),
+        "alert_rule": row["alert_rule"],
+        "alert_stat": row["alert_stat"],
+        "novelty": row["novelty"],
+        "cold_start": row["cold_start"],
+        "anchor_version": row["anchor_version"],
+        "model_version": row["model_version"],
+        "evidence": row["evidence"][:3],
+    }
+
+
+def _stream_score_rows(
+    feature_rows: list[dict],
+    assigns: list[dict],
+    stage: dict,
+    artifact: dict,
+    ontology: dict,
+    cold_start: bool,
+    drift_ids: set[str],
+    anchor_version: str,
+    score_sink: Callable[[dict], None],
+    batch_size: int,
+) -> dict:
+    if batch_size < 1:
+        raise ValueError("score batch size must be positive")
+    ranking: dict[str | None, list[tuple[float, str, str]]] = {}
+    summary = {
+        "n": 0,
+        "sum": 0.0,
+        "min": None,
+        "max": None,
+        "n_alert": 0,
+        "n_novelty": 0,
+    }
+    with tempfile.TemporaryDirectory(prefix="traj-score-") as directory:
+        temporary_path = Path(directory) / "scores.jsonl"
+        with temporary_path.open("w", encoding="utf-8", newline="\n") as handle:
+            for start in range(0, len(feature_rows), batch_size):
+                batch_features = feature_rows[start : start + batch_size]
+                batch_assigns = assigns[start : start + batch_size]
+                rows = score.score_all(
+                    batch_features,
+                    batch_assigns,
+                    stage,
+                    artifact,
+                    ontology,
+                    cold_start=cold_start,
+                    drift_map={trace_id: True for trace_id in drift_ids},
+                    anchor_version=anchor_version,
+                    model_version=PIPELINE_VERSION,
+                )
+                for row in rows:
+                    row["a_cal"] = None
+                    _update_scoring_summary(summary, row)
+                    ranking.setdefault(row["cell"], []).append(
+                        (float(row["S"]), row["trace_id"], row["grade_abs"])
+                    )
+                    handle.write(
+                        json.dumps(_slim_score_row(row), ensure_ascii=False, sort_keys=True) + "\n"
+                    )
+        grade_map = _relative_grade_map(ranking)
+        with temporary_path.open(encoding="utf-8") as handle:
+            for line in handle:
+                if line.strip():
+                    row = json.loads(line)
+                    row["grade_rel"] = grade_map.get(row["trace_id"], row["grade_abs"])
+                    score_sink(row)
+    return {
+        "n": summary["n"],
+        "mean": summary["sum"] / summary["n"] if summary["n"] else None,
+        "min": summary["min"],
+        "max": summary["max"],
+        "n_alert": summary["n_alert"],
+        "n_novelty": summary["n_novelty"],
+    }
+
+
+def _update_scoring_summary(summary: dict, row: dict) -> None:
+    value = float(row["S"])
+    summary["n"] += 1
+    summary["sum"] += value
+    summary["min"] = value if summary["min"] is None else min(summary["min"], value)
+    summary["max"] = value if summary["max"] is None else max(summary["max"], value)
+    summary["n_alert"] += int(bool(row["alert"]))
+    summary["n_novelty"] += int(bool(row["novelty"]))
+
+
+def _relative_grade_map(
+    ranking: dict[str | None, list[tuple[float, str, str]]],
+    min_cell: int = 8,
+) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for entries in ranking.values():
+        if len(entries) < min_cell:
+            for _score, trace_id, grade_abs in entries:
+                result[trace_id] = grade_abs
+            continue
+        entries.sort(key=lambda item: (-item[0], item[1]))
+        total = len(entries)
+        for index, (_score, trace_id, _grade_abs) in enumerate(entries):
+            fraction = index / float(total)
+            result[trace_id] = (
+                "A" if fraction < 0.25
+                else "B" if fraction < 0.60
+                else "C" if fraction < 0.85
+                else "D"
+            )
+    return result
+
+
+def write_production_report(report_dir: Path, result: dict, score_rows: list[dict]) -> Path:
+    write_production_scores(report_dir, score_rows)
+    write_production_metrics(report_dir, result)
     return report_dir
 
 

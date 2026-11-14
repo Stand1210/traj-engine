@@ -7,10 +7,15 @@ from contextlib import closing
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from typing import Iterable
 
 from bench.runner import run_regime
 import bench.regime as regime_config
-from platform.app.algorithm import dump_frozen_state, run_production, write_production_report
+from platform.app.algorithm import (
+    dump_frozen_state,
+    run_production,
+    write_production_metrics,
+)
 from platform.app.alerts import persist_alert_decisions
 
 from platform.app import store
@@ -48,11 +53,14 @@ class RunEngine:
     ):
         self.db_path = Path(db_path)
         self.var_root = Path(var_root or VAR_ROOT)
+        performance = load_performance_config()
         if r2_training_limit is None:
-            r2_training_limit = int(load_performance_config()["r2TrainingLimit"])
+            r2_training_limit = int(performance["r2TrainingLimit"])
         if r2_training_limit < 2:
             raise ValueError("R2 training limit must be at least 2")
         self.r2_training_limit = r2_training_limit
+        self.persist_batch_size = int(performance["persistBatchSize"])
+        self.score_batch_size = int(performance["scoreBatchSize"])
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="traj-run")
         self.canceled_runs: set[str] = set()
 
@@ -107,18 +115,20 @@ class RunEngine:
                 store.upsert_run_step(connection, run_id, "load_source", "running")
             source = trace_source or JsonlTraceSource(source_ref, limit=limit)
             effective_window = window or {"start": None, "end": None}
+            regime_dir = data_root / source_ref
+            regime_dir.mkdir(parents=True, exist_ok=True)
+            is_benchmark = isinstance(source, JsonlTraceSource)
             traces = list(source.list_traces(
                 effective_window,
                 {"rate": sampling_rate, "seed": 0, "strategy": "systematic"},
             ))
             if not traces:
                 raise ValueError("selected trace source is empty")
-            regime_dir = data_root / source_ref
-            regime_dir.mkdir(parents=True, exist_ok=True)
-            with (regime_dir / "traces.jsonl").open("w", encoding="utf-8", newline="\n") as handle:
+            trace_count = len(traces)
+            trace_path = regime_dir / "traces.jsonl"
+            with trace_path.open("w", encoding="utf-8", newline="\n") as handle:
                 for trace in traces:
                     handle.write(json.dumps(trace, ensure_ascii=False, sort_keys=True) + "\n")
-            is_benchmark = isinstance(source, JsonlTraceSource)
             if is_benchmark:
                 benchmark_root = ROOT / "data" / "bench_v1" / source_ref
                 shutil.copy2(benchmark_root / "gt.jsonl", regime_dir / "gt.jsonl")
@@ -126,7 +136,7 @@ class RunEngine:
             with closing(store.connect(self.db_path)) as connection:
                 store.upsert_run_step(
                     connection, run_id, "load_source", "succeeded",
-                    {"n_traces": len(traces), "source_ref": source_ref}, ended=True,
+                    {"n_traces": trace_count, "source_ref": source_ref}, ended=True,
                 )
 
             with closing(store.connect(self.db_path)) as connection:
@@ -141,7 +151,7 @@ class RunEngine:
                 if (
                     frozen_state is None
                     and run_type == "R2"
-                    and len(traces) > self.r2_training_limit
+                    and trace_count > self.r2_training_limit
                 ):
                     training = select_r2_training_traces(traces, self.r2_training_limit)
                     training_result, _ = run_production(
@@ -149,21 +159,29 @@ class RunEngine:
                         ontology_id or source_ref,
                     )
                     frozen_state = training_result["frozen_state"]
-                result, score_rows = run_production(
-                    traces,
-                    ontology_id or source_ref,
-                    frozen_state=frozen_state,
-                    run_mode="R2" if training is not None else None,
-                )
+                report_dir = out_root / source_ref
+                report_dir.mkdir(parents=True, exist_ok=True)
+                score_path = report_dir / "scores.jsonl"
+                with score_path.open("w", encoding="utf-8", newline="\n") as handle:
+                    result, _score_rows = run_production(
+                        traces,
+                        ontology_id or source_ref,
+                        frozen_state=frozen_state,
+                        run_mode="R2" if training is not None else None,
+                        score_sink=lambda row: handle.write(
+                            json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
+                        ),
+                        score_batch_size=self.score_batch_size,
+                    )
                 if training is not None:
-                    result["cold_start"] = len(traces) < regime_config.COLD_START_MIN_TRACES
+                    result["cold_start"] = trace_count < regime_config.COLD_START_MIN_TRACES
                     result["training"] = {
                         "sampled": True,
                         "trainingTraceCount": len(training),
-                        "fullTraceCount": len(traces),
+                        "fullTraceCount": trace_count,
                         "strategy": "systematic",
                     }
-                write_production_report(out_root / source_ref, result, score_rows)
+                write_production_metrics(report_dir, result)
             if self._is_canceled(run_id):
                 return
             with closing(store.connect(self.db_path)) as connection:
@@ -203,11 +221,7 @@ class RunEngine:
                     store.upsert_run_step(connection, run_id, "score_writeback", "running")
                     writeback = None
                     try:
-                        score_rows = []
-                        with (out_root / source_ref / "scores.jsonl").open(encoding="utf-8") as handle:
-                            for line in handle:
-                                if line.strip():
-                                    score_rows.append(json.loads(line))
+                        score_rows = self._iter_score_rows_from_path(out_root / source_ref / "scores.jsonl")
                         run = store.get_run(connection, run_id)
                         writeback = score_writer.write_scores(score_rows, run)
                         writeback_status = "succeeded" if writeback["rejected"] == 0 else "failed"
@@ -301,17 +315,17 @@ class RunEngine:
             (structure_id, run_id),
         )
 
-        score_rows = []
+        cell_sizes: dict[str, int] = {}
+        new_assignments: dict[str, str | None] = {}
+        score_path = report_dir / "scores.jsonl"
         with (report_dir / "scores.jsonl").open(encoding="utf-8") as handle:
             for line in handle:
                 if line.strip():
-                    score_rows.append(json.loads(line))
-
-        cell_sizes: dict[str, int] = {}
-        for row in score_rows:
-            cell_key = row.get("cell")
-            if cell_key is not None:
-                cell_sizes[cell_key] = cell_sizes.get(cell_key, 0) + 1
+                    row = json.loads(line)
+                    cell_key = row.get("cell")
+                    if cell_key is not None:
+                        cell_sizes[cell_key] = cell_sizes.get(cell_key, 0) + 1
+                    new_assignments[row["trace_id"]] = cell_key
 
         cell_ids: dict[str, str] = {}
         for cell_key, size in sorted(cell_sizes.items()):
@@ -328,46 +342,19 @@ class RunEngine:
 
         if reuse_structure_id is None:
             self._record_cell_lineage(
-                connection, run_id, old_assignments, score_rows, cell_ids
+                connection, run_id, old_assignments, new_assignments, cell_ids
             )
+        connection.commit()
 
-        trace_score_ids: dict[str, str] = {}
-        for row in score_rows:
-            trace_id = row["trace_id"]
-            evidence_sum = float(sum(row.get("contrib", {}).values()))
-            trace_score_id = store.new_id("score")
-            trace_score_ids[trace_id] = trace_score_id
-            connection.execute(
-                """INSERT INTO trace_scores
-                   (id, run_id, tenant_id, trace_id, cell_id, total_score,
-                    result_score, process_score, latency_score, cost_score,
-                    robustness_score, deduction_total, evidence_sum, is_alert,
-                    is_abstain, ontology_version_id, structure_version_id,
-                    code_hash, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (trace_score_id, run_id, run["tenant_id"], trace_id,
-                 cell_ids.get(row.get("cell")), float(row["S"]),
-                 float(row["dims"]["O"]), float(row["dims"]["P"]),
-                 float(row["dims"]["L"]), float(row["dims"]["C"]),
-                 float(row["dims"]["R"]), evidence_sum, evidence_sum,
-                 int(bool(row.get("alert"))), int(bool(row.get("novelty"))),
-                 run["ontology_version_id"], structure_id, result["code_hash"],
-                 store.utcnow()),
-            )
-            evidence_payload = row.get("evidence") or []
-            for dimension_key, contribution in row.get("contrib", {}).items():
-                dimension = DIMENSION_MAP[dimension_key]
-                connection.execute(
-                    """INSERT INTO score_evidence
-                       (id, trace_score_id, dimension, span_id, contribution,
-                        explanation, payload_json, created_at)
-                       VALUES (?, ?, ?, NULL, ?, ?, ?, ?)""",
-                    (store.new_id("evidence"), trace_score_id, dimension,
-                     float(contribution),
-                     f"Dimension {dimension} contribution for trace {trace_id}",
-                     json.dumps({"kernel_evidence": evidence_payload}, ensure_ascii=False,
-                                sort_keys=True), store.utcnow()),
+        persisted_count = 0
+        with score_path.open(encoding="utf-8") as handle:
+            for row in self._iter_score_rows(handle):
+                self._persist_score_row(
+                    connection, run_id, run, structure_id, result, cell_ids, row
                 )
+                persisted_count += 1
+                if persisted_count % self.persist_batch_size == 0:
+                    connection.commit()
 
         calibration = result.get("calibration") or {}
         connection.execute(
@@ -381,21 +368,70 @@ class RunEngine:
         )
         connection.commit()
 
+    def _iter_score_rows(self, handle: Iterable[str]):
+        for line in handle:
+            if line.strip():
+                yield json.loads(line)
+
+    def _iter_score_rows_from_path(self, path: Path):
+        with path.open(encoding="utf-8") as handle:
+            yield from self._iter_score_rows(handle)
+
+    def _persist_score_row(
+        self,
+        connection: Any,
+        run_id: str,
+        run: dict,
+        structure_id: str,
+        result: dict,
+        cell_ids: dict[str, str],
+        row: dict,
+    ) -> None:
+        trace_id = row["trace_id"]
+        evidence_sum = float(sum(row.get("contrib", {}).values()))
+        trace_score_id = store.new_id("score")
+        connection.execute(
+            """INSERT INTO trace_scores
+               (id, run_id, tenant_id, trace_id, cell_id, total_score,
+                result_score, process_score, latency_score, cost_score,
+                robustness_score, deduction_total, evidence_sum, is_alert,
+                is_abstain, ontology_version_id, structure_version_id,
+                code_hash, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (trace_score_id, run_id, run["tenant_id"], trace_id,
+             cell_ids.get(row.get("cell")), float(row["S"]),
+             float(row["dims"]["O"]), float(row["dims"]["P"]),
+             float(row["dims"]["L"]), float(row["dims"]["C"]),
+             float(row["dims"]["R"]), evidence_sum, evidence_sum,
+             int(bool(row.get("alert"))), int(bool(row.get("novelty"))),
+             run["ontology_version_id"], structure_id, result["code_hash"],
+             store.utcnow()),
+        )
+        evidence_payload = row.get("evidence") or []
+        for dimension_key, contribution in row.get("contrib", {}).items():
+            dimension = DIMENSION_MAP[dimension_key]
+            connection.execute(
+                """INSERT INTO score_evidence
+                   (id, trace_score_id, dimension, span_id, contribution,
+                    explanation, payload_json, created_at)
+                   VALUES (?, ?, ?, NULL, ?, ?, ?, ?)""",
+                (store.new_id("evidence"), trace_score_id, dimension,
+                 float(contribution),
+                 f"Dimension {dimension} contribution for trace {trace_id}",
+                 json.dumps({"kernel_evidence": evidence_payload}, ensure_ascii=False,
+                            sort_keys=True), store.utcnow()),
+            )
+
     def _record_cell_lineage(
         self,
         connection: Any,
         run_id: str,
         old_assignments: dict[str, str],
-        score_rows: list[dict],
+        new_assignments: dict[str, str | None],
         new_cell_ids: dict[str, str],
     ) -> None:
         if not old_assignments or not new_cell_ids:
             return
-        new_assignments = {
-            row["trace_id"]: row.get("cell")
-            for row in score_rows
-            if row.get("cell") is not None
-        }
         overlap: dict[tuple[str, str], int] = {}
         for trace_id, old_cell_id in old_assignments.items():
             new_cell_key = new_assignments.get(trace_id)

@@ -117,6 +117,8 @@ silhouette 距离计算。该路径随参与结构学习的样本数平方增长
 
 ```yaml
 r2TrainingLimit: 64
+persistBatchSize: 500
+scoreBatchSize: 1000
 ```
 
 ## 6. 优化后实测
@@ -155,3 +157,64 @@ r2TrainingLimit: 64
    - 分批特征提取与评分。
    - 分批写库，避免一次性保存全部 score/evidence。
    - 对 100,000 条重新压测。
+
+## 8. M5.2 全量处理流式化与分批持久化
+
+### 8.1 已实现
+
+- `run_production()` 支持 `score_sink`：
+  - 按 `scoreBatchSize` 分批调用内核评分。
+  - 每批立即写出 slim score，不再向 RunEngine 返回全量 score rows。
+  - 先保留每条轨迹的 `(S, trace_id, grade_abs)`，在全量 cell 排名完成后
+    按原内核规则重算 `grade_rel`。
+- RunEngine 直接把 `score_sink` 写入 `scores.jsonl`：
+  - 不再构建完整评分列表。
+  - `trace_scores` / `score_evidence` 已按 `persistBatchSize` 从文件流式读入并写库。
+- Langfuse Score 回写改为消费迭代器并按批组包：
+  - 不再把 `scores.jsonl` 全量物化为 Python list。
+- 新增配置：
+
+```yaml
+persistBatchSize: 500
+scoreBatchSize: 1000
+```
+
+### 8.2 等价性验证
+
+- 新增测试比较同一批 100 条轨迹的 list 路径与 `score_sink` 路径：
+  - `scoring` 汇总一致。
+  - `scores.jsonl` 逐字节一致。
+  - 分批大小设为 7，覆盖跨批排序与 `grade_rel` 重算。
+- Langfuse 回写测试覆盖生成器输入，确认不会破坏批处理与统计。
+
+### 8.3 实测结果
+
+| 规模 | R2 | R1 | SQLite | 峰值内存 | 结果 |
+|---:|---:|---:|---:|---:|---|
+| 1,000 | 108.336 s | 23.681 s | 9,101,312 B | 22,611,189 B | 成功 |
+| 10,000 | 291.864 s | 231.751 s | 88,006,656 B | 197,650,611 B | 成功 |
+| 100,000 | 4,560.980 s | 未跑 | 439,517,184 B | 1,934,930,761 B | 成功但未达内存目标 |
+
+说明：
+
+- 100,000 条首次以 3,600 秒 Run 上限压测超时；随后将上限提高到
+  7,200 秒，仅执行 R2，实际耗时 4,560.980 秒。
+- 100,000 条为 100 个 R1 基准轨迹循环复制，SQLite 体积 439.5 MB。
+- 与 M5.1 的 10,000 条 221.4 MB 相比，M5.2 峰值内存降至 197.7 MB。
+
+### 8.4 剩余瓶颈
+
+- 100,000 条峰值内存约 1.93 GB，仍显著高于预期的 500 MB。
+- 内存瓶颈已不在平台评分列表：
+  - 评分输出已流式化。
+  - DB 写入已分批。
+  - Langfuse 回写已改为迭代器。
+- 剩余峰值来自内核全量中间态：
+  - `feature_rows` 必须整批进入 `detect.detect_all()`。
+  - `stage` 在 BH/FDR 与 rank normalization 完成前必须保存全量轨迹状态。
+  - frozen assignment、baseline artifact、detection stage 同时驻留。
+- 由于当前红线是不修改 `kernel/`，平台侧无法继续把 `detect_all()` 内部
+  拆成两阶段或外存计算。下一阶段需要单独评审内核接口：
+  1. 特征提取与 assignment 外存化。
+  2. 检测拆成 per-trace 统计量与全量 rank/FDR 两个阶段。
+  3. stage 仅保留打分所需 slim 字段。

@@ -67,6 +67,20 @@ class LangfuseScoreWriterTest(unittest.TestCase):
         self.assertEqual(1, result["rejected"])
         self.assertEqual(["invalid trace"], result["errors"])
 
+    def test_accepts_streaming_rows_without_materializing_a_list(self):
+        transport = FakeScoreTransport()
+        writer = LangfuseScoreWriter(
+            "https://langfuse.example", "pk", "sk",
+            batch_size=3, transport=transport,
+        )
+        rows = ({"trace_id": f"trace-{index}", "S": 90.0, "dims": {}} for index in range(2))
+
+        result = writer.write_scores(
+            rows, {"id": "run-1", "created_at": "2026-01-01T00:00:00Z"}
+        )
+
+        self.assertEqual({"attempted": 6, "accepted": 6, "rejected": 0, "batches": 2, "errors": []}, result)
+
     def test_uses_endpoint_config(self):
         profile = {"baseUrl": "https://langfuse.example"}
         endpoints = {

@@ -326,6 +326,19 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   峰值内存 221,447,153 B。
 - 100,000 条前仍需完成流式读取与分批持久化，避免一次性内存放大。
 
+### 3.7 M5.2 流式评分部署记录
+
+- `platform/config/performance.yaml` 新增：
+  - `persistBatchSize: 500`
+  - `scoreBatchSize: 1000`
+- 无新增数据库表、无新增三方件、无 embedding 模型变更。
+- RunEngine 直接流式写 `scores.jsonl`，数据库持久化按 `persistBatchSize`
+  分批提交；Langfuse Score 回写改为迭代器消费。
+- 实测 10,000 条峰值内存 197,650,611 B；100,000 条 R2 耗时
+  4,560.980 s、峰值内存 1,934,930,761 B。
+- 100,000 条内存未达 500 MB 目标，剩余瓶颈在内核 `detect_all` 全量
+  `stage` 与 `feature_rows`；在“不改 kernel”的红线下无法继续压缩。
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

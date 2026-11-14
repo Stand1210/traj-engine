@@ -1,3 +1,5 @@
 version: 1
 description: R2 cold-start performance guardrails.
 r2TrainingLimit: 64
+persistBatchSize: 500
+scoreBatchSize: 1000

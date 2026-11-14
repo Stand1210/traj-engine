@@ -219,3 +219,12 @@ R2 冷启动聚类；R1、查询和调度扫描在 100 条基线下均为秒级�
 - Run 详情的 `algorithm` Step 会显示 `trainingTraceCount`、
   `fullTraceCount` 和 `strategy=systematic`。
 
+### 6.3 流式评分与分批持久化
+
+- `scoreBatchSize` 默认 1,000，表示每次调用内核评分的轨迹数。
+- `persistBatchSize` 默认 500，表示数据库每提交一批写入的 score/evidence 数。
+- Run 产物中的 `scores.jsonl` 由算法逐行写出；数据库持久化和 Langfuse
+  Score 回写均按流式读取，不会在平台层再构建全量评分列表。
+- 当前 10 万条压测仍需约 1.93 GB 峰值内存，主要来自内核全量检测中间态；
+  详情见 `M5_0_PERFORMANCE_BASELINE.md`。
+

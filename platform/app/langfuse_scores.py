@@ -5,6 +5,7 @@ import time
 import urllib.error
 import urllib.request
 from typing import Protocol
+from typing import Iterable
 
 from platform.app.langfuse_source import LangfuseHttpError
 
@@ -69,24 +70,34 @@ class LangfuseScoreWriter:
         self.max_retries = int(max_retries)
         self.retry_backoff_seconds = float(retry_backoff_seconds)
 
-    def write_scores(self, score_rows: list[dict], run: dict) -> dict:
-        payloads = []
-        for row in score_rows:
-            payloads.append(self.build_score_payload(row, run))
-            payloads.extend(self.build_status_payloads(row, run))
+    def write_scores(self, score_rows: Iterable[dict], run: dict) -> dict:
         accepted = 0
         rejected = 0
+        attempted = 0
         batches = 0
         errors: list[str] = []
-        for offset in range(0, len(payloads), self.batch_size):
-            batch = payloads[offset : offset + self.batch_size]
+        batch = []
+        for row in score_rows:
+            payloads = [self.build_score_payload(row, run)]
+            payloads.extend(self.build_status_payloads(row, run))
+            attempted += len(payloads)
+            batch.extend(payloads)
+            if len(batch) < self.batch_size:
+                continue
+            result = self._post_batch(batch)
+            accepted += int(result["accepted"])
+            rejected += int(result["rejected"])
+            batches += 1
+            errors.extend(result["errors"])
+            batch = []
+        if batch:
             result = self._post_batch(batch)
             accepted += int(result["accepted"])
             rejected += int(result["rejected"])
             batches += 1
             errors.extend(result["errors"])
         return {
-            "attempted": len(payloads),
+            "attempted": attempted,
             "accepted": accepted,
             "rejected": rejected,
             "batches": batches,
