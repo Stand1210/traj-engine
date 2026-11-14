@@ -238,6 +238,43 @@ export interface LifecycleEvaluation {
   evaluationBucket: string;
 }
 
+export interface SchedulerLatestScan {
+  id: string;
+  status: "running" | "succeeded" | "failed";
+  startedAt: string;
+  finishedAt: string | null;
+  watchdogFailedRuns: number;
+  evaluationCount: number;
+  createdRunCount: number;
+  result: Record<string, unknown>;
+  error: string | null;
+}
+
+export interface SchedulerStatus {
+  lock: {
+    id: string;
+    ownerId: string;
+    acquiredAt: string;
+    expiresAt: string;
+  } | null;
+  enabledSchedules: number;
+  latestScan: SchedulerLatestScan | null;
+}
+
+export interface SchedulerScanResult {
+  status: "succeeded" | "failed" | "skipped";
+  scanId?: string;
+  reason?: string;
+  error?: string;
+  watchdogFailedRuns?: string[];
+  evaluations?: Array<{
+    ontologyId: string;
+    decision: string;
+    reason: string;
+    runId: string | null;
+  }>;
+}
+
 export interface ReviewQueueResult {
   runId: string;
   queueId: string;
@@ -324,6 +361,9 @@ export const api = {
     }),
   lifecycleEvaluations: (ontologyId: string) =>
     request<Page<LifecycleEvaluation>>(`/api/v1/ontologies/${ontologyId}/lifecycle/evaluations?limit=50`),
+  schedulerStatus: () => request<SchedulerStatus>("/api/v1/scheduler/status"),
+  evaluateAllLifecycles: () =>
+    request<SchedulerScanResult>("/api/v1/scheduler/evaluate-all", { method: "POST" }),
   createReviewQueue: (runId: string, input: { scope: "alerts" | "abstains" | "all"; limit?: number }) =>
     request<ReviewQueueResult>(`/api/v1/runs/${runId}/review-queue`, {
       method: "POST",

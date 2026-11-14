@@ -341,6 +341,34 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/LifecycleEvaluation'
+  /scheduler/status:
+    get:
+      tags: [system]
+      operationId: getSchedulerStatus
+      summary: Get lifecycle scheduler status
+      responses:
+        '200':
+          description: Scheduler status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchedulerStatus'
+  /scheduler/evaluate-all:
+    post:
+      tags: [system]
+      operationId: evaluateAllLifecycles
+      summary: Run one lifecycle scheduler scan immediately
+      description: |
+        Executes the same scan as the background scheduler: run watchdog first,
+        then evaluates every enabled lifecycle schedule. The singleton lease lock
+        is respected, so this returns skipped when another scan is active.
+      responses:
+        '200':
+          description: Scheduler scan result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchedulerScanResult'
   /runs:
     get:
       tags: [runs]
@@ -1329,6 +1357,73 @@ components:
         windowStart: {type: string, format: date-time}
         windowEnd: {type: string, format: date-time}
         evaluationBucket: {type: string, format: date-time}
+    SchedulerLock:
+      type: object
+      required: [id, ownerId, acquiredAt, expiresAt]
+      properties:
+        id: {type: string}
+        ownerId: {type: string}
+        acquiredAt: {type: string, format: date-time}
+        expiresAt: {type: string, format: date-time}
+    SchedulerLatestScan:
+      type: object
+      required:
+        - id
+        - status
+        - startedAt
+        - watchdogFailedRuns
+        - evaluationCount
+        - createdRunCount
+        - result
+      properties:
+        id: {type: string}
+        status: {type: string, enum: [running, succeeded, failed]}
+        startedAt: {type: string, format: date-time}
+        finishedAt: {type: string, format: date-time, nullable: true}
+        watchdogFailedRuns: {type: integer}
+        evaluationCount: {type: integer}
+        createdRunCount: {type: integer}
+        result:
+          type: object
+          additionalProperties: true
+        error: {type: string, nullable: true}
+    SchedulerStatus:
+      type: object
+      required: [enabledSchedules]
+      properties:
+        lock:
+          allOf:
+            - $ref: '#/components/schemas/SchedulerLock'
+          nullable: true
+        enabledSchedules: {type: integer}
+        latestScan:
+          allOf:
+            - $ref: '#/components/schemas/SchedulerLatestScan'
+          nullable: true
+    SchedulerScanResult:
+      type: object
+      required: [status]
+      properties:
+        status: {type: string, enum: [succeeded, failed, skipped]}
+        scanId: {type: string}
+        reason: {type: string}
+        error: {type: string}
+        watchdogFailedRuns:
+          type: array
+          items: {type: string}
+        evaluations:
+          type: array
+          items:
+            type: object
+            properties:
+              ontologyId: {type: string}
+              decision: {type: string}
+              reason: {type: string}
+              runId: {type: string, nullable: true}
+        lock:
+          allOf:
+            - $ref: '#/components/schemas/SchedulerLock'
+          nullable: true
     Calibration:
       type: object
       required: [runId, kind]

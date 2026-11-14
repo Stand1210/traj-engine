@@ -262,6 +262,37 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   python platform/scripts/r2_lineage_validation.py --source langfuse --profile cloud-v4 --project-name development_env --window-start 2026-11-12T08:00:00Z --window-end 2026-11-12T09:30:00Z --id-offset 400000000000 --id-count 1000 --limit 1000 --page-size 100
   ```
 
+### 3.3 M4.2 生命周期调度部署记录
+
+- 新增数据表：
+  - `scheduler_locks`：单实例租约锁，默认租约 120 秒。
+  - `scheduler_scans`：每轮调度扫描审计与看门狗结果。
+  建表语句在 `platform/contracts/schema.sql`。
+- 新增配置文件：`platform/config/scheduler.yaml`。
+  - `intervalSeconds=60`
+  - `leaseSeconds=120`
+  - `queuedTimeoutSeconds=900`
+  - `runningTimeoutSeconds=86400`
+- 无新增三方件、无 embedding 模型；调度器使用 Python 标准库线程。
+- 启动命令：
+  ```powershell
+  python -m platform.app.cli --profile cloud-v4 --scheduler
+  ```
+  自托管环境可改为：
+  ```powershell
+  python -m platform.app.cli --profile selfhosted-v4 --base-url http://langfuse.internal --scheduler
+  ```
+- REST：
+  - `GET /api/v1/scheduler/status`
+  - `POST /api/v1/scheduler/evaluate-all`
+- 前端路由复用 `#/lifecycle`，新增调度器状态与手动全量扫描入口。
+- 验证：
+  ```powershell
+  python -m unittest platform.tests.test_scheduler -v
+  cd frontend
+  npm run build
+  ```
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

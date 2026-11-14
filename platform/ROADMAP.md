@@ -228,6 +228,27 @@ M3.4 calibration record: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
     第一个 Run 分数摘要不变、lineage 非空、overlap 合法、
     `code_hash=2064664e6aa5fb46`。
 
+### 6.4 M4.2 生命周期调度与运维可靠性
+
+- 新增 `platform/app/scheduler.py`：
+  - 后台周期扫描全部 enabled lifecycle schedule。
+  - 每轮先执行 Run 看门狗，再调用既有生命周期评估入口。
+  - 单实例租约锁：`scheduler_locks`；锁过期后可被新实例接管。
+  - 每轮扫描审计：`scheduler_scans`，记录看门狗处理数、评估数、创建 Run
+    数、完整结果与错误。
+- 新增配置：`platform/config/scheduler.yaml`。
+  - `intervalSeconds` 默认 60。
+  - `leaseSeconds` 默认 120。
+  - `watchdog.queuedTimeoutSeconds` 默认 900。
+  - `watchdog.runningTimeoutSeconds` 默认 86400。
+- 后端启动：
+  - `python -m platform.app.cli --scheduler ...` 开启常驻调度线程。
+  - 或设置 `TRAJ_SCHEDULER=1` 后启动 `platform.app.service:app`。
+- REST：
+  - `GET /api/v1/scheduler/status`
+  - `POST /api/v1/scheduler/evaluate-all`
+- 前端生命周期页新增调度器状态面板与「调度扫描全部本体」按钮。
+
 R3：本体升级仍由业务规则变更触发，后续独立实现。
 
 ## 7. M5 多租户与硬化

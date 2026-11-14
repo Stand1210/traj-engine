@@ -68,6 +68,8 @@ main { padding: 24px 28px; }
 .relation-pill.born { color: #5b21b6; background: #ede9fe; }
 .relation-pill.died { color: #8a0d07; background: #fdecea; }
 .lineage-note { margin-top: 12px; font-size: 12px; color: #627d98; line-height: 1.6; }
+.scheduler-grid { margin-bottom: 12px; }
+.scheduler-note { font-size: 12px; color: #627d98; line-height: 1.6; }
 
 .score-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .score-head span:first-child { font-size: 12px; color: #627d98; }

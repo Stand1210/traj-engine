@@ -3,7 +3,8 @@ import {
   api,
   type LifecycleEvaluation,
   type LifecycleInput,
-  type Ontology
+  type Ontology,
+  type SchedulerStatus
 } from "../api";
 
 interface Props {
@@ -46,6 +47,7 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
 
   useEffect(() => {
     void api.ontologies()
@@ -53,6 +55,12 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
         setOntologies(result.data);
         if (result.data[0]) setOntologyId(result.data[0].id);
       })
+      .catch(loadError => setError(String(loadError)));
+  }, []);
+
+  useEffect(() => {
+    void api.schedulerStatus()
+      .then(setScheduler)
       .catch(loadError => setError(String(loadError)));
   }, []);
 
@@ -102,6 +110,33 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
       if (result.run) onSelect(`/runs/${result.run.id}`);
       const history = await api.lifecycleEvaluations(ontologyId);
       setEvaluations(history.data);
+    } catch (submitError) {
+      setError(String(submitError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function evaluateAll() {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const result = await api.evaluateAllLifecycles();
+      if (result.status === "skipped") {
+        setMessage(`调度扫描跳过：${result.reason ?? "lock_held"}。`);
+      } else {
+        setMessage(
+          `调度扫描${result.status === "succeeded" ? "完成" : "失败"}：` +
+          `看门狗处理 ${result.watchdogFailedRuns?.length ?? 0} 条，` +
+          `评估 ${result.evaluations?.length ?? 0} 个本体。`
+        );
+      }
+      setScheduler(await api.schedulerStatus());
+      if (ontologyId) {
+        const history = await api.lifecycleEvaluations(ontologyId);
+        setEvaluations(history.data);
+      }
     } catch (submitError) {
       setError(String(submitError));
     } finally {
@@ -185,9 +220,26 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
           <button disabled={busy} onClick={() => void save()}>保存调度</button>
           <button disabled={busy} onClick={() => void evaluate(false)}>评估并按策略触发</button>
           <button disabled={busy} onClick={() => void evaluate(true)}>强制 R2 重聚类</button>
+          <button disabled={busy} onClick={() => void evaluateAll()}>调度扫描全部本体</button>
         </div>
       </div>
       <div className="panel wide">
+        <h2>调度器状态</h2>
+        {scheduler && (
+          <div className="metric-grid scheduler-grid">
+            <div><span>启用调度</span><strong>{scheduler.enabledSchedules}</strong></div>
+            <div><span>当前锁</span><strong>{scheduler.lock ? "占用" : "空闲"}</strong></div>
+            <div><span>最近扫描</span><strong>{scheduler.latestScan?.status ?? "-"}</strong></div>
+            <div><span>看门狗处理</span><strong>{scheduler.latestScan?.watchdogFailedRuns ?? 0}</strong></div>
+          </div>
+        )}
+        {scheduler?.latestScan?.error && (
+          <div className="error-banner">{scheduler.latestScan.error}</div>
+        )}
+        <p className="scheduler-note">
+          后台调度器由后端启动参数 `--scheduler` 开启；调度器每次先执行看门狗，
+          再按策略评估全部启用调度。若另一个实例正在执行扫描，本轮会直接跳过。
+        </p>
         <h2>评估历史</h2>
         <table>
           <thead>

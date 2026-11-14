@@ -48,6 +48,25 @@ def load_calibration_config() -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
+def load_scheduler_config(path: Path = CONFIG_ROOT / "scheduler.yaml") -> dict:
+    config = yaml.safe_load(path.read_text(encoding="utf-8"))
+    interval = int(config.get("intervalSeconds", 60))
+    lease = int(config.get("leaseSeconds", 120))
+    watchdog = config.get("watchdog", {})
+    queued_timeout = int(watchdog.get("queuedTimeoutSeconds", 900))
+    running_timeout = int(watchdog.get("runningTimeoutSeconds", 86400))
+    if interval <= 0 or lease <= 0 or queued_timeout <= 0 or running_timeout <= 0:
+        raise ValueError("scheduler interval, lease, and watchdog timeouts must be positive")
+    return {
+        "intervalSeconds": interval,
+        "leaseSeconds": lease,
+        "watchdog": {
+            "queuedTimeoutSeconds": queued_timeout,
+            "runningTimeoutSeconds": running_timeout,
+        },
+    }
+
+
 def resolve_profile_from_args(profile_name: str | None = None) -> dict:
     profile_name = profile_name or os.environ.get("TRAJ_PROFILE", "cloud-v4")
     if profile_name not in {"cloud-v4", "selfhosted-v4"}:

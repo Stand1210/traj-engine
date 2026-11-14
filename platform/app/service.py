@@ -1,9 +1,11 @@
 import base64
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from contextlib import closing
 from pathlib import Path
 from typing import Any, Literal
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -13,6 +15,7 @@ from platform.app.config import (
     load_alert_config,
     load_calibration_config,
     load_endpoints,
+    load_scheduler_config,
     resolve_profile_from_args,
 )
 from platform.app.algorithm import load_frozen_state
@@ -42,12 +45,25 @@ from platform.app.lifecycle import (
     serialize_evaluation,
     serialize_schedule,
 )
+from platform.app.scheduler import LifecycleScheduler, scheduler_status
+
+
+SCHEDULER = LifecycleScheduler(config=load_scheduler_config())
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if os.environ.get("TRAJ_SCHEDULER") == "1":
+        SCHEDULER.start()
+    yield
+    SCHEDULER.stop()
 
 
 app = FastAPI(
     title="Traj Engine Platform API",
     version="0.1.0",
     description="M1 backend for agent trajectory quality evaluation.",
+    lifespan=lifespan,
 )
 
 
@@ -119,6 +135,13 @@ class LifecycleInput(BaseModel):
 
 class LifecycleEvaluateInput(BaseModel):
     forceR2: bool = False
+
+
+SCHEDULER.evaluator = (
+    lambda connection, ontology_id: evaluate_lifecycle(
+        ontology_id, LifecycleEvaluateInput(forceR2=False), connection
+    )
+)
 
 
 def get_connection() -> Any:
@@ -455,6 +478,16 @@ def list_lifecycle_evaluations(
         (ontology_id,),
     ).fetchone()["n"]
     return page([serialize_evaluation(row) for row in rows], limit, offset, total)
+
+
+@app.get("/api/v1/scheduler/status")
+def get_scheduler_status() -> dict:
+    return scheduler_status()
+
+
+@app.post("/api/v1/scheduler/evaluate-all", status_code=200)
+def evaluate_all_lifecycles() -> dict:
+    return SCHEDULER.execute_scan()
 
 
 @app.post("/api/v1/runs", status_code=201)

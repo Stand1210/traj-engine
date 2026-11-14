@@ -1,0 +1,7 @@
+version: 1
+description: Lifecycle scheduler and run watchdog defaults.
+intervalSeconds: 60
+leaseSeconds: 120
+watchdog:
+  queuedTimeoutSeconds: 900
+  runningTimeoutSeconds: 86400

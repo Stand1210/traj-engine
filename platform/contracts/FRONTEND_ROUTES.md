@@ -5,7 +5,7 @@
 | Route | Page | Primary API |
 |---|---|---|
 | `/` | Dashboard | `GET /runs?limit=20` |
-| `/lifecycle` | Lifecycle workbench | `GET /ontologies`, `GET/PUT /ontologies/{id}/lifecycle`, `POST /ontologies/{id}/lifecycle/evaluate`, `GET /ontologies/{id}/lifecycle/evaluations` |
+| `/lifecycle` | Lifecycle workbench | `GET /ontologies`, `GET/PUT /ontologies/{id}/lifecycle`, `POST /ontologies/{id}/lifecycle/evaluate`, `GET /ontologies/{id}/lifecycle/evaluations`, `GET /scheduler/status`, `POST /scheduler/evaluate-all` |
 | `/runs` | Run list | `GET /runs` |
 | `/runs/new` | Create run | `GET /tenants`, `GET /ontologies`, `POST /runs` |
 | `/runs/:runId` | Run overview | `GET /runs/{runId}`, `GET /runs/{runId}/steps` |

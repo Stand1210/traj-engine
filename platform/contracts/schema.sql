@@ -329,3 +329,22 @@ CREATE INDEX IF NOT EXISTS idx_review_calibrations_tenant_created
   ON review_calibrations (tenant_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_lifecycle_evaluations_ontology_created
   ON lifecycle_evaluations (ontology_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS scheduler_locks (
+    id TEXT PRIMARY KEY,
+    owner_id TEXT NOT NULL,
+    acquired_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS scheduler_scans (
+    id TEXT PRIMARY KEY,
+    status TEXT NOT NULL CHECK (status IN ('running', 'succeeded', 'failed')),
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    watchdog_failed_runs INTEGER NOT NULL DEFAULT 0,
+    evaluation_count INTEGER NOT NULL DEFAULT 0,
+    created_run_count INTEGER NOT NULL DEFAULT 0,
+    result_json TEXT NOT NULL,
+    error TEXT
+);

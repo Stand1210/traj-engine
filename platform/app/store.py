@@ -1,7 +1,7 @@
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -329,6 +329,137 @@ def record_lifecycle_evaluation(
     )
     connection.commit()
     return evaluation_id
+
+
+def acquire_scheduler_lock(
+    connection: sqlite3.Connection,
+    owner_id: str,
+    lease_seconds: int,
+) -> dict | None:
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(seconds=lease_seconds)
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            "SELECT * FROM scheduler_locks WHERE id = 'singleton'"
+        ).fetchone()
+        if row is not None:
+            expires_at = datetime.fromisoformat(row["expires_at"].replace("Z", "+00:00"))
+            if expires_at > now:
+                connection.rollback()
+                return dict(row)
+            connection.execute("DELETE FROM scheduler_locks WHERE id = 'singleton'")
+        connection.execute(
+            """INSERT INTO scheduler_locks (id, owner_id, acquired_at, expires_at)
+               VALUES ('singleton', ?, ?, ?)""",
+            (owner_id, utcnow(), expires.isoformat()),
+        )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    return {
+        "id": "singleton",
+        "owner_id": owner_id,
+        "acquired_at": utcnow(),
+        "expires_at": expires.isoformat(),
+    }
+
+
+def heartbeat_scheduler_lock(
+    connection: sqlite3.Connection,
+    owner_id: str,
+    lease_seconds: int,
+) -> bool:
+    expires = datetime.now(timezone.utc) + timedelta(seconds=lease_seconds)
+    cursor = connection.execute(
+        """UPDATE scheduler_locks
+           SET expires_at = ?
+           WHERE id = 'singleton' AND owner_id = ?""",
+        (expires.isoformat(), owner_id),
+    )
+    connection.commit()
+    return cursor.rowcount == 1
+
+
+def release_scheduler_lock(connection: sqlite3.Connection, owner_id: str) -> bool:
+    cursor = connection.execute(
+        "DELETE FROM scheduler_locks WHERE id = 'singleton' AND owner_id = ?", (owner_id,)
+    )
+    connection.commit()
+    return cursor.rowcount == 1
+
+
+def get_scheduler_lock(connection: sqlite3.Connection) -> dict | None:
+    row = connection.execute(
+        "SELECT * FROM scheduler_locks WHERE id = 'singleton'"
+    ).fetchone()
+    return dict(row) if row is not None else None
+
+
+def record_scheduler_scan(connection: sqlite3.Connection) -> str:
+    scan_id = new_id("scan")
+    connection.execute(
+        """INSERT INTO scheduler_scans
+           (id, status, started_at, finished_at, watchdog_failed_runs,
+            evaluation_count, created_run_count, result_json, error)
+           VALUES (?, 'running', ?, NULL, 0, 0, 0, '{}', NULL)""",
+        (scan_id, utcnow()),
+    )
+    connection.commit()
+    return scan_id
+
+
+def finish_scheduler_scan(
+    connection: sqlite3.Connection,
+    scan_id: str,
+    status: str,
+    watchdog_failed_runs: int,
+    evaluation_count: int,
+    created_run_count: int,
+    result: dict,
+    error: str | None = None,
+) -> None:
+    if status not in {"succeeded", "failed"}:
+        raise ValueError("scheduler scan status must be succeeded or failed")
+    connection.execute(
+        """UPDATE scheduler_scans
+           SET status = ?, finished_at = ?, watchdog_failed_runs = ?,
+               evaluation_count = ?, created_run_count = ?, result_json = ?, error = ?
+           WHERE id = ?""",
+        (status, utcnow(), watchdog_failed_runs, evaluation_count, created_run_count,
+         json.dumps(result, ensure_ascii=False, sort_keys=True), error, scan_id),
+    )
+    connection.commit()
+
+
+def fail_timed_out_runs(
+    connection: sqlite3.Connection,
+    queued_timeout_seconds: int,
+    running_timeout_seconds: int,
+) -> list[str]:
+    now = datetime.now(timezone.utc)
+    updates = []
+    rows = connection.execute(
+        "SELECT id, status, created_at, started_at FROM cohort_runs WHERE status IN ('queued', 'running')"
+    ).fetchall()
+    for row in rows:
+        reference = row["started_at"] if row["status"] == "running" else row["created_at"]
+        reference_time = datetime.fromisoformat(reference.replace("Z", "+00:00"))
+        timeout = running_timeout_seconds if row["status"] == "running" else queued_timeout_seconds
+        age = (now - reference_time).total_seconds()
+        if age < timeout:
+            continue
+        error = (
+            f"run watchdog failed {row['status']} run after {int(age)} seconds"
+        )
+        set_run_status(connection, row["id"], "failed", error, ended=True)
+        upsert_run_step(
+            connection, row["id"], "watchdog", "failed",
+            {"error": error, "ageSeconds": int(age)}, ended=True,
+        )
+        updates.append(row["id"])
+    return updates
 
 
 def set_run_status(
