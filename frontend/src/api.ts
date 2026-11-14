@@ -199,6 +199,7 @@ export interface LifecycleSchedule {
   samplingRate: number;
   maxTraces: number | null;
   r2NoveltyThreshold: number;
+  r2MinNoveltyTraces: number;
   r2AlertRateThreshold: number;
   writebackToLangfuse: boolean;
   createdAt: string;
@@ -214,6 +215,7 @@ export interface LifecycleInput {
   samplingRate: number;
   maxTraces?: number | null;
   r2NoveltyThreshold: number;
+  r2MinNoveltyTraces: number;
   r2AlertRateThreshold: number;
   writebackToLangfuse: boolean;
 }
@@ -227,6 +229,8 @@ export interface LifecycleEvaluation {
     runId?: string | null;
     traceCount?: number;
     noveltyRate?: number | null;
+    accumulatedNoveltyTraces?: number;
+    r2MinNoveltyTraces?: number;
     alertRate?: number | null;
     elapsedHours?: number | null;
   };

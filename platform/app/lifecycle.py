@@ -21,7 +21,7 @@ def evaluate_lifecycle_state(connection, ontology_id: str, force_r2: bool = Fals
     if latest_run is not None and latest_run["status"] in {"queued", "running"}:
         return _result("skipped", "run_in_progress", schedule, latest_run, {})
 
-    metrics = _latest_metrics(connection, latest_run)
+    metrics = _latest_metrics(connection, latest_run, active_structure)
     now = datetime.now(timezone.utc)
     elapsed_hours = None
     if latest_run is not None:
@@ -34,6 +34,11 @@ def evaluate_lifecycle_state(connection, ontology_id: str, force_r2: bool = Fals
     if force_r2:
         return _result("created_r2", "forced_r2", schedule, latest_run, metrics)
     if metrics["noveltyRate"] is not None and metrics["noveltyRate"] >= float(schedule["r2_novelty_threshold"]):
+        minimum = int(schedule["r2_min_novelty_traces"])
+        if metrics["accumulatedNoveltyTraces"] < minimum:
+            if elapsed_hours is None or elapsed_hours >= float(schedule["interval_hours"]):
+                return _result("created_r1", "interval_due", schedule, latest_run, metrics)
+            return _result("skipped", "novelty_below_minimum", schedule, latest_run, metrics)
         return _result("created_r2", "novelty_threshold", schedule, latest_run, metrics)
     if metrics["alertRate"] is not None and metrics["alertRate"] >= float(schedule["r2_alert_rate_threshold"]):
         return _result("created_r2", "alert_rate_threshold", schedule, latest_run, metrics)
@@ -61,6 +66,7 @@ def serialize_schedule(row: dict) -> dict:
         "samplingRate": row["sampling_rate"],
         "maxTraces": row["max_traces"],
         "r2NoveltyThreshold": row["r2_novelty_threshold"],
+        "r2MinNoveltyTraces": row["r2_min_novelty_traces"],
         "r2AlertRateThreshold": row["r2_alert_rate_threshold"],
         "writebackToLangfuse": bool(row["writeback_to_langfuse"]),
         "createdAt": row["created_at"],
@@ -80,9 +86,15 @@ def serialize_evaluation(row: dict) -> dict:
     }
 
 
-def _latest_metrics(connection, latest_run) -> dict:
+def _latest_metrics(connection, latest_run, active_structure) -> dict:
     if latest_run is None:
-        return {"runId": None, "traceCount": 0, "noveltyRate": None, "alertRate": None}
+        return {
+            "runId": None,
+            "traceCount": 0,
+            "noveltyRate": None,
+            "alertRate": None,
+            "accumulatedNoveltyTraces": 0,
+        }
     row = connection.execute(
         """SELECT COUNT(*) AS trace_count,
                   SUM(is_abstain) AS novelty_count,
@@ -96,7 +108,42 @@ def _latest_metrics(connection, latest_run) -> dict:
         "traceCount": trace_count,
         "noveltyRate": _ratio(row["novelty_count"], trace_count),
         "alertRate": _ratio(row["alert_count"], trace_count),
+        "accumulatedNoveltyTraces": _accumulated_novelty_traces(
+            connection, latest_run["ontology_id"], active_structure
+        ),
     }
+
+
+def _accumulated_novelty_traces(connection, ontology_id: str, active_structure) -> int:
+    if active_structure is None:
+        return 0
+    anchor = connection.execute(
+        """SELECT id, created_at FROM cohort_runs
+           WHERE ontology_id = ? AND status = 'succeeded'
+             AND structure_version_id = ?
+           ORDER BY COALESCE(ended_at, created_at) DESC, id DESC
+           LIMIT 1""",
+        (ontology_id, active_structure["id"]),
+    ).fetchone()
+    if anchor is None:
+        anchor = connection.execute(
+            """SELECT id, created_at FROM cohort_runs
+               WHERE ontology_id = ? AND status = 'succeeded' AND run_type = 'R2'
+               ORDER BY COALESCE(ended_at, created_at) DESC, id DESC
+               LIMIT 1""",
+            (ontology_id,),
+        ).fetchone()
+    if anchor is None:
+        return 0
+    row = connection.execute(
+        """SELECT COUNT(DISTINCT ts.trace_id) AS novelty_count
+           FROM trace_scores AS ts
+           JOIN cohort_runs AS r ON r.id = ts.run_id
+           WHERE r.ontology_id = ? AND r.status = 'succeeded'
+             AND r.created_at > ? AND ts.is_abstain = 1""",
+        (ontology_id, anchor["created_at"]),
+    ).fetchone()
+    return int(row["novelty_count"] or 0)
 
 
 def _result(decision: str, reason: str, schedule: dict, latest_run, metrics: dict) -> dict:

@@ -25,6 +25,7 @@ class LifecycleTest(unittest.TestCase):
                         intervalHours=24,
                         windowHours=24,
                         r2NoveltyThreshold=0.15,
+                        r2MinNoveltyTraces=0,
                         r2AlertRateThreshold=0.20,
                     ),
                     connection,
@@ -93,7 +94,7 @@ class LifecycleTest(unittest.TestCase):
                 with self.assertRaises(Exception):
                     configure_lifecycle(
                         ontology_id,
-                        LifecycleInput(intervalHours=0),
+                        LifecycleInput(intervalHours=24, r2MinNoveltyTraces=-1),
                         connection,
                     )
             finally:
@@ -176,3 +177,116 @@ class LifecycleTest(unittest.TestCase):
                 self.assertEqual(1, len(calls))
             finally:
                 connection.close()
+
+    def test_r2_waits_for_accumulated_novelty_traces(self):
+        with tempfile.TemporaryDirectory() as directory:
+            connection = store.connect(Path(directory) / "test.db", initialize=True)
+            try:
+                tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
+                ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+                configure_lifecycle(
+                    ontology_id,
+                    LifecycleInput(
+                        enabled=True,
+                        source="jsonl",
+                        sourceRef="lifecycle",
+                        intervalHours=24,
+                        r2NoveltyThreshold=0.15,
+                        r2MinNoveltyTraces=2,
+                    ),
+                    connection,
+                )
+                ontology_version = connection.execute(
+                    "SELECT id FROM ontology_versions WHERE ontology_id = ? LIMIT 1",
+                    (ontology_id,),
+                ).fetchone()["id"]
+
+                anchor_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "jsonl", "lifecycle", "R2",
+                    "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 1.0,
+                    "cold_start", None,
+                )
+                structure_id = store.new_id("structure")
+                connection.execute(
+                    """INSERT INTO structure_versions
+                       (id, ontology_id, version, code_hash, state_json, created_at, active)
+                       VALUES (?, ?, 1, 'hash', '{}', '2026-01-01T00:00:00Z', 1)""",
+                    (structure_id, ontology_id),
+                )
+                connection.execute(
+                    "UPDATE cohort_runs SET structure_version_id = ? WHERE id = ?",
+                    (structure_id, anchor_run_id),
+                )
+                store.set_run_status(connection, anchor_run_id, "succeeded", ended=True)
+
+                first_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "jsonl", "lifecycle", "R1",
+                    "2026-01-02T00:00:00Z", "2026-01-03T00:00:00Z", 1.0,
+                    "interval_due", None,
+                )
+                self._insert_score(
+                    connection, first_run_id, tenant_id, "novel-trace-1",
+                    ontology_version, structure_id, True,
+                )
+                store.set_run_status(connection, first_run_id, "succeeded", ended=True)
+
+                below_minimum = evaluate_lifecycle_state(connection, ontology_id)
+                self.assertEqual("skipped", below_minimum["decision"])
+                self.assertEqual("novelty_below_minimum", below_minimum["reason"])
+                self.assertEqual(1, below_minimum["metrics"]["accumulatedNoveltyTraces"])
+
+                repeated_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "jsonl", "lifecycle", "R1",
+                    "2026-01-03T00:00:00Z", "2026-01-04T00:00:00Z", 1.0,
+                    "interval_due", None,
+                )
+                self._insert_score(
+                    connection, repeated_run_id, tenant_id, "novel-trace-1",
+                    ontology_version, structure_id, True,
+                )
+                store.set_run_status(connection, repeated_run_id, "succeeded", ended=True)
+
+                still_below = evaluate_lifecycle_state(connection, ontology_id)
+                self.assertEqual("skipped", still_below["decision"])
+                self.assertEqual(1, still_below["metrics"]["accumulatedNoveltyTraces"])
+
+                qualified_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "jsonl", "lifecycle", "R1",
+                    "2026-01-04T00:00:00Z", "2026-01-05T00:00:00Z", 1.0,
+                    "interval_due", None,
+                )
+                self._insert_score(
+                    connection, qualified_run_id, tenant_id, "novel-trace-2",
+                    ontology_version, structure_id, True,
+                )
+                store.set_run_status(connection, qualified_run_id, "succeeded", ended=True)
+
+                triggered = evaluate_lifecycle_state(connection, ontology_id)
+                self.assertEqual("created_r2", triggered["decision"])
+                self.assertEqual("novelty_threshold", triggered["reason"])
+                self.assertEqual(2, triggered["metrics"]["accumulatedNoveltyTraces"])
+            finally:
+                connection.close()
+
+    def _insert_score(
+        self,
+        connection,
+        run_id: str,
+        tenant_id: str,
+        trace_id: str,
+        ontology_version_id: str,
+        structure_id: str,
+        is_abstain: bool,
+    ) -> None:
+        connection.execute(
+            """INSERT INTO trace_scores
+               (id, run_id, tenant_id, trace_id, total_score, result_score,
+                process_score, latency_score, cost_score, robustness_score,
+                deduction_total, evidence_sum, is_alert, is_abstain,
+                ontology_version_id, structure_version_id, code_hash, created_at)
+               VALUES (?, ?, ?, ?, 80, 80, 80, 80, 80, 80, 20, 20, 0, ?,
+                       ?, ?, 'hash', '2026-01-01T00:00:00Z')""",
+            (store.new_id("score"), run_id, tenant_id, trace_id,
+             int(is_abstain), ontology_version_id, structure_id),
+        )
+        connection.commit()

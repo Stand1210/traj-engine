@@ -282,6 +282,7 @@ CREATE TABLE IF NOT EXISTS lifecycle_schedules (
     sampling_rate REAL NOT NULL DEFAULT 1.0 CHECK (sampling_rate > 0 AND sampling_rate <= 1.0),
     max_traces INTEGER CHECK (max_traces IS NULL OR max_traces > 0),
     r2_novelty_threshold REAL NOT NULL CHECK (r2_novelty_threshold >= 0 AND r2_novelty_threshold <= 1),
+    r2_min_novelty_traces INTEGER NOT NULL DEFAULT 50 CHECK (r2_min_novelty_traces >= 0),
     r2_alert_rate_threshold REAL NOT NULL CHECK (r2_alert_rate_threshold >= 0 AND r2_alert_rate_threshold <= 1),
     writeback_to_langfuse INTEGER NOT NULL DEFAULT 0 CHECK (writeback_to_langfuse IN (0, 1)),
     created_at TEXT NOT NULL,

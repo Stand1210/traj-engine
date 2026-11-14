@@ -20,6 +20,7 @@ const emptyConfig: LifecycleInput = {
   samplingRate: 1,
   maxTraces: null,
   r2NoveltyThreshold: 0.15,
+  r2MinNoveltyTraces: 50,
   r2AlertRateThreshold: 0.2,
   writebackToLangfuse: false
 };
@@ -34,6 +35,7 @@ function fromSchedule(schedule: LifecycleInput): LifecycleInput {
     samplingRate: schedule.samplingRate,
     maxTraces: schedule.maxTraces,
     r2NoveltyThreshold: schedule.r2NoveltyThreshold,
+    r2MinNoveltyTraces: schedule.r2MinNoveltyTraces,
     r2AlertRateThreshold: schedule.r2AlertRateThreshold,
     writebackToLangfuse: schedule.writebackToLangfuse
   };
@@ -203,6 +205,10 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
             type="number" min="0" max="1" step="0.01" value={config.r2NoveltyThreshold}
             onChange={event => setConfig({ ...config, r2NoveltyThreshold: Number(event.target.value) })}
           /></label>
+          <label>R2 最小 novelty 轨迹数<input
+            type="number" min="0" step="1" value={config.r2MinNoveltyTraces}
+            onChange={event => setConfig({ ...config, r2MinNoveltyTraces: Number(event.target.value) })}
+          /></label>
           <label>R2 告警率阈值<input
             type="number" min="0" max="1" step="0.01" value={config.r2AlertRateThreshold}
             onChange={event => setConfig({ ...config, r2AlertRateThreshold: Number(event.target.value) })}
@@ -243,7 +249,7 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
         <h2>评估历史</h2>
         <table>
           <thead>
-            <tr><th>时间</th><th>决策</th><th>触发原因</th><th>窗口内轨迹</th><th>novelty</th><th>告警率</th><th>Run</th></tr>
+            <tr><th>时间</th><th>决策</th><th>触发原因</th><th>窗口内轨迹</th><th>novelty</th><th>累计 novelty</th><th>告警率</th><th>Run</th></tr>
           </thead>
           <tbody>
             {evaluations.map(item => (
@@ -253,6 +259,11 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
                 <td>{item.reason}</td>
                 <td>{item.metrics.traceCount ?? "-"}</td>
                 <td>{item.metrics.noveltyRate == null ? "-" : `${(item.metrics.noveltyRate * 100).toFixed(1)}%`}</td>
+                <td>
+                  {item.metrics.accumulatedNoveltyTraces == null
+                    ? "-"
+                    : `${item.metrics.accumulatedNoveltyTraces} / ${item.metrics.r2MinNoveltyTraces ?? "-"}`}
+                </td>
                 <td>{item.metrics.alertRate == null ? "-" : `${(item.metrics.alertRate * 100).toFixed(1)}%`}</td>
                 <td>
                   {item.run ? (

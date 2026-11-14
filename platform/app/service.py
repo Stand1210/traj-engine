@@ -129,6 +129,7 @@ class LifecycleInput(BaseModel):
     samplingRate: float = Field(default=1.0, gt=0.0, le=1.0)
     maxTraces: int | None = Field(default=None, ge=1)
     r2NoveltyThreshold: float = Field(default=0.15, ge=0.0, le=1.0)
+    r2MinNoveltyTraces: int = Field(default=50, ge=0)
     r2AlertRateThreshold: float = Field(default=0.20, ge=0.0, le=1.0)
     writebackToLangfuse: bool = False
 
@@ -383,6 +384,7 @@ def configure_lifecycle(
             input_data.r2NoveltyThreshold,
             input_data.r2AlertRateThreshold,
             input_data.writebackToLangfuse,
+            input_data.r2MinNoveltyTraces,
         )
     except ValueError as error:
         if str(error) == "ontology not found":

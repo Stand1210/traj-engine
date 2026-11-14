@@ -1291,6 +1291,7 @@ components:
         - windowHours
         - samplingRate
         - r2NoveltyThreshold
+        - r2MinNoveltyTraces
         - r2AlertRateThreshold
         - writebackToLangfuse
         - createdAt
@@ -1306,6 +1307,7 @@ components:
         samplingRate: {type: number, exclusiveMinimum: 0, maximum: 1}
         maxTraces: {type: integer, minimum: 1, nullable: true}
         r2NoveltyThreshold: {type: number, minimum: 0, maximum: 1}
+        r2MinNoveltyTraces: {type: integer, minimum: 0, default: 50}
         r2AlertRateThreshold: {type: number, minimum: 0, maximum: 1}
         writebackToLangfuse: {type: boolean}
         createdAt: {type: string, format: date-time}
@@ -1321,6 +1323,7 @@ components:
         samplingRate: {type: number, exclusiveMinimum: 0, maximum: 1, default: 1}
         maxTraces: {type: integer, minimum: 1, nullable: true}
         r2NoveltyThreshold: {type: number, minimum: 0, maximum: 1, default: 0.15}
+        r2MinNoveltyTraces: {type: integer, minimum: 0, default: 50}
         r2AlertRateThreshold: {type: number, minimum: 0, maximum: 1, default: 0.20}
         writebackToLangfuse: {type: boolean, default: false}
     LifecycleEvaluateInput:
@@ -1344,6 +1347,7 @@ components:
             - cold_start
             - forced_r2
             - novelty_threshold
+            - novelty_below_minimum
             - alert_rate_threshold
             - interval_due
             - not_due

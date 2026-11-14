@@ -162,6 +162,17 @@ M3.4 calibration usage: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 「调度扫描全部本体」按钮执行与后台调度器相同的一轮扫描；若另一实例
   正在执行，会返回 `lock_held` 并跳过。
 
+### 3.4.3 自动 R2 novelty 样本护栏
+
+- 生命周期配置中的「R2 最小 novelty 轨迹数」用于防止少量偶发弃权轨迹
+  直接触发结构重建，默认 50；设为 0 表示关闭。
+- 评估历史中的「累计 novelty」列显示：
+  `自当前 active 结构生成后，成功 Run 中去重累计的 novelty 轨迹数 / 配置阈值`。
+- 当最新 Run 的 novelty 率超过阈值但累计数量不足时：
+  - 决策会显示 `skipped`，原因是 `novelty_below_minimum`。
+  - 若 R1 周期已到期，会先创建 R1 继续积累样本。
+- 当累计数量达标且 novelty 率仍超过阈值时，才会自动创建 R2。
+
 ## 4. 结果解读
 
 | 页面内容 | 业务含义 | 判断动作 |

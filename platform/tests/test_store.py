@@ -82,6 +82,43 @@ class StoreTest(unittest.TestCase):
             finally:
                 connection.close()
 
+    def test_existing_lifecycle_schedule_table_is_migrated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "test.db"
+            connection = store.connect(db_path, initialize=True)
+            try:
+                connection.execute("DROP TABLE lifecycle_schedules")
+                connection.execute(
+                    """CREATE TABLE lifecycle_schedules (
+                        id TEXT PRIMARY KEY,
+                        ontology_id TEXT NOT NULL UNIQUE,
+                        enabled INTEGER NOT NULL,
+                        source TEXT NOT NULL,
+                        source_ref TEXT NOT NULL,
+                        interval_hours REAL NOT NULL,
+                        window_hours REAL NOT NULL,
+                        sampling_rate REAL NOT NULL,
+                        max_traces INTEGER,
+                        r2_novelty_threshold REAL NOT NULL,
+                        r2_alert_rate_threshold REAL NOT NULL,
+                        writeback_to_langfuse INTEGER NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    )"""
+                )
+            finally:
+                connection.close()
+
+            upgraded = store.connect(db_path, initialize=True)
+            try:
+                columns = {
+                    row["name"]
+                    for row in upgraded.execute("PRAGMA table_info(lifecycle_schedules)")
+                }
+                self.assertIn("r2_min_novelty_traces", columns)
+            finally:
+                upgraded.close()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -209,9 +209,7 @@ M3.4 calibration record: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 
 ### 6.2 尚未实现
 
-- 常驻定时器与调度锁：当前采用 REST 显式评估，避免首版引入后台任务竞态。
 - R3：本体升版流程。
-- novelty 积累到最小样本数后的自动 R2 提案。
 
 ### 6.3 M4.1 受控 R2 对账
 
@@ -248,6 +246,24 @@ M3.4 calibration record: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   - `GET /api/v1/scheduler/status`
   - `POST /api/v1/scheduler/evaluate-all`
 - 前端生命周期页新增调度器状态面板与「调度扫描全部本体」按钮。
+
+### 6.5 M4.3 自动 R2 novelty 样本护栏
+
+- `lifecycle_schedules` 新增 `r2_min_novelty_traces`，默认 50；设为 0 表示
+  关闭该护栏。
+- 自动 R2 需要同时满足：
+  1. 最新成功 Run 的 novelty 率达到 `r2NoveltyThreshold`。
+  2. 自当前 active 结构生成 Run 之后，成功 Run 中累计的去重 novelty 轨迹数
+     达到 `r2MinNoveltyTraces`。
+- 去重按 `trace_id` 统计：同一 trace 在多个 R1 中被重复判为 novelty 时只计 1 次。
+- 未达到最小样本数时不创建 R2：
+  - 未到 R1 周期：记录 `skipped / novelty_below_minimum`。
+  - 已到 R1 周期：创建 R1 继续积累样本，避免调度被少量 novelty 卡死。
+- 新 R2 成功并生成 active 结构后，累计计数从新结构对应的 R2 Run 之后重新开始。
+- 评估历史返回 `accumulatedNoveltyTraces` 与 `r2MinNoveltyTraces`，前端显示
+  「累计 novelty X / N」。
+- 旧 SQLite 库启动时自动补列：
+  `r2_min_novelty_traces INTEGER NOT NULL DEFAULT 50`。
 
 R3：本体升级仍由业务规则变更触发，后续独立实现。
 

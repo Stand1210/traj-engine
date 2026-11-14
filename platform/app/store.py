@@ -19,6 +19,18 @@ def new_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:16]}"
 
 
+def _ensure_schema_migrations(connection: sqlite3.Connection) -> None:
+    columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(lifecycle_schedules)").fetchall()
+    }
+    if "r2_min_novelty_traces" not in columns:
+        connection.execute(
+            """ALTER TABLE lifecycle_schedules
+               ADD COLUMN r2_min_novelty_traces INTEGER NOT NULL DEFAULT 50"""
+        )
+
+
 def connect(db_path: str | Path = DEFAULT_DB_PATH, initialize: bool = False) -> sqlite3.Connection:
     path = Path(db_path)
     if initialize:
@@ -29,6 +41,7 @@ def connect(db_path: str | Path = DEFAULT_DB_PATH, initialize: bool = False) -> 
     connection.execute("PRAGMA busy_timeout = 5000")
     if initialize:
         connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        _ensure_schema_migrations(connection)
         connection.commit()
     return connection
 
@@ -266,6 +279,7 @@ def upsert_lifecycle_schedule(
     r2_novelty_threshold: float,
     r2_alert_rate_threshold: float,
     writeback_to_langfuse: bool,
+    r2_min_novelty_traces: int = 50,
 ) -> str:
     if connection.execute("SELECT id FROM ontologies WHERE id = ?", (ontology_id,)).fetchone() is None:
         raise ValueError("ontology not found")
@@ -277,6 +291,8 @@ def upsert_lifecycle_schedule(
         raise ValueError("sampling rate must be in (0, 1]")
     if not 0 <= r2_novelty_threshold <= 1 or not 0 <= r2_alert_rate_threshold <= 1:
         raise ValueError("thresholds must be in [0, 1]")
+    if r2_min_novelty_traces < 0:
+        raise ValueError("minimum novelty traces must be non-negative")
 
     row = connection.execute(
         "SELECT id FROM lifecycle_schedules WHERE ontology_id = ?", (ontology_id,)
@@ -288,11 +304,13 @@ def upsert_lifecycle_schedule(
             """INSERT INTO lifecycle_schedules
                (id, ontology_id, enabled, source, source_ref, interval_hours,
                 window_hours, sampling_rate, max_traces, r2_novelty_threshold,
-                r2_alert_rate_threshold, writeback_to_langfuse, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 r2_min_novelty_traces, r2_alert_rate_threshold,
+                 writeback_to_langfuse, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (schedule_id, ontology_id, int(enabled), source, source_ref, interval_hours,
              window_hours, sampling_rate, max_traces, r2_novelty_threshold,
-             r2_alert_rate_threshold, int(writeback_to_langfuse), now, now),
+             r2_min_novelty_traces, r2_alert_rate_threshold,
+             int(writeback_to_langfuse), now, now),
         )
     else:
         schedule_id = row["id"]
@@ -301,11 +319,11 @@ def upsert_lifecycle_schedule(
                SET enabled = ?, source = ?, source_ref = ?, interval_hours = ?,
                    window_hours = ?, sampling_rate = ?, max_traces = ?,
                    r2_novelty_threshold = ?, r2_alert_rate_threshold = ?,
-                   writeback_to_langfuse = ?, updated_at = ?
+                   r2_min_novelty_traces = ?, writeback_to_langfuse = ?, updated_at = ?
                WHERE id = ?""",
             (int(enabled), source, source_ref, interval_hours, window_hours, sampling_rate,
              max_traces, r2_novelty_threshold, r2_alert_rate_threshold,
-             int(writeback_to_langfuse), now, schedule_id),
+             r2_min_novelty_traces, int(writeback_to_langfuse), now, schedule_id),
         )
     connection.commit()
     return schedule_id

@@ -293,6 +293,19 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   npm run build
   ```
 
+### 3.4 M4.3 自动 R2 护栏部署记录
+
+- 数据库变更：`lifecycle_schedules` 新增列
+  `r2_min_novelty_traces INTEGER NOT NULL DEFAULT 50`。
+  - 新库由 `platform/contracts/schema.sql` 创建。
+  - 旧 SQLite 库在后端初始化连接时自动 `ALTER TABLE` 补列，默认值 50。
+- 无新增数据表、无新增三方件、无 embedding 模型变更。
+- 配置入口：
+  - REST：`PUT /api/v1/ontologies/{id}/lifecycle` 的 `r2MinNoveltyTraces`。
+  - 前端：生命周期页「R2 最小 novelty 轨迹数」。
+- 该值表示自当前 active 结构生成后，成功 Run 中去重累计的 novelty 轨迹数
+  门槛；0 表示关闭护栏。
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件
