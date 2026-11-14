@@ -11,6 +11,10 @@ SCHEMA_PATH = ROOT / "platform" / "contracts" / "schema.sql"
 DEFAULT_DB_PATH = ROOT / "platform" / "var" / "traj-engine.db"
 
 
+class TenantQuotaExceeded(ValueError):
+    pass
+
+
 def utcnow() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -20,6 +24,21 @@ def new_id(prefix: str) -> str:
 
 
 def _ensure_schema_migrations(connection: sqlite3.Connection) -> None:
+    tenant_columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(tenants)").fetchall()
+    }
+    tenant_quota_columns = {
+        "max_traces_per_run": 100000,
+        "max_runs_per_day": 24,
+        "max_concurrent_runs": 1,
+    }
+    for column_name, default_value in tenant_quota_columns.items():
+        if column_name not in tenant_columns:
+            connection.execute(
+                f"""ALTER TABLE tenants
+                    ADD COLUMN {column_name} INTEGER NOT NULL DEFAULT {default_value}"""
+            )
     columns = {
         row["name"]
         for row in connection.execute("PRAGMA table_info(lifecycle_schedules)").fetchall()
@@ -166,7 +185,12 @@ def create_tenant(
     public_key: str,
     secret_key: str,
     queue_id: str | None = None,
+    max_traces_per_run: int = 100000,
+    max_runs_per_day: int = 24,
+    max_concurrent_runs: int = 1,
 ) -> str:
+    if max_traces_per_run < 1 or max_runs_per_day < 1 or max_concurrent_runs < 1:
+        raise ValueError("tenant quotas must be positive")
     existing = connection.execute(
         "SELECT id FROM tenants WHERE org_id = ? AND project_id = ?",
         (org_id, project_id),
@@ -177,13 +201,78 @@ def create_tenant(
     connection.execute(
         """INSERT INTO tenants
            (id, display_name, org_id, project_id, public_key, secret_key, queue_id,
+            max_traces_per_run, max_runs_per_day, max_concurrent_runs,
             created_at, updated_at, deleted_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)""",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)""",
         (tenant_id, display_name, org_id, project_id, public_key, secret_key,
-         queue_id, utcnow(), utcnow()),
+         queue_id, max_traces_per_run, max_runs_per_day, max_concurrent_runs,
+         utcnow(), utcnow()),
     )
     connection.commit()
     return tenant_id
+
+
+def update_tenant_quotas(
+    connection: sqlite3.Connection,
+    tenant_id: str,
+    max_traces_per_run: int,
+    max_runs_per_day: int,
+    max_concurrent_runs: int,
+) -> None:
+    if max_traces_per_run < 1 or max_runs_per_day < 1 or max_concurrent_runs < 1:
+        raise ValueError("tenant quotas must be positive")
+    if connection.execute("SELECT id FROM tenants WHERE id = ?", (tenant_id,)).fetchone() is None:
+        raise ValueError("tenant not found")
+    connection.execute(
+        """UPDATE tenants
+           SET max_traces_per_run = ?, max_runs_per_day = ?, max_concurrent_runs = ?,
+               updated_at = ?
+           WHERE id = ?""",
+        (max_traces_per_run, max_runs_per_day, max_concurrent_runs, utcnow(), tenant_id),
+    )
+    connection.commit()
+
+
+def ensure_tenant_run_quota(
+    connection: sqlite3.Connection,
+    tenant_id: str,
+    requested_limit: int | None,
+) -> int:
+    tenant = connection.execute(
+        """SELECT max_traces_per_run, max_runs_per_day, max_concurrent_runs
+           FROM tenants WHERE id = ?""",
+        (tenant_id,),
+    ).fetchone()
+    if tenant is None:
+        raise ValueError("tenant not found")
+    if requested_limit is not None and requested_limit > tenant["max_traces_per_run"]:
+        raise TenantQuotaExceeded(
+            f"requested limit {requested_limit} exceeds tenant max traces per run "
+            f"{tenant['max_traces_per_run']}"
+        )
+    active_count = connection.execute(
+        """SELECT COUNT(*) AS n FROM cohort_runs
+           WHERE tenant_id = ? AND status IN ('queued', 'running')""",
+        (tenant_id,),
+    ).fetchone()["n"]
+    if active_count >= tenant["max_concurrent_runs"]:
+        raise TenantQuotaExceeded(
+            f"tenant already has {active_count} active runs; max concurrent runs is "
+            f"{tenant['max_concurrent_runs']}"
+        )
+    today = datetime.now(timezone.utc).date().isoformat()
+    tomorrow = (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
+    daily_count = connection.execute(
+        """SELECT COUNT(*) AS n FROM cohort_runs
+           WHERE tenant_id = ? AND created_at >= ? AND created_at < ?""",
+        (tenant_id, today, tomorrow),
+    ).fetchone()["n"]
+    if daily_count >= tenant["max_runs_per_day"]:
+        raise TenantQuotaExceeded(
+            f"tenant already created {daily_count} runs today; max runs per day is "
+            f"{tenant['max_runs_per_day']}"
+        )
+    return requested_limit if requested_limit is not None else tenant["max_traces_per_run"]
 
 
 def create_ontology(

@@ -110,6 +110,30 @@ paths:
                 $ref: '#/components/schemas/Tenant'
         '404':
           $ref: '#/components/responses/NotFound'
+  /tenants/{tenantId}/quotas:
+    patch:
+      tags: [tenants]
+      operationId: updateTenantQuotas
+      summary: Update tenant run quotas
+      parameters:
+        - $ref: '#/components/parameters/tenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantQuotaInput'
+      responses:
+        '200':
+          description: Updated tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /ontologies:
     get:
       tags: [ontologies]
@@ -423,6 +447,8 @@ paths:
                 $ref: '#/components/schemas/Run'
         '409':
           $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /runs/{runId}:
     get:
       tags: [runs]
@@ -893,6 +919,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Tenant quota exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     ServiceUnavailable:
       description: Service unavailable
       content:
@@ -951,6 +989,9 @@ components:
         projectId: {type: string}
         queueId: {type: string}
         displayName: {type: string}
+        maxTracesPerRun: {type: integer, minimum: 1}
+        maxRunsPerDay: {type: integer, minimum: 1}
+        maxConcurrentRuns: {type: integer, minimum: 1}
         createdAt: {type: string, format: date-time}
     TenantInput:
       type: object
@@ -962,6 +1003,16 @@ components:
         displayName: {type: string}
         publicKey: {type: string, writeOnly: true}
         secretKey: {type: string, writeOnly: true}
+        maxTracesPerRun: {type: integer, minimum: 1}
+        maxRunsPerDay: {type: integer, minimum: 1}
+        maxConcurrentRuns: {type: integer, minimum: 1}
+    TenantQuotaInput:
+      type: object
+      required: [maxTracesPerRun, maxRunsPerDay, maxConcurrentRuns]
+      properties:
+        maxTracesPerRun: {type: integer, minimum: 1}
+        maxRunsPerDay: {type: integer, minimum: 1}
+        maxConcurrentRuns: {type: integer, minimum: 1}
     Ontology:
       type: object
       required: [id, tenantId, currentVersion, tier]

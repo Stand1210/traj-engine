@@ -298,7 +298,7 @@ R3：本体升级仍由业务规则变更触发，后续独立实现。
 ### 7.3 后续硬化
 
 - 多租户配额与隔离。
-- 100,000 条内存外存化：需要内核检测接口拆分，不能只改平台层。
+- 100,000 条内存外存化：暂缓，等待显式解除“不改 kernel”约束后实施。
 - SQLite → PostgreSQL 切换评估。
 - 失败恢复、重试、幂等与运维告警。
 
@@ -313,3 +313,19 @@ R3：本体升级仍由业务规则变更触发，后续独立实现。
   - 100,000 条 R2 4,560.980 s，峰值内存 1.93 GB。
 - 100,000 条未达 500 MB 内存目标；剩余瓶颈是内核
   `feature_rows + detect_all(stage)` 的全量驻留，需要后续内核接口级改造。
+
+### 7.5 M5.5 租户运行配额
+
+- `tenants` 新增三个运行限额：
+  - `max_traces_per_run`
+  - `max_runs_per_day`
+  - `max_concurrent_runs`
+- 新租户默认值来自 `platform/config/performance.yaml` 的 `tenantDefaults`。
+- `POST /api/v1/runs` 创建前统一检查：
+  - 显式条数上限超过 `max_traces_per_run` 时返回 429。
+  - 未显式设置条数上限时，按 `max_traces_per_run` 封顶读取。
+  - 达到单租户日 Run 数或并发 Run 数上限时返回 429。
+- `PATCH /api/v1/tenants/{tenantId}/quotas` 可更新租户限额。
+- 前端发起 Run 页显示租户限额，并提示条数上限。
+- 旧 SQLite 库在初始化启动时自动补列，默认值分别为
+  100,000 / 24 / 1。

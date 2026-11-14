@@ -16,6 +16,7 @@ from platform.app.config import (
     load_calibration_config,
     load_endpoints,
     load_scheduler_config,
+    load_performance_config,
     resolve_profile_from_args,
 )
 from platform.app.algorithm import load_frozen_state
@@ -108,6 +109,15 @@ class TenantInput(BaseModel):
     publicKey: str
     secretKey: str
     queueId: str | None = None
+    maxTracesPerRun: int | None = Field(default=None, ge=1)
+    maxRunsPerDay: int | None = Field(default=None, ge=1)
+    maxConcurrentRuns: int | None = Field(default=None, ge=1)
+
+
+class TenantQuotaInput(BaseModel):
+    maxTracesPerRun: int = Field(ge=1)
+    maxRunsPerDay: int = Field(ge=1)
+    maxConcurrentRuns: int = Field(ge=1)
 
 
 class OntologyInput(BaseModel):
@@ -210,6 +220,7 @@ def get_tenant(tenant_id: str, connection=Depends(get_connection)) -> dict:
 
 @app.post("/api/v1/tenants", status_code=201)
 def register_tenant(input_data: TenantInput, connection=Depends(get_connection)) -> dict:
+    defaults = load_performance_config()["tenantDefaults"]
     try:
         tenant_id = store.create_tenant(
             connection,
@@ -219,9 +230,34 @@ def register_tenant(input_data: TenantInput, connection=Depends(get_connection))
             input_data.publicKey,
             input_data.secretKey,
             input_data.queueId,
+            input_data.maxTracesPerRun or defaults["maxTracesPerRun"],
+            input_data.maxRunsPerDay or defaults["maxRunsPerDay"],
+            input_data.maxConcurrentRuns or defaults["maxConcurrentRuns"],
         )
     except ValueError:
         raise HTTPException(status_code=409, detail={"code": "tenant_already_exists"})
+    row = connection.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,)).fetchone()
+    return serialize_tenant(row)
+
+
+@app.patch("/api/v1/tenants/{tenant_id}/quotas")
+def update_tenant_quotas(
+    tenant_id: str,
+    input_data: TenantQuotaInput,
+    connection=Depends(get_connection),
+) -> dict:
+    try:
+        store.update_tenant_quotas(
+            connection,
+            tenant_id,
+            input_data.maxTracesPerRun,
+            input_data.maxRunsPerDay,
+            input_data.maxConcurrentRuns,
+        )
+    except ValueError as error:
+        if str(error) == "tenant not found":
+            raise HTTPException(status_code=404, detail={"code": "tenant_not_found"})
+        raise HTTPException(status_code=400, detail={"code": "invalid_tenant_quota"})
     row = connection.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,)).fetchone()
     return serialize_tenant(row)
 
@@ -508,6 +544,17 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
             raise HTTPException(status_code=400, detail={"code": "ontology_version_not_published"})
     if input_data.samplingRate <= 0:
         raise HTTPException(status_code=400, detail={"code": "sampling_rate_must_be_positive"})
+    try:
+        effective_limit = store.ensure_tenant_run_quota(
+            connection, input_data.tenantId, input_data.limit
+        )
+    except store.TenantQuotaExceeded as error:
+        raise HTTPException(
+            status_code=429,
+            detail={"code": "tenant_quota_exceeded", "message": str(error)},
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail={"code": "invalid_run_request", "message": str(error)})
     if input_data.idempotencyKey:
         existing = connection.execute(
             "SELECT id FROM cohort_runs WHERE tenant_id = ? AND idempotency_key = ?",
@@ -547,7 +594,7 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
                 "publicKey": langfuse_tenant["public_key"],
                 "secretKey": langfuse_tenant["secret_key"],
             },
-            max_traces=input_data.limit,
+            max_traces=effective_limit,
         )
         window = {"start": input_data.windowStart, "end": input_data.windowEnd}
         if input_data.writebackToLangfuse:
@@ -564,7 +611,7 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
         run_id,
         input_data.sourceRef,
         input_data.samplingRate,
-        input_data.limit,
+        effective_limit,
         trace_source=trace_source,
         window=window,
         ontology_id=input_data.ontologyId,
@@ -1290,6 +1337,9 @@ def serialize_tenant(row) -> dict:
     return {
         "id": row["id"], "orgId": row["org_id"], "projectId": row["project_id"],
         "queueId": row["queue_id"], "displayName": row["display_name"],
+        "maxTracesPerRun": row["max_traces_per_run"],
+        "maxRunsPerDay": row["max_runs_per_day"],
+        "maxConcurrentRuns": row["max_concurrent_runs"],
         "createdAt": row["created_at"],
     }
 

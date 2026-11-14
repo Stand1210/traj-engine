@@ -23,6 +23,15 @@ export interface Tenant {
   displayName: string;
   orgId: string;
   projectId: string;
+  maxTracesPerRun: number;
+  maxRunsPerDay: number;
+  maxConcurrentRuns: number;
+}
+
+export interface TenantQuotaInput {
+  maxTracesPerRun: number;
+  maxRunsPerDay: number;
+  maxConcurrentRuns: number;
 }
 
 export interface Ontology {
@@ -320,6 +329,11 @@ export const api = {
   profile: () => request<ProfileInfo>("/api/v1/config/profile"),
   startup: () => request<StartupRecord>("/api/v1/startup-records/current"),
   tenants: () => request<Page<Tenant>>("/api/v1/tenants?limit=100"),
+  updateTenantQuotas: (id: string, quota: TenantQuotaInput) =>
+    request<Tenant>(`/api/v1/tenants/${id}/quotas`, {
+      method: "PATCH",
+      body: JSON.stringify(quota)
+    }),
   ontologies: () => request<Page<Ontology>>("/api/v1/ontologies?limit=100"),
   runs: () => request<Page<Run>>("/api/v1/runs?limit=100"),
   run: (id: string) => request<Run>(`/api/v1/runs/${id}`),

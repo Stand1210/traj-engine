@@ -75,6 +75,13 @@ export default function RunLauncher({ onCreated, runsVersion, onSelect }: Props)
         <h2>发起分析 Run</h2>
         <div className="form-grid">
           <label>租户<span>{tenant?.displayName ?? "..."}</span></label>
+          <label>租户限额
+            <span>
+              {tenant
+                ? `单 Run ${tenant.maxTracesPerRun.toLocaleString()} · 每日 ${tenant.maxRunsPerDay} · 并发 ${tenant.maxConcurrentRuns}`
+                : "..."}
+            </span>
+          </label>
           <label>本体<span>{ontology?.id ?? "..."} / {ontology?.tier ?? "..."}</span></label>
           <label>数据源
             <select value={source} onChange={event => setSource(event.target.value as "jsonl" | "langfuse")}>
@@ -83,7 +90,13 @@ export default function RunLauncher({ onCreated, runsVersion, onSelect }: Props)
             </select>
           </label>
           <label>数据集 / Run 标识<input value={sourceRef} onChange={event => setSourceRef(event.target.value)} /></label>
-          <label>条数上限<input value={limit} placeholder="留空表示全量" onChange={event => setLimit(event.target.value)} /></label>
+          <label>条数上限
+            <input
+              value={limit}
+              placeholder={tenant ? `不超过 ${tenant.maxTracesPerRun.toLocaleString()}` : "留空表示按租户限额"}
+              onChange={event => setLimit(event.target.value)}
+            />
+          </label>
           {source === "langfuse" && (
             <label className="checkbox">
               <input

@@ -3,3 +3,7 @@ description: R2 cold-start performance guardrails.
 r2TrainingLimit: 64
 persistBatchSize: 500
 scoreBatchSize: 1000
+tenantDefaults:
+  maxTracesPerRun: 100000
+  maxRunsPerDay: 24
+  maxConcurrentRuns: 1
