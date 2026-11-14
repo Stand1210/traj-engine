@@ -72,27 +72,20 @@ def load_performance_config(path: Path = CONFIG_ROOT / "performance.yaml") -> di
     limit = int(config.get("r2TrainingLimit", 64))
     batch_size = int(config.get("persistBatchSize", 500))
     score_batch_size = int(config.get("scoreBatchSize", 1000))
-    tenant_defaults = config.get("tenantDefaults") or {}
-    max_traces = int(tenant_defaults.get("maxTracesPerRun", 100000))
-    max_runs = int(tenant_defaults.get("maxRunsPerDay", 24))
-    max_concurrent = int(tenant_defaults.get("maxConcurrentRuns", 1))
+    max_traces = int(config.get("projectDefaultMaxTracesPerRun", 100000))
     if limit < 2:
         raise ValueError("R2 training limit must be at least 2")
     if batch_size < 1:
         raise ValueError("persist batch size must be positive")
     if score_batch_size < 1:
         raise ValueError("score batch size must be positive")
-    if max_traces < 1 or max_runs < 1 or max_concurrent < 1:
-        raise ValueError("tenant quota defaults must be positive")
+    if max_traces < 1:
+        raise ValueError("project quota default must be positive")
     return {
         "r2TrainingLimit": limit,
         "persistBatchSize": batch_size,
         "scoreBatchSize": score_batch_size,
-        "tenantDefaults": {
-            "maxTracesPerRun": max_traces,
-            "maxRunsPerDay": max_runs,
-            "maxConcurrentRuns": max_concurrent,
-        },
+        "projectDefaultMaxTracesPerRun": max_traces,
     }
 
 

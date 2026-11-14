@@ -23,8 +23,6 @@ CREATE TABLE IF NOT EXISTS tenants (
     secret_key TEXT NOT NULL,
     queue_id TEXT,
     max_traces_per_run INTEGER NOT NULL DEFAULT 100000,
-    max_runs_per_day INTEGER NOT NULL DEFAULT 24,
-    max_concurrent_runs INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     deleted_at TEXT,

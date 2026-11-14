@@ -75,10 +75,10 @@ export default function RunLauncher({ onCreated, runsVersion, onSelect }: Props)
         <h2>发起分析 Run</h2>
         <div className="form-grid">
           <label>租户<span>{tenant?.displayName ?? "..."}</span></label>
-          <label>租户限额
+          <label>Project 限额
             <span>
               {tenant
-                ? `单 Run ${tenant.maxTracesPerRun.toLocaleString()} · 每日 ${tenant.maxRunsPerDay} · 并发 ${tenant.maxConcurrentRuns}`
+                ? `单 Run 最大轨迹数 ${tenant.maxTracesPerRun.toLocaleString()}`
                 : "..."}
             </span>
           </label>

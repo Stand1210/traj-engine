@@ -110,11 +110,11 @@ paths:
                 $ref: '#/components/schemas/Tenant'
         '404':
           $ref: '#/components/responses/NotFound'
-  /tenants/{tenantId}/quotas:
+  /tenants/{tenantId}/quota:
     patch:
       tags: [tenants]
-      operationId: updateTenantQuotas
-      summary: Update tenant run quotas
+      operationId: updateProjectQuota
+      summary: Update the project trace quota
       parameters:
         - $ref: '#/components/parameters/tenantId'
       requestBody:
@@ -122,7 +122,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TenantQuotaInput'
+              $ref: '#/components/schemas/ProjectQuotaInput'
       responses:
         '200':
           description: Updated tenant
@@ -990,8 +990,6 @@ components:
         queueId: {type: string}
         displayName: {type: string}
         maxTracesPerRun: {type: integer, minimum: 1}
-        maxRunsPerDay: {type: integer, minimum: 1}
-        maxConcurrentRuns: {type: integer, minimum: 1}
         createdAt: {type: string, format: date-time}
     TenantInput:
       type: object
@@ -1004,15 +1002,11 @@ components:
         publicKey: {type: string, writeOnly: true}
         secretKey: {type: string, writeOnly: true}
         maxTracesPerRun: {type: integer, minimum: 1}
-        maxRunsPerDay: {type: integer, minimum: 1}
-        maxConcurrentRuns: {type: integer, minimum: 1}
-    TenantQuotaInput:
+    ProjectQuotaInput:
       type: object
-      required: [maxTracesPerRun, maxRunsPerDay, maxConcurrentRuns]
+      required: [maxTracesPerRun]
       properties:
         maxTracesPerRun: {type: integer, minimum: 1}
-        maxRunsPerDay: {type: integer, minimum: 1}
-        maxConcurrentRuns: {type: integer, minimum: 1}
     Ontology:
       type: object
       required: [id, tenantId, currentVersion, tier]

@@ -228,24 +228,20 @@ R2 冷启动聚类；R1、查询和调度扫描在 100 条基线下均为秒级�
 - 当前 10 万条压测仍需约 1.93 GB 峰值内存，主要来自内核全量检测中间态；
   详情见 `M5_0_PERFORMANCE_BASELINE.md`。
 
-### 6.4 租户运行配额
+### 6.4 Project 轨迹配额
 
-- 每个租户有三个限额：
-  - 单个 Run 最大轨迹数。
-  - 每日最大 Run 数。
-  - 最大并发 Run 数。
-- 新租户默认值来自 `platform/config/performance.yaml`：
+- 一个 Langfuse Project 对应一个租户记录，每个 Project 只有一个限额：
+  单个 Run 最大轨迹数。
+- 新 Project 默认值来自 `platform/config/performance.yaml`：
 
 ```yaml
-tenantDefaults:
-  maxTracesPerRun: 100000
-  maxRunsPerDay: 24
-  maxConcurrentRuns: 1
+projectDefaultMaxTracesPerRun: 100000
 ```
 
 - 发起 Run 时：
   - 显式填写超过单 Run 上限的条数会被拒绝。
   - 不填写条数时，平台按单 Run 上限自动封顶，避免无边界读取。
-  - 超过日 Run 数或并发 Run 数时返回 `429 tenant_quota_exceeded`。
-- 前端发起分析 Run 页面会直接显示当前租户三个限额。
+  - 超限时返回 `429 project_quota_exceeded`。
+- 前端发起分析 Run 页面会直接显示当前 Project 限额。
+- 每日 Run 数与并发 Run 数限制暂不实现。
 

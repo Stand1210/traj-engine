@@ -110,14 +110,10 @@ class TenantInput(BaseModel):
     secretKey: str
     queueId: str | None = None
     maxTracesPerRun: int | None = Field(default=None, ge=1)
-    maxRunsPerDay: int | None = Field(default=None, ge=1)
-    maxConcurrentRuns: int | None = Field(default=None, ge=1)
 
 
-class TenantQuotaInput(BaseModel):
+class ProjectQuotaInput(BaseModel):
     maxTracesPerRun: int = Field(ge=1)
-    maxRunsPerDay: int = Field(ge=1)
-    maxConcurrentRuns: int = Field(ge=1)
 
 
 class OntologyInput(BaseModel):
@@ -220,7 +216,7 @@ def get_tenant(tenant_id: str, connection=Depends(get_connection)) -> dict:
 
 @app.post("/api/v1/tenants", status_code=201)
 def register_tenant(input_data: TenantInput, connection=Depends(get_connection)) -> dict:
-    defaults = load_performance_config()["tenantDefaults"]
+    default_max_traces = load_performance_config()["projectDefaultMaxTracesPerRun"]
     try:
         tenant_id = store.create_tenant(
             connection,
@@ -230,9 +226,7 @@ def register_tenant(input_data: TenantInput, connection=Depends(get_connection))
             input_data.publicKey,
             input_data.secretKey,
             input_data.queueId,
-            input_data.maxTracesPerRun or defaults["maxTracesPerRun"],
-            input_data.maxRunsPerDay or defaults["maxRunsPerDay"],
-            input_data.maxConcurrentRuns or defaults["maxConcurrentRuns"],
+            input_data.maxTracesPerRun or default_max_traces,
         )
     except ValueError:
         raise HTTPException(status_code=409, detail={"code": "tenant_already_exists"})
@@ -240,19 +234,17 @@ def register_tenant(input_data: TenantInput, connection=Depends(get_connection))
     return serialize_tenant(row)
 
 
-@app.patch("/api/v1/tenants/{tenant_id}/quotas")
-def update_tenant_quotas(
+@app.patch("/api/v1/tenants/{tenant_id}/quota")
+def update_project_quota(
     tenant_id: str,
-    input_data: TenantQuotaInput,
+    input_data: ProjectQuotaInput,
     connection=Depends(get_connection),
 ) -> dict:
     try:
-        store.update_tenant_quotas(
+        store.update_project_quota(
             connection,
             tenant_id,
             input_data.maxTracesPerRun,
-            input_data.maxRunsPerDay,
-            input_data.maxConcurrentRuns,
         )
     except ValueError as error:
         if str(error) == "tenant not found":
@@ -545,13 +537,13 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
     if input_data.samplingRate <= 0:
         raise HTTPException(status_code=400, detail={"code": "sampling_rate_must_be_positive"})
     try:
-        effective_limit = store.ensure_tenant_run_quota(
+        effective_limit = store.ensure_project_run_quota(
             connection, input_data.tenantId, input_data.limit
         )
-    except store.TenantQuotaExceeded as error:
+    except store.ProjectQuotaExceeded as error:
         raise HTTPException(
             status_code=429,
-            detail={"code": "tenant_quota_exceeded", "message": str(error)},
+            detail={"code": "project_quota_exceeded", "message": str(error)},
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail={"code": "invalid_run_request", "message": str(error)})
@@ -1338,8 +1330,6 @@ def serialize_tenant(row) -> dict:
         "id": row["id"], "orgId": row["org_id"], "projectId": row["project_id"],
         "queueId": row["queue_id"], "displayName": row["display_name"],
         "maxTracesPerRun": row["max_traces_per_run"],
-        "maxRunsPerDay": row["max_runs_per_day"],
-        "maxConcurrentRuns": row["max_concurrent_runs"],
         "createdAt": row["created_at"],
     }
 

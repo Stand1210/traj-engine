@@ -314,18 +314,18 @@ R3：本体升级仍由业务规则变更触发，后续独立实现。
 - 100,000 条未达 500 MB 内存目标；剩余瓶颈是内核
   `feature_rows + detect_all(stage)` 的全量驻留，需要后续内核接口级改造。
 
-### 7.5 M5.5 租户运行配额
+### 7.5 M5.5 Project 轨迹配额
 
-- `tenants` 新增三个运行限额：
-  - `max_traces_per_run`
-  - `max_runs_per_day`
-  - `max_concurrent_runs`
-- 新租户默认值来自 `platform/config/performance.yaml` 的 `tenantDefaults`。
+- 一个 Langfuse Project 对应一个租户记录；`tenants` 仅新增
+  `max_traces_per_run` 一个限额。
+- 新 Project 默认值来自 `platform/config/performance.yaml` 的
+  `projectDefaultMaxTracesPerRun`。
 - `POST /api/v1/runs` 创建前统一检查：
   - 显式条数上限超过 `max_traces_per_run` 时返回 429。
   - 未显式设置条数上限时，按 `max_traces_per_run` 封顶读取。
-  - 达到单租户日 Run 数或并发 Run 数上限时返回 429。
-- `PATCH /api/v1/tenants/{tenantId}/quotas` 可更新租户限额。
-- 前端发起 Run 页显示租户限额，并提示条数上限。
+- `PATCH /api/v1/tenants/{tenantId}/quota` 可更新 Project 限额。
+- 前端发起 Run 页显示 Project 限额，并提示条数上限。
 - 旧 SQLite 库在初始化启动时自动补列，默认值分别为
-  100,000 / 24 / 1。
+  100,000。
+- 每日 Run 数、并发 Run 数、生命周期调度统一配额检查暂缓；仅在业务
+  提出需求后实现。

@@ -7,15 +7,15 @@ from fastapi import HTTPException
 from platform.app import store
 from platform.app.config import load_performance_config
 from platform.app.service import (
+    ProjectQuotaInput,
     RunInput,
-    TenantQuotaInput,
     create_run,
-    update_tenant_quotas,
+    update_project_quota,
 )
 
 
 class TenantQuotaTest(unittest.TestCase):
-    def test_tenant_quotas_limit_runs_and_can_be_updated(self):
+    def test_project_quota_limits_runs_and_can_be_updated(self):
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "tenant-quota.db"
             connection = store.connect(db_path, initialize=True)
@@ -28,48 +28,20 @@ class TenantQuotaTest(unittest.TestCase):
                     "pk",
                     "sk",
                     max_traces_per_run=10,
-                    max_runs_per_day=2,
-                    max_concurrent_runs=1,
                 )
                 ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
 
-                with self.assertRaises(store.TenantQuotaExceeded):
-                    store.ensure_tenant_run_quota(connection, tenant_id, 11)
-                self.assertEqual(10, store.ensure_tenant_run_quota(connection, tenant_id, None))
+                with self.assertRaises(store.ProjectQuotaExceeded):
+                    store.ensure_project_run_quota(connection, tenant_id, 11)
+                self.assertEqual(10, store.ensure_project_run_quota(connection, tenant_id, None))
 
-                first_run_id = store.create_run(
-                    connection, tenant_id, ontology_id, "langfuse", "quota",
-                    "R1", "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z",
-                    1.0, "test", None,
-                )
-                with self.assertRaises(store.TenantQuotaExceeded):
-                    store.ensure_tenant_run_quota(connection, tenant_id, 1)
-
-                connection.execute(
-                    "UPDATE cohort_runs SET status = 'succeeded' WHERE id = ?",
-                    (first_run_id,),
-                )
-                connection.commit()
-                store.create_run(
-                    connection, tenant_id, ontology_id, "langfuse", "quota-2",
-                    "R1", "2026-01-02T00:00:00Z", "2026-01-03T00:00:00Z",
-                    1.0, "test", None,
-                )
-                with self.assertRaises(store.TenantQuotaExceeded):
-                    store.ensure_tenant_run_quota(connection, tenant_id, 1)
-
-                store.update_tenant_quotas(
-                    connection, tenant_id,
-                    max_traces_per_run=20,
-                    max_runs_per_day=10,
-                    max_concurrent_runs=2,
-                )
+                store.update_project_quota(connection, tenant_id, max_traces_per_run=20)
                 row = connection.execute(
-                    """SELECT max_traces_per_run, max_runs_per_day, max_concurrent_runs
+                    """SELECT max_traces_per_run
                        FROM tenants WHERE id = ?""",
                     (tenant_id,),
                 ).fetchone()
-                self.assertEqual((20, 10, 2), tuple(row))
+                self.assertEqual((20,), tuple(row))
 
                 with self.assertRaises(HTTPException) as context:
                     create_run(
@@ -87,37 +59,19 @@ class TenantQuotaTest(unittest.TestCase):
                     )
                 self.assertEqual(429, context.exception.status_code)
 
-                updated = update_tenant_quotas(
+                updated = update_project_quota(
                     tenant_id,
-                    TenantQuotaInput(
-                        maxTracesPerRun=30,
-                        maxRunsPerDay=20,
-                        maxConcurrentRuns=2,
-                    ),
+                    ProjectQuotaInput(maxTracesPerRun=30),
                     connection,
                 )
-                self.assertEqual(
-                    (30, 20, 2),
-                    (
-                        updated["maxTracesPerRun"],
-                        updated["maxRunsPerDay"],
-                        updated["maxConcurrentRuns"],
-                    ),
-                )
+                self.assertEqual(30, updated["maxTracesPerRun"])
             finally:
                 connection.close()
 
-    def test_performance_config_exposes_positive_tenant_defaults(self):
+    def test_performance_config_exposes_positive_project_default(self):
         config = load_performance_config()
 
-        self.assertEqual(
-            {
-                "maxTracesPerRun": 100000,
-                "maxRunsPerDay": 24,
-                "maxConcurrentRuns": 1,
-            },
-            config["tenantDefaults"],
-        )
+        self.assertEqual(100000, config["projectDefaultMaxTracesPerRun"])
 
 
 if __name__ == "__main__":

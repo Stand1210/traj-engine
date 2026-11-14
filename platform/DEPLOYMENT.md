@@ -339,18 +339,18 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 100,000 条内存未达 500 MB 目标，剩余瓶颈在内核 `detect_all` 全量
   `stage` 与 `feature_rows`；在“不改 kernel”的红线下无法继续压缩。
 
-### 3.8 租户运行配额部署记录
+### 3.8 Project 轨迹配额部署记录
 
-- `tenants` 表新增三列：
+- `tenants` 表新增一列：
   - `max_traces_per_run INTEGER NOT NULL DEFAULT 100000`
-  - `max_runs_per_day INTEGER NOT NULL DEFAULT 24`
-  - `max_concurrent_runs INTEGER NOT NULL DEFAULT 1`
 - 旧 SQLite 库在后端初始化启动时自动 `ALTER TABLE` 补列。
-- 配置入口：`platform/config/performance.yaml` 的 `tenantDefaults`。
+- 配置入口：`platform/config/performance.yaml` 的
+  `projectDefaultMaxTracesPerRun`。
 - REST 入口：
   - `POST /api/v1/tenants` 可在注册时覆盖默认限额。
-  - `PATCH /api/v1/tenants/{tenantId}/quotas` 可更新限额。
+  - `PATCH /api/v1/tenants/{tenantId}/quota` 可更新限额。
 - 无新增三方件、无 embedding 模型变更。
+- 每日 Run 数与并发 Run 数限制暂不实现。
 
 ## 4. 待补充清单
 
