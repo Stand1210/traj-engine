@@ -210,3 +210,12 @@ python platform/scripts/performance_baseline.py --traces 100000 --output platfor
 首轮结论见 `platform/M5_0_PERFORMANCE_BASELINE.md`：当前主要瓶颈是
 R2 冷启动聚类；R1、查询和调度扫描在 100 条基线下均为秒级或毫秒级。
 
+### 6.2 R2 抽样训练
+
+- 配置文件：`platform/config/performance.yaml`。
+- `r2TrainingLimit` 默认 64，表示 R2 结构学习最多使用的训练轨迹数；
+  全量轨迹仍会被检测和评分。
+- 抽样策略为确定性等距抽样，重复执行同一批轨迹会得到相同训练样本。
+- Run 详情的 `algorithm` Step 会显示 `trainingTraceCount`、
+  `fullTraceCount` 和 `strategy=systematic`。
+

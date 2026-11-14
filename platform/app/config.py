@@ -67,6 +67,14 @@ def load_scheduler_config(path: Path = CONFIG_ROOT / "scheduler.yaml") -> dict:
     }
 
 
+def load_performance_config(path: Path = CONFIG_ROOT / "performance.yaml") -> dict:
+    config = yaml.safe_load(path.read_text(encoding="utf-8"))
+    limit = int(config.get("r2TrainingLimit", 64))
+    if limit < 2:
+        raise ValueError("R2 training limit must be at least 2")
+    return {"r2TrainingLimit": limit}
+
+
 def resolve_profile_from_args(profile_name: str | None = None) -> dict:
     profile_name = profile_name or os.environ.get("TRAJ_PROFILE", "cloud-v4")
     if profile_name not in {"cloud-v4", "selfhosted-v4"}:

@@ -85,11 +85,73 @@ python platform/scripts/performance_baseline.py --traces 24 --query-repeat 2 --t
 
 ## 4. M5.1 建议方向
 
-1. 对 R2 algorithm step 做 CPU profile，定位 pairwise 距离、共识矩阵或
-   UPGMA 中的热点。
-2. 评估 R2 抽样训练：
-   - 训练/结构发现仅使用分层抽样样本。
-   - 全量轨迹用冻结结构执行 R1 式分配与打分。
-3. 为 R2 增加训练规模上限与超时预算，避免单租户冷启动拖垮调度线程。
-4. 在压测工具中增加多租户、多本体并发场景，验证调度锁和 SQLite 写锁。
-5. 待 R2 优化后重新执行 1,000 / 10,000 / 100,000 三档基线。
+## 4. M5.1 CPU Profile
+
+对 100 条 R2 执行 `cProfile`：
+
+| 热点 | 累计耗时 | 占比 |
+|---|---:|---:|
+| `cluster_views` | 117.602 s | 99.7% |
+| `silhouette` | 78.904 s | 67.0% |
+| `kmeans_cent` | 35.964 s | 30.5% |
+| `euclid` | 79.225 s | 67.2% |
+
+结论：瓶颈不是 UPGMA 或 SQLite，而是意图视图 k-means 选 k 时的
+silhouette 距离计算。该路径随参与结构学习的样本数平方增长。
+
+## 5. M5.1 抽样训练实现
+
+已实现工程层 R2 抽样训练，未修改 `kernel/`：
+
+1. 当 R2 全量轨迹数超过 `r2TrainingLimit` 时，先做确定性等距抽样。
+2. 仅用训练样本执行结构学习，生成 frozen structure。
+3. 再用该 frozen structure 对全量轨迹执行分配、异常识别和打分。
+4. Run 仍保持 `R2` 语义，并创建新的 structure version 与 lineage。
+5. `algorithm` Run Step 记录：
+   - `training.sampled=true`
+   - `trainingTraceCount`
+   - `fullTraceCount`
+   - `strategy=systematic`
+
+配置文件：`platform/config/performance.yaml`
+
+```yaml
+r2TrainingLimit: 64
+```
+
+## 6. 优化后实测
+
+| 规模 | R2 | R1 | SQLite | 峰值内存 | 结果 |
+|---:|---:|---:|---:|---:|---|
+| 1,000 | 102.986 s | 21.859 s | 9,076,736 B | 23,421,613 B | 成功 |
+| 10,000 | 299.149 s | 293.025 s | 88,051,712 B | 221,447,153 B | 成功 |
+
+1,000 条从“600 秒超时”变为 103 秒完成。10,000 条完整 R2/R1 双 Run
+可在约 10 分钟内完成。
+
+10,000 条查询中位数：
+
+| 查询 | median |
+|---|---:|
+| Run 分页 | 0.439 ms |
+| 轨迹分数分页 | 67.514 ms |
+| 告警轨迹 | 31.557 ms |
+| 单轨迹证据 | 89.424 ms |
+| active 结构 | 0.056 ms |
+| 调度扫描分页 | 0.059 ms |
+
+> 10,000 条查询中位数以 `platform/var/performance-baseline-10000-sampled.json`
+> 为准；该文件是本机运行产物，不入库。
+
+## 7. 剩余风险
+
+1. 当前实现仍一次性加载全量轨迹并在内存中完成分配与持久化：
+   - 10,000 条峰值内存约 221 MB。
+   - 线性外推 100,000 条约 2.2 GB，内网部署前必须做流式化。
+2. R1 与优化后 R2 在 10,000 条下耗时接近，说明剩余成本主要在全量
+   特征提取、检测、评分和 SQLite 持久化。
+3. 下一阶段应做 M5.2：
+   - TraceSource 流式读取。
+   - 分批特征提取与评分。
+   - 分批写库，避免一次性保存全部 score/evidence。
+   - 对 100,000 条重新压测。

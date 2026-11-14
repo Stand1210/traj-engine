@@ -99,6 +99,7 @@ def run_production(
     traces: list[dict],
     ontology_id: str,
     frozen_state: dict | None = None,
+    run_mode: str | None = None,
 ) -> tuple[dict, list[dict]]:
     if not traces:
         raise ValueError("production run requires at least one trace")
@@ -191,7 +192,9 @@ def run_production(
         "code_hash": code_hash(),
         "spec_hash": spec_hash,
         "ontology_id": ontology_id,
-        "run_mode": "R1" if frozen_state is not None and cluster_info.get("frozen_structure") else "R2",
+        "run_mode": run_mode or (
+            "R1" if frozen_state is not None and cluster_info.get("frozen_structure") else "R2"
+        ),
         "n": len(traces),
         "n_pool": sum(1 for assign in assigns if not assign["novelty"]),
         "cold_start": cold_start,

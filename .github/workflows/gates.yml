@@ -96,6 +96,7 @@ jobs:
               "platform/config/profiles/selfhosted-v4.yaml",
               "platform/config/calibration.yaml",
               "platform/config/scheduler.yaml",
+              "platform/config/performance.yaml",
           ]
           for name in yaml_files:
               yaml.safe_load(pathlib.Path(name).read_text(encoding="utf-8"))

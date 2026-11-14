@@ -316,6 +316,16 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   `.gitignore` 忽略。
 - 首轮实测与瓶颈分析见 `platform/M5_0_PERFORMANCE_BASELINE.md`。
 
+### 3.6 M5.1 R2 抽样训练部署记录
+
+- 新增配置文件：`platform/config/performance.yaml`。
+  - `r2TrainingLimit: 64`
+- 无新增数据库三方件、无新增数据表、无 embedding 模型变更。
+- R2 结构学习使用确定性等距抽样；全量轨迹仍使用冻结结构完成检测和评分。
+- 10,000 条实测：R2 299.149s，R1 293.025s，SQLite 88,051,712 B，
+  峰值内存 221,447,153 B。
+- 100,000 条前仍需完成流式读取与分批持久化，避免一次性内存放大。
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

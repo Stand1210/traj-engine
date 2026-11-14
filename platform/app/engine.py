@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
@@ -8,10 +9,12 @@ from pathlib import Path
 from typing import Any
 
 from bench.runner import run_regime
+import bench.regime as regime_config
 from platform.app.algorithm import dump_frozen_state, run_production, write_production_report
 from platform.app.alerts import persist_alert_decisions
 
 from platform.app import store
+from platform.app.config import load_performance_config
 from platform.app.trace_source import JsonlTraceSource
 
 
@@ -26,15 +29,30 @@ DIMENSION_MAP = {
 }
 
 
+def select_r2_training_traces(traces: list[dict], limit: int) -> list[dict]:
+    if limit < 2:
+        raise ValueError("R2 training limit must be at least 2")
+    if len(traces) <= limit:
+        return traces
+    stride = math.ceil(len(traces) / limit)
+    return traces[::stride][: limit - 1] + [traces[-1]]
+
+
 class RunEngine:
     def __init__(
         self,
         db_path: str | Path = store.DEFAULT_DB_PATH,
         max_workers: int = 1,
-        var_root: str | Path = VAR_ROOT,
+        var_root: str | Path | None = None,
+        r2_training_limit: int | None = None,
     ):
         self.db_path = Path(db_path)
-        self.var_root = Path(var_root)
+        self.var_root = Path(var_root or VAR_ROOT)
+        if r2_training_limit is None:
+            r2_training_limit = int(load_performance_config()["r2TrainingLimit"])
+        if r2_training_limit < 2:
+            raise ValueError("R2 training limit must be at least 2")
+        self.r2_training_limit = r2_training_limit
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="traj-run")
         self.canceled_runs: set[str] = set()
 
@@ -113,14 +131,38 @@ class RunEngine:
 
             with closing(store.connect(self.db_path)) as connection:
                 store.upsert_run_step(connection, run_id, "algorithm", "running")
+                run_type = connection.execute(
+                    "SELECT run_type FROM cohort_runs WHERE id = ?", (run_id,)
+                ).fetchone()["run_type"]
             if is_benchmark:
                 result = run_regime(source_ref, data_root=data_root, out_root=out_root)
             else:
+                training = None
+                if (
+                    frozen_state is None
+                    and run_type == "R2"
+                    and len(traces) > self.r2_training_limit
+                ):
+                    training = select_r2_training_traces(traces, self.r2_training_limit)
+                    training_result, _ = run_production(
+                        training,
+                        ontology_id or source_ref,
+                    )
+                    frozen_state = training_result["frozen_state"]
                 result, score_rows = run_production(
                     traces,
                     ontology_id or source_ref,
                     frozen_state=frozen_state,
+                    run_mode="R2" if training is not None else None,
                 )
+                if training is not None:
+                    result["cold_start"] = len(traces) < regime_config.COLD_START_MIN_TRACES
+                    result["training"] = {
+                        "sampled": True,
+                        "trainingTraceCount": len(training),
+                        "fullTraceCount": len(traces),
+                        "strategy": "systematic",
+                    }
                 write_production_report(out_root / source_ref, result, score_rows)
             if self._is_canceled(run_id):
                 return
@@ -128,7 +170,8 @@ class RunEngine:
                 store.upsert_run_step(
                     connection, run_id, "algorithm", "succeeded",
                     {"code_hash": result["code_hash"], "spec_hash": result["spec_hash"],
-                     "n": result["n"], "cold_start": result.get("cold_start")},
+                     "n": result["n"], "cold_start": result.get("cold_start"),
+                     "training": result.get("training")},
                     ended=True,
                 )
 

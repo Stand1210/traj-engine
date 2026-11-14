@@ -289,6 +289,11 @@ def _run_metrics(
         "traceCount": trace_count,
         "cellCount": cell_count,
         "alertCount": alert_count,
+        "training": next(
+            (step["payload"].get("training") for step in steps
+             if step["name"] == "algorithm" and step["payload"].get("training")),
+            None,
+        ),
         "steps": steps if include_steps else None,
     }
 
