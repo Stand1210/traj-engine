@@ -29,8 +29,17 @@ def main() -> None:
     smoke_parser.add_argument("--timeout", type=float, default=5.0)
     smoke_parser.add_argument("--expected-profile", choices=["cloud-v4", "selfhosted-v4"], default=None)
 
+    release_parser = subparsers.add_parser("release", help="build a verifiable release package")
+    release_parser.add_argument("--version", default="0.1.0")
+    release_parser.add_argument("--output", default=None)
+    release_parser.add_argument("--git-commit", default=None)
+
+    release_verify_parser = subparsers.add_parser("release-verify", help="verify a release package")
+    release_verify_parser.add_argument("--package", required=True)
+    release_verify_parser.add_argument("--expected-kernel-code-hash", default=None)
+
     arguments = sys.argv[1:] or ["run"]
-    commands = {"init", "upgrade", "run", "smoke"}
+    commands = {"init", "upgrade", "run", "smoke", "release", "release-verify"}
     if arguments[0] not in commands and arguments[0] != "--help":
         arguments = ["run"] + arguments
     args = parser.parse_args(arguments)
@@ -48,6 +57,40 @@ def main() -> None:
 
         print(json.dumps(
             run_deployment_smoke(args.base_url, args.timeout, args.expected_profile),
+            ensure_ascii=False,
+        ))
+        return
+
+    if args.command == "release":
+        import subprocess
+        from platform.app import release
+
+        root = Path(__file__).resolve().parents[2]
+        output = Path(args.output) if args.output else (
+            root / "platform" / "var" / "releases" / f"traj-engine-{args.version}.zip"
+        )
+        git_commit = args.git_commit
+        if git_commit is None:
+            git_commit = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=root, text=True
+            ).strip()
+        package = release.build_release(root, output, args.version, git_commit)
+        print(json.dumps({
+            "status": "built",
+            "package": str(package),
+            "version": args.version,
+            "gitCommit": git_commit,
+        }, ensure_ascii=False))
+        return
+
+    if args.command == "release-verify":
+        from platform.app import release
+
+        print(json.dumps(
+            release.verify_release(
+                args.package,
+                expected_kernel_code_hash=args.expected_kernel_code_hash,
+            ),
             ensure_ascii=False,
         ))
         return

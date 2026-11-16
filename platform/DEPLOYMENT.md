@@ -458,6 +458,34 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - [ ] Embedding 模型清单与版本记录（当前无 embedding）
 - [ ] 认证与租户凭据加密（首版明确不做）
 
+### 4.6 M6.1 发布包构建与完整性校验
+
+- 发布前必须先构建前端：
+  ```powershell
+  npm --prefix frontend run build
+  python -m unittest discover -s platform/tests -v
+  ```
+- 构建发布包：
+  ```powershell
+  python -m platform.app.cli release --version 0.1.0
+  ```
+  默认输出 `platform/var/releases/traj-engine-0.1.0.zip`。包内包含：
+  - 后端源代码、脚本、DDL、OpenAPI 契约与配置模板
+  - `bench/`、`kernel/` 与 `ontology/` 源代码
+  - `frontend/dist/` 静态构建产物
+  - `DEPLOYMENT.md` 与 `USAGE_GUIDE.md`
+  - `release-manifest.json`：发布版本、Git commit、schema 版本、内核
+    `code_hash`、每个文件的 size 与 SHA256
+- 发布包不包含 `.env`、`node_modules`、`platform/var`、真实租户档案和
+  240 MB 基准数据集，避免凭据、运行数据与不必要的体积进入内网包。
+- 交付后校验：
+  ```powershell
+  python -m platform.app.cli release-verify --package platform/var/releases/traj-engine-0.1.0.zip --expected-kernel-code-hash 2064664e6aa5fb46
+  ```
+  校验会检查 zip 完整性、manifest 格式、文件清单、逐文件 size 与 SHA256，
+  并可比对内核 `code_hash`。
+- 无新增数据库表、无新增三方件、无 embedding 模型变更。
+
 ## 5. M0 契约验证
 
 ```powershell

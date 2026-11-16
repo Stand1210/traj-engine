@@ -348,3 +348,21 @@ R3：本体升级 MVP 已实现；后续如需审批流、回滚确认窗口或 
   100,000。
 - 每日 Run 数、并发 Run 数、生命周期调度统一配额检查暂缓；仅在业务
   提出需求后实现。
+
+## 8. M6 生产交付
+
+### 8.1 M6.0 生命周期与冒烟
+
+- CLI 提供 `init` / `upgrade` / `run` / `smoke`，数据库路径统一由
+  `TRAJ_DB_PATH` 控制。
+- `schema_migrations` 记录 schema 版本；初始化与升级幂等。
+- 服务 lifespan 内完成建库、内部基准注册、启动记录与调度器启动。
+- 部署冒烟只依赖平台 REST，不访问 Langfuse key。
+
+### 8.2 M6.1 发布包
+
+- 新增 `release` / `release-verify` CLI。
+- 发布包使用固定白名单收集文件，逐文件写入 SHA256 manifest。
+- 包含后端、算法内核、契约、配置模板、前端构建产物和使用/部署文档。
+- 排除 `.env`、`node_modules`、`platform/var`、真实租户档案和基准数据集。
+- 校验支持比对 Git commit、schema 版本与内核 `code_hash`。
