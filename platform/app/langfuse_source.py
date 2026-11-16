@@ -1,4 +1,5 @@
 import base64
+import http.client
 import json
 import random
 import urllib.error
@@ -165,7 +166,7 @@ class LangfuseTraceSource:
                 if error.status_code != 429 or attempt == self.max_retries:
                     raise
                 last_error = error
-            except (OSError, TimeoutError) as error:
+            except (OSError, TimeoutError, http.client.IncompleteRead) as error:
                 if attempt == self.max_retries:
                     raise
                 last_error = error

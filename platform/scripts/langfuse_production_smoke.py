@@ -24,7 +24,18 @@ def main() -> int:
     parser.add_argument("--profile", default="cloud-v4", choices=["cloud-v4", "selfhosted-v4"])
     parser.add_argument("--project-name", default="development_env")
     parser.add_argument("--minutes", type=int, default=30)
+    parser.add_argument(
+        "--window-start",
+        default=None,
+        help="Exact ISO8601 start; overrides --minutes",
+    )
+    parser.add_argument(
+        "--window-end",
+        default=None,
+        help="Exact ISO8601 end; overrides --minutes",
+    )
     parser.add_argument("--limit", type=int, default=20)
+    parser.add_argument("--page-size", type=int, default=50)
     parser.add_argument("--id-offset", type=int, default=None)
     parser.add_argument("--id-count", type=int, default=None)
     parser.add_argument("--write-scores", action="store_true")
@@ -66,8 +77,14 @@ def main() -> int:
         else:
             ontology_id = ontology["id"]
 
-        end = datetime.now(timezone.utc) + timedelta(minutes=5)
-        start = end - timedelta(minutes=args.minutes)
+        if args.window_start or args.window_end:
+            if not args.window_start or not args.window_end:
+                raise SystemExit("--window-start and --window-end must be used together")
+            start = datetime.fromisoformat(args.window_start.replace("Z", "+00:00"))
+            end = datetime.fromisoformat(args.window_end.replace("Z", "+00:00"))
+        else:
+            end = datetime.now(timezone.utc) + timedelta(minutes=5)
+            start = end - timedelta(minutes=args.minutes)
         run_id = store.create_run(
             connection,
             tenant_id,
@@ -96,6 +113,7 @@ def main() -> int:
         profile,
         endpoints,
         keys,
+        page_size=args.page_size,
         max_traces=None if args.id_offset is not None else args.limit,
         max_retries=5,
         retry_backoff_seconds=1.0,

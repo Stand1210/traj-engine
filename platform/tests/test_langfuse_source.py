@@ -1,4 +1,5 @@
 import unittest
+from http.client import IncompleteRead
 
 from platform.app.langfuse_source import LangfuseTraceSource
 from platform.app.langfuse_source import LangfuseHttpError
@@ -131,6 +132,30 @@ class LangfuseTraceSourceTest(unittest.TestCase):
 
         transport = RetryTransport()
         source = LangfuseTraceSource("https://langfuse.example", "pk", "sk", transport=transport, retry_backoff_seconds=0)
+        list(source.list_traces({"start": "2026-01-01T00:00:00Z", "end": "2026-01-03T00:00:00Z"}, {}))
+
+        self.assertEqual(2, transport.calls)
+
+    def test_retries_incomplete_http_read_once(self):
+        class IncompleteReadTransport(FakeTransport):
+            def __init__(self):
+                super().__init__([{"data": [], "meta": {"cursor": None}}])
+                self.calls = 0
+
+            def __call__(self, url, params, headers):
+                self.calls += 1
+                if self.calls == 1:
+                    raise IncompleteRead(b"partial", expected=100)
+                return super().__call__(url, params, headers)
+
+        transport = IncompleteReadTransport()
+        source = LangfuseTraceSource(
+            "https://langfuse.example",
+            "pk",
+            "sk",
+            transport=transport,
+            retry_backoff_seconds=0,
+        )
         list(source.list_traces({"start": "2026-01-01T00:00:00Z", "end": "2026-01-03T00:00:00Z"}, {}))
 
         self.assertEqual(2, transport.calls)
