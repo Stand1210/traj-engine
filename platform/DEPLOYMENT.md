@@ -486,6 +486,32 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   并可比对内核 `code_hash`。
 - 无新增数据库表、无新增三方件、无 embedding 模型变更。
 
+### 4.7 M6.2 发布包离线验收
+
+- 新增脚本：
+  ```powershell
+  python platform/scripts/release_acceptance.py `
+    --package platform/var/releases/traj-engine-0.1.0.zip `
+    --work-dir platform/var/release-acceptance `
+    --profile cloud-v4 `
+    --port 18080
+  ```
+- 验收步骤：
+  1. 先执行 `release-verify` 校验包完整性。
+  2. 解压到空的 `--work-dir`。
+  3. 在解压目录内执行 `init` 创建 SQLite。
+  4. 在解压目录内启动 `run`，只使用包内代码与配置。
+  5. 等待 `/api/v1/health` 返回 `ok`。
+  6. 调用包内 `smoke` 并校验 profile。
+  7. 停止临时服务并输出 JSON 结果。
+- 默认使用当前 Python 环境，适合 CI 和快速验收。内网首次部署可加
+  `--create-venv`，脚本会在解压目录创建 `.venv` 并安装包内
+  `requirements.txt`；如内网无法访问公网 PyPI，需预先提供内部镜像。
+- `--work-dir` 必须为空目录，避免把历史运行数据误当作本次验收结果。
+- 验收不访问 Langfuse，不需要业务 key；真实数据链路仍用
+  `langfuse_production_smoke.py`。
+- 无新增数据库表、无新增三方件、无 embedding 模型变更。
+
 ## 5. M0 契约验证
 
 ```powershell

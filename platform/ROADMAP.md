@@ -366,3 +366,10 @@ R3：本体升级 MVP 已实现；后续如需审批流、回滚确认窗口或 
 - 包含后端、算法内核、契约、配置模板、前端构建产物和使用/部署文档。
 - 排除 `.env`、`node_modules`、`platform/var`、真实租户档案和基准数据集。
 - 校验支持比对 Git commit、schema 版本与内核 `code_hash`。
+
+### 8.3 M6.2 离线验收
+
+- 新增 `platform/scripts/release_acceptance.py`。
+- 从发布包解压到空目录，仅使用包内代码执行初始化、启动与冒烟。
+- 默认复用当前 Python 环境；`--create-venv` 时创建独立环境并安装包内依赖。
+- 验收通过条件：health 为 ok、smoke 为 passed、profile 一致、DB 与前端产物存在。
