@@ -10,7 +10,7 @@
 | Langfuse | Cloud v4 或自托管 v4 | 已定；自托管 v3 延后 |
 | 平后端 | FastAPI `0.115.6` + Uvicorn `0.34.0` | M1 最小闭环已实现 |
 | 前端 | Node.js `24.x` + Vite `6.0.7` + React `18.3.1` + ECharts `5.6.0` | M1 最小闭环已实现 |
-| 数据库 | SQLite（内置于 Python 3.11） | 当前契约：20 张表 |
+| 数据库 | SQLite（内置于 Python 3.11） | 当前契约：23 张表，schema v7 |
 | Embedding | 待定 | 选型后记录模型名、版本、维度、输入截断规则与哈希 |
 
 ## 2. 持续记录规则
@@ -53,7 +53,7 @@
   ```
   或使用启动参数封装：
   ```powershell
-  python -m platform.app.cli --profile selfhosted-v4 --base-url http://langfuse.internal
+  python -m platform.app.cli run --profile selfhosted-v4 --base-url http://langfuse.internal --db platform/var/traj-engine.db
   ```
 - M1 前端启动：
   ```powershell
@@ -71,9 +71,11 @@
   - 默认库：`platform/var/traj-engine.db`
   - 建表语句：`platform/contracts/schema.sql`
   - 应用启动时自动执行；本地运行产物目录已 gitignore
+  - 推荐部署前显式执行：
+    `python -m platform.app.cli init --db platform/var/traj-engine.db`
 - M1 已验证：
   - 5 个 YAML 契约解析通过
-  - SQLite DDL 建表 20 张通过
+  - SQLite DDL 建表 23 张通过
   - R1 全量 4000 条 Run 成功
   - `reports/R1/scores.jsonl` 位级复现通过
   - 前端 `npm run build` 通过
@@ -366,14 +368,95 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   当前版本。
 - 前端新增 `#/ontologies/{id}/versions` 页面。
 
-## 4. 待补充清单
+## 4. M6.0 生产交付与验收闭环
 
-- [ ] Node.js 版本与前端依赖锁文件
-- [ ] SQLite 初始化命令与 PostgreSQL 迁移脚本
-- [ ] Embedding 模型清单与版本记录
-- [ ] 后端启动命令与配置文件
-- [ ] 前端构建与静态资源部署
-- [ ] 部署后验收命令
+### 4.1 一键初始化、升级与启动
+
+- 数据库版本记录新增 `schema_migrations` 表：
+  - `version INTEGER PRIMARY KEY`
+  - `applied_at TEXT NOT NULL`
+- 当前版本为 `7`；`init` 与 `upgrade` 都会执行幂等建表和补列迁移。
+- DB 路径统一由 `TRAJ_DB_PATH` 或 CLI `--db` 控制；未配置时仍为
+  `platform/var/traj-engine.db`，兼容既有部署。
+- 首次部署：
+  ```powershell
+  python -m pip install -r requirements.txt
+  python -m platform.app.cli init --db platform/var/traj-engine.db
+  python -m platform.app.cli run --profile cloud-v4 --db platform/var/traj-engine.db --scheduler
+  ```
+  自托管 v4 替换 profile 并配置 base URL：
+  ```powershell
+  python -m platform.app.cli run --profile selfhosted-v4 --base-url http://langfuse.internal --db platform/var/traj-engine.db --scheduler
+  ```
+- 版本升级：
+  ```powershell
+  python -m platform.app.cli upgrade --db platform/var/traj-engine.db
+  ```
+  应用包升级后先执行 `upgrade`，再重启服务；旧命令
+  `python -m platform.app.cli --profile ...` 保持兼容并等价于 `run`。
+
+### 4.2 前端构建与静态资源部署
+
+- 构建版本：Node.js `>=24 <25`，锁文件 `frontend/package-lock.json`。
+  ```powershell
+  npm --prefix frontend ci
+  npm --prefix frontend run build
+  ```
+- 产物：`frontend/dist`；将整个目录发布到静态服务器。
+- 反向代理需把 `/api/` 转发到后端，其余路径回退到 `index.html`。
+  Nginx 示例：
+  ```nginx
+  server {
+    listen 80;
+    root /opt/traj-engine/frontend/dist;
+
+    location /api/ {
+      proxy_pass http://127.0.0.1:8000/api/;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location / {
+      try_files $uri /index.html;
+    }
+  }
+  ```
+
+### 4.3 部署后冒烟验收
+
+- 后端启动后执行：
+  ```powershell
+  python -m platform.app.cli smoke --base-url http://127.0.0.1:8000 --expected-profile cloud-v4
+  ```
+- 冒烟覆盖：
+  - `GET /api/v1/health`
+  - `GET /api/v1/config/profile`
+  - `GET /api/v1/startup-records/current`
+  - `GET /api/v1/tenants?limit=1`
+  - `GET /api/v1/ontologies?limit=1`
+- 该脚本只验证平台本地契约，不访问 Langfuse，也不要求业务 key。
+  真实数据链路仍使用既有 `langfuse_production_smoke.py`。
+
+### 4.4 升级与回滚
+
+- 升级前备份：
+  ```powershell
+  Copy-Item platform/var/traj-engine.db platform/var/traj-engine.db.bak
+  ```
+- 回滚步骤：
+  1. 停止后端进程与调度器。
+  2. 恢复应用包到上一个发布标签。
+  3. 恢复 `traj-engine.db.bak`。
+  4. 启动后端并重跑 `smoke`。
+- `cohort_runs`、`trace_scores`、`ontology_versions`、
+  `structure_versions` 均按不可变历史记录设计；普通应用升级不回写历史
+  分数。若未来迁移发生存储格式变更，必须新增映射表并保留原记录。
+
+### 4.5 待补充清单
+
+- [ ] PostgreSQL 迁移脚本（首版明确不做）
+- [ ] Embedding 模型清单与版本记录（当前无 embedding）
+- [ ] 认证与租户凭据加密（首版明确不做）
 
 ## 5. M0 契约验证
 

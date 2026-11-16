@@ -13,12 +13,12 @@ Evaluator = Callable[[object, str], dict]
 class LifecycleScheduler:
     def __init__(
         self,
-        db_path: str | Path = store.DEFAULT_DB_PATH,
+        db_path: str | Path | None = None,
         config: dict | None = None,
         evaluator: Evaluator | None = None,
         owner_id: str | None = None,
     ):
-        self.db_path = Path(db_path)
+        self.db_path = Path(db_path or store.resolve_db_path())
         self.config = config or {
             "intervalSeconds": 60,
             "leaseSeconds": 120,
@@ -125,7 +125,7 @@ class LifecycleScheduler:
                 store.release_scheduler_lock(connection, self.owner_id)
 
 
-def scheduler_status(db_path: str | Path = store.DEFAULT_DB_PATH) -> dict:
+def scheduler_status(db_path: str | Path | None = None) -> dict:
     with closing(store.connect(db_path, initialize=False)) as connection:
         lock = store.get_scheduler_lock(connection)
         scan = connection.execute(

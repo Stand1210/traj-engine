@@ -350,3 +350,8 @@ CREATE TABLE IF NOT EXISTS scheduler_scans (
     result_json TEXT NOT NULL,
     error TEXT
 );
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version INTEGER PRIMARY KEY,
+    applied_at TEXT NOT NULL
+);

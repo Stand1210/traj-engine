@@ -46,12 +46,12 @@ def select_r2_training_traces(traces: list[dict], limit: int) -> list[dict]:
 class RunEngine:
     def __init__(
         self,
-        db_path: str | Path = store.DEFAULT_DB_PATH,
+        db_path: str | Path | None = None,
         max_workers: int = 1,
         var_root: str | Path | None = None,
         r2_training_limit: int | None = None,
     ):
-        self.db_path = Path(db_path)
+        self.db_path = Path(db_path or store.resolve_db_path())
         self.var_root = Path(var_root or VAR_ROOT)
         performance = load_performance_config()
         if r2_training_limit is None:

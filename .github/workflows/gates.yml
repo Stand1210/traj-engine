@@ -108,7 +108,7 @@ jobs:
           tables = connection.execute(
               "SELECT name FROM sqlite_master WHERE type='table'"
           ).fetchall()
-          assert len(tables) == 22, tables
+          assert len(tables) == 23, tables
 
           spec = yaml.safe_load(
               pathlib.Path("platform/contracts/openapi.yaml").read_text(encoding="utf-8")

@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -8,7 +9,15 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "platform" / "contracts" / "schema.sql"
-DEFAULT_DB_PATH = ROOT / "platform" / "var" / "traj-engine.db"
+SCHEMA_VERSION = 7
+
+
+def resolve_db_path() -> Path:
+    configured = os.environ.get("TRAJ_DB_PATH")
+    return Path(configured) if configured else ROOT / "platform" / "var" / "traj-engine.db"
+
+
+DEFAULT_DB_PATH = resolve_db_path()
 
 
 class ProjectQuotaExceeded(ValueError):
@@ -42,9 +51,19 @@ def _ensure_schema_migrations(connection: sqlite3.Connection) -> None:
             """ALTER TABLE lifecycle_schedules
                ADD COLUMN r2_min_novelty_traces INTEGER NOT NULL DEFAULT 50"""
         )
+    connection.execute(
+        """INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+           VALUES (?, ?)""",
+        (SCHEMA_VERSION, utcnow()),
+    )
 
 
-def connect(db_path: str | Path = DEFAULT_DB_PATH, initialize: bool = False) -> sqlite3.Connection:
+def connect(
+    db_path: str | Path | None = None,
+    initialize: bool = False,
+) -> sqlite3.Connection:
+    if db_path is None:
+        db_path = resolve_db_path()
     path = Path(db_path)
     if initialize:
         path.parent.mkdir(parents=True, exist_ok=True)

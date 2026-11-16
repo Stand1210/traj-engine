@@ -55,6 +55,9 @@ SCHEDULER = LifecycleScheduler(config=load_scheduler_config())
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    with closing(store.connect(initialize=True)) as connection:
+        store.ensure_internal_benchmark(connection)
+        store.record_startup(connection, resolve_profile_from_args())
     if os.environ.get("TRAJ_SCHEDULER") == "1":
         SCHEDULER.start()
     yield
@@ -163,13 +166,6 @@ def get_connection() -> Any:
         yield connection
     finally:
         connection.close()
-
-
-@app.on_event("startup")
-def startup() -> None:
-    with closing(store.connect(initialize=True)) as connection:
-        store.ensure_internal_benchmark(connection)
-        store.record_startup(connection, resolve_profile_from_args())
 
 
 @app.get("/api/v1/health")
