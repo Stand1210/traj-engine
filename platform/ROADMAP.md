@@ -207,9 +207,28 @@ M3.4 calibration record: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 前端新增「生命周期」页：选择本体、保存调度、手动评估、强制 R2、
   查看评估历史并跳转 Run。
 
-### 6.2 尚未实现
+### 6.2 R3 本体升版 MVP
 
-- R3：本体升版流程。
+- `GET /api/v1/ontologies/{id}/versions`：查看不可变本体版本历史。
+- `POST /api/v1/ontologies/{id}/versions`：
+  - 校验 YAML 是 mapping。
+  - 校验 `id` 与本体一致。
+  - 若填写 `version`，必须等于下一个待发布版本号；也可以省略。
+  - 校验 `unit_price.prompt` 与 `unit_price.completion` 为非负数字。
+  - Tier 1 要求包含 `forbidden_actions`，且为非空字符串列表。
+  - 拒绝与既有版本完全相同的 YAML。
+  - 发布后写入 `ontology_versions`，版本内容不可变。
+  - `activate=true` 时同步把新版本设为 `current_version`。
+- `POST /api/v1/ontologies/{id}/versions/{version}/activate`：
+  仅切换 `current_version`，不修改任何历史版本内容。
+- 历史 Run 继续持有创建时的 `ontology_version_id`；激活新版本后，
+  新 Run 才使用新版本，历史分数与归因不被改写。
+- 前端新增「本体版本」页：
+  - 查看当前版本与历史版本。
+  - 复制当前 YAML 并自动递增版本号。
+  - 编辑后发布不可变版本。
+  - 可选择发布后立即激活。
+  - 可把历史版本重新设为当前版本。
 
 ### 6.3 M4.1 受控 R2 对账
 
@@ -265,7 +284,7 @@ M3.4 calibration record: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 旧 SQLite 库启动时自动补列：
   `r2_min_novelty_traces INTEGER NOT NULL DEFAULT 50`。
 
-R3：本体升级仍由业务规则变更触发，后续独立实现。
+R3：本体升级 MVP 已实现；后续如需审批流、回滚确认窗口或 diff 预览，再按需求补充。
 
 ## 7. M5 多租户与硬化
 

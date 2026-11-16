@@ -9,10 +9,12 @@ import AlertWorkbench from "./components/AlertWorkbench";
 import CalibrationWorkbench from "./components/CalibrationWorkbench";
 import LifecycleWorkbench from "./components/LifecycleWorkbench";
 import LineageView from "./components/LineageView";
+import OntologyVersions from "./components/OntologyVersions";
 
 type Route =
   | { name: "runs" }
   | { name: "lifecycle" }
+  | { name: "ontologyVersions"; ontologyId: string }
   | { name: "run"; runId: string }
   | { name: "cells"; runId: string }
   | { name: "lineage"; runId: string }
@@ -25,6 +27,9 @@ function parseHash(): Route {
   const parts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   if (parts[0] === "lifecycle") {
     return { name: "lifecycle" };
+  }
+  if (parts[0] === "ontologies" && parts[1] && parts[2] === "versions") {
+    return { name: "ontologyVersions", ontologyId: parts[1] };
   }
   if (parts[0] === "runs" && parts[1] && parts[2] === "cells") {
     return { name: "cells", runId: parts[1] };
@@ -80,7 +85,11 @@ export default function App() {
 
   const refreshRuns = useCallback(() => setRunsVersion(value => value + 1), []);
   const activeRunId = useMemo(
-    () => (route.name === "runs" || route.name === "lifecycle" ? null : route.runId),
+    () => (
+      route.name === "runs" || route.name === "lifecycle" || route.name === "ontologyVersions"
+        ? null
+        : route.runId
+    ),
     [route]
   );
 
@@ -117,6 +126,9 @@ export default function App() {
           <RunLauncher onCreated={refreshRuns} runsVersion={runsVersion} onSelect={navigate} />
         )}
         {route.name === "lifecycle" && <LifecycleWorkbench onSelect={navigate} />}
+        {route.name === "ontologyVersions" && (
+          <OntologyVersions ontologyId={route.ontologyId} onBack={() => navigate("/")} />
+        )}
         {route.name === "run" && <RunOverview runId={route.runId} onSelect={navigate} />}
         {route.name === "cells" && <ClusterView runId={route.runId} onSelect={navigate} />}
         {route.name === "lineage" && <LineageView runId={route.runId} onSelect={navigate} />}

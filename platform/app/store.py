@@ -299,6 +299,76 @@ def create_precheck(connection: sqlite3.Connection, ontology_id: str, sample_siz
     return precheck_id
 
 
+def publish_ontology_version(
+    connection: sqlite3.Connection,
+    ontology_id: str,
+    yaml_text: str,
+    activate: bool = False,
+) -> dict:
+    ontology = connection.execute(
+        "SELECT id, tier, current_version FROM ontologies WHERE id = ?",
+        (ontology_id,),
+    ).fetchone()
+    if ontology is None:
+        raise ValueError("ontology not found")
+    existing = connection.execute(
+        "SELECT version FROM ontology_versions WHERE ontology_id = ? AND yaml = ?",
+        (ontology_id, yaml_text),
+    ).fetchone()
+    if existing is not None:
+        raise ValueError("ontology version content already published")
+    next_version = 1 + int(
+        connection.execute(
+            "SELECT COALESCE(MAX(version), 0) AS max_version FROM ontology_versions WHERE ontology_id = ?",
+            (ontology_id,),
+        ).fetchone()["max_version"]
+    )
+    from bench.runner import code_hash
+    version_id = new_id("ontology-version")
+    connection.execute(
+        """INSERT INTO ontology_versions
+           (id, ontology_id, version, yaml, code_hash, created_at)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (version_id, ontology_id, next_version, yaml_text, code_hash(), utcnow()),
+    )
+    if activate:
+        connection.execute(
+            """UPDATE ontologies
+               SET current_version = ?, updated_at = ?
+               WHERE id = ?""",
+            (next_version, utcnow(), ontology_id),
+        )
+    connection.commit()
+    row = connection.execute(
+        "SELECT * FROM ontology_versions WHERE id = ?",
+        (version_id,),
+    ).fetchone()
+    return {
+        "row": row,
+        "activated": bool(activate),
+    }
+
+
+def activate_ontology_version(
+    connection: sqlite3.Connection,
+    ontology_id: str,
+    version: int,
+) -> None:
+    row = connection.execute(
+        "SELECT version FROM ontology_versions WHERE ontology_id = ? AND version = ?",
+        (ontology_id, version),
+    ).fetchone()
+    if row is None:
+        raise ValueError("ontology version not found")
+    connection.execute(
+        """UPDATE ontologies
+           SET current_version = ?, updated_at = ?
+           WHERE id = ?""",
+        (version, utcnow(), ontology_id),
+    )
+    connection.commit()
+
+
 def finish_precheck(
     connection: sqlite3.Connection,
     precheck_id: str,

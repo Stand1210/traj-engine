@@ -352,6 +352,20 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 无新增三方件、无 embedding 模型变更。
 - 每日 Run 数与并发 Run 数限制暂不实现。
 
+### 3.9 R3 本体升版部署记录
+
+- 无新增数据表、无新增三方件、无 embedding 模型变更。
+- 复用既有 `ontologies.current_version` 与 `ontology_versions` 表。
+- REST 新增：
+  - `GET /api/v1/ontologies/{id}/versions`
+  - `POST /api/v1/ontologies/{id}/versions`
+  - `POST /api/v1/ontologies/{id}/versions/{version}/activate`
+- 发布写入不可变 `ontology_versions`；激活仅更新
+  `ontologies.current_version`。
+- 历史 Run 的 `ontology_version_id` 不迁移、不改写，新 Run 使用激活后的
+  当前版本。
+- 前端新增 `#/ontologies/{id}/versions` 页面。
+
 ## 4. 待补充清单
 
 - [ ] Node.js 版本与前端依赖锁文件

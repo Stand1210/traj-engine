@@ -37,6 +37,15 @@ export interface Ontology {
   tier: string;
 }
 
+export interface OntologyVersion {
+  ontologyId: string;
+  version: number;
+  yaml: string;
+  codeHash: string;
+  createdAt: string;
+  activated?: boolean;
+}
+
 export interface Run {
   id: string;
   tenantId: string;
@@ -331,6 +340,20 @@ export const api = {
       body: JSON.stringify(quota)
     }),
   ontologies: () => request<Page<Ontology>>("/api/v1/ontologies?limit=100"),
+  ontology: (id: string) => request<Ontology>(`/api/v1/ontologies/${id}`),
+  ontologyVersions: (id: string) =>
+    request<Page<OntologyVersion>>(`/api/v1/ontologies/${id}/versions?limit=100`),
+  currentOntologyVersion: (id: string) =>
+    request<OntologyVersion>(`/api/v1/ontologies/${id}/versions/current`),
+  publishOntologyVersion: (id: string, yaml: string, activate: boolean) =>
+    request<OntologyVersion>(`/api/v1/ontologies/${id}/versions`, {
+      method: "POST",
+      body: JSON.stringify({ yaml, activate })
+    }),
+  activateOntologyVersion: (id: string, version: number) =>
+    request<OntologyVersion>(`/api/v1/ontologies/${id}/versions/${version}/activate`, {
+      method: "POST"
+    }),
   runs: () => request<Page<Run>>("/api/v1/runs?limit=100"),
   run: (id: string) => request<Run>(`/api/v1/runs/${id}`),
   runSteps: (id: string) => request<RunStep[]>(`/api/v1/runs/${id}/steps`),

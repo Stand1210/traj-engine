@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 from contextlib import asynccontextmanager
 
+import yaml
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -120,6 +121,11 @@ class OntologyInput(BaseModel):
     tenantId: str
     tier: Literal["tier0", "tier1"]
     displayName: str = "Agent"
+
+
+class OntologyVersionInput(BaseModel):
+    yaml: str = Field(min_length=1, max_length=200000)
+    activate: bool = False
 
 
 class PrecheckInput(BaseModel):
@@ -299,6 +305,70 @@ def get_current_ontology_version(ontology_id: str, connection=Depends(get_connec
         "codeHash": row["code_hash"],
         "createdAt": row["created_at"],
     }
+
+
+@app.get("/api/v1/ontologies/{ontology_id}/versions")
+def list_ontology_versions(
+    ontology_id: str,
+    limit: int = Query(default=50, ge=1, le=100),
+    cursor: str | None = None,
+    connection=Depends(get_connection),
+) -> dict:
+    if connection.execute("SELECT id FROM ontologies WHERE id = ?", (ontology_id,)).fetchone() is None:
+        raise HTTPException(status_code=404, detail={"code": "ontology_not_found"})
+    offset = decode_cursor(cursor)
+    rows = connection.execute(
+        """SELECT * FROM ontology_versions WHERE ontology_id = ?
+           ORDER BY version DESC LIMIT ? OFFSET ?""",
+        (ontology_id, limit, offset),
+    ).fetchall()
+    total = connection.execute(
+        "SELECT COUNT(*) AS n FROM ontology_versions WHERE ontology_id = ?",
+        (ontology_id,),
+    ).fetchone()["n"]
+    return page([serialize_ontology_version(row) for row in rows], limit, offset, total)
+
+
+@app.post("/api/v1/ontologies/{ontology_id}/versions", status_code=201)
+def publish_ontology_version(
+    ontology_id: str,
+    input_data: OntologyVersionInput,
+    connection=Depends(get_connection),
+) -> dict:
+    ontology = connection.execute(
+        "SELECT id, tier FROM ontologies WHERE id = ?", (ontology_id,)
+    ).fetchone()
+    if ontology is None:
+        raise HTTPException(status_code=404, detail={"code": "ontology_not_found"})
+    try:
+        _validate_ontology_yaml(input_data.yaml, ontology_id, ontology["tier"], connection)
+        published = store.publish_ontology_version(
+            connection, ontology_id, input_data.yaml, input_data.activate
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail={"code": "invalid_ontology_version", "message": str(error)})
+    result = serialize_ontology_version(published["row"])
+    result["activated"] = published["activated"]
+    return result
+
+
+@app.post("/api/v1/ontologies/{ontology_id}/versions/{version}/activate")
+def activate_ontology_version(
+    ontology_id: str,
+    version: int,
+    connection=Depends(get_connection),
+) -> dict:
+    try:
+        store.activate_ontology_version(connection, ontology_id, version)
+    except ValueError as error:
+        if str(error) == "ontology version not found":
+            raise HTTPException(status_code=404, detail={"code": "ontology_version_not_found"})
+        raise HTTPException(status_code=400, detail={"code": "invalid_ontology_version"})
+    row = connection.execute(
+        "SELECT * FROM ontology_versions WHERE ontology_id = ? AND version = ?",
+        (ontology_id, version),
+    ).fetchone()
+    return serialize_ontology_version(row)
 
 
 @app.post("/api/v1/ontologies", status_code=201)
@@ -1317,6 +1387,46 @@ def _check(name: str, status: str, metrics: dict) -> dict:
     return {"name": name, "status": status, "metrics": metrics}
 
 
+def _validate_ontology_yaml(
+    yaml_text: str,
+    ontology_id: str,
+    tier: str,
+    connection,
+) -> None:
+    try:
+        parsed = yaml.safe_load(yaml_text)
+    except yaml.YAMLError as error:
+        raise ValueError("ontology yaml is not valid YAML") from error
+    if not isinstance(parsed, dict):
+        raise ValueError("ontology yaml must be a mapping")
+    if parsed.get("id") != ontology_id:
+        raise ValueError("ontology yaml id must match the ontology")
+    next_version = 1 + int(
+        connection.execute(
+            "SELECT COALESCE(MAX(version), 0) AS max_version FROM ontology_versions WHERE ontology_id = ?",
+            (ontology_id,),
+        ).fetchone()["max_version"]
+    )
+    declared_version = parsed.get("version")
+    if declared_version is not None and int(declared_version) != next_version:
+        raise ValueError(
+            f"ontology yaml version must be {next_version} or omitted"
+        )
+    unit_price = parsed.get("unit_price")
+    if not isinstance(unit_price, dict):
+        raise ValueError("ontology yaml unit_price must be a mapping")
+    for key in ("prompt", "completion"):
+        value = unit_price.get(key)
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
+            raise ValueError(f"ontology yaml unit_price.{key} must be a non-negative number")
+    forbidden_actions = parsed.get("forbidden_actions")
+    if forbidden_actions is not None:
+        if not isinstance(forbidden_actions, list) or not all(isinstance(item, str) and item for item in forbidden_actions):
+            raise ValueError("ontology yaml forbidden_actions must be a list of non-empty strings")
+    if tier == "tier1" and "forbidden_actions" not in parsed:
+        raise ValueError("tier1 ontology yaml requires forbidden_actions")
+
+
 def serialize_startup(row) -> dict:
     return {
         "id": row["id"], "profile": row["profile_name"], "profileHash": row["profile_hash"],
@@ -1338,6 +1448,16 @@ def serialize_ontology(row) -> dict:
     return {
         "id": row["id"], "tenantId": row["tenant_id"], "currentVersion": row["current_version"],
         "tier": row["tier"], "createdAt": row["created_at"],
+    }
+
+
+def serialize_ontology_version(row) -> dict:
+    return {
+        "ontologyId": row["ontology_id"],
+        "version": row["version"],
+        "yaml": row["yaml"],
+        "codeHash": row["code_hash"],
+        "createdAt": row["created_at"],
     }
 
 

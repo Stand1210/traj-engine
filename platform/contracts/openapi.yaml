@@ -209,6 +209,30 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
   /ontologies/{ontologyId}/versions:
+    get:
+      tags: [ontologies]
+      operationId: listOntologyVersions
+      summary: List immutable ontology versions
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+        - $ref: '#/components/parameters/pageLimit'
+        - $ref: '#/components/parameters/pageCursor'
+      responses:
+        '200':
+          description: Ontology version page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OntologyVersion'
+        '404':
+          $ref: '#/components/responses/NotFound'
     post:
       tags: [ontologies]
       operationId: publishOntologyVersion
@@ -228,6 +252,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OntologyVersion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /ontologies/{ontologyId}/versions/{version}/activate:
+    post:
+      tags: [ontologies]
+      operationId: activateOntologyVersion
+      summary: Activate an immutable ontology version
+      description: |
+        Switches current_version to the selected version. Historical runs keep
+        their original ontology_version_id.
+      parameters:
+        - $ref: '#/components/parameters/ontologyId'
+        - name: version
+          in: path
+          required: true
+          schema: {type: integer, minimum: 1}
+      responses:
+        '200':
+          description: Activated ontology version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OntologyVersion'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /ontologies/{ontologyId}/prechecks:
     get:
       tags: [ontologies]
@@ -1037,6 +1088,7 @@ components:
       required: [yaml]
       properties:
         yaml: {type: string}
+        activate: {type: boolean, default: false}
     RunStatus:
       type: string
       enum: [queued, running, succeeded, failed, canceled]

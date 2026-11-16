@@ -83,6 +83,9 @@ export default function RunLauncher({ onCreated, runsVersion, onSelect }: Props)
             </span>
           </label>
           <label>本体<span>{ontology?.id ?? "..."} / {ontology?.tier ?? "..."}</span></label>
+          <button onClick={() => ontology && onSelect(`/ontologies/${ontology.id}/versions`)}>
+            本体版本管理
+          </button>
           <label>数据源
             <select value={source} onChange={event => setSource(event.target.value as "jsonl" | "langfuse")}>
               <option value="jsonl">基准 JSONL</option>
