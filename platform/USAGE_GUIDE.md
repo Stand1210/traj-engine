@@ -269,3 +269,13 @@ projectDefaultMaxTracesPerRun: 100000
 - 达到 20 条人工复核后触发校准，并观察告警排序变化。
 - 试点结论会记录在 `PILOT.md`，不会覆盖历史记录。
 
+### 7.1 离线复核包
+
+- 复核包由平台导出，业务专家只需要填写四列：
+  - `verdict`：`agree` / `disagree` / `uncertain`。
+  - `reviewer`：复核人标识。
+  - `label`：简短业务结论。
+  - `comment`： disagree 或 uncertain 必填原因。
+- 不要修改 `traceScoreId`、`traceId` 和算法输出列。
+- 填写完成后交回平台导入；重复导入同一 reviewer 的结果会覆盖旧标签。
+

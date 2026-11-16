@@ -73,15 +73,53 @@ python platform/scripts/pilot_report.py --run-id <run-id> --output platform/var/
 ### 3.3 人工复核
 
 1. 从告警工作台或复核队列选取样本。
-2. 复核 `agree` 表示算法判断与业务判断一致。
-3. 复核 `disagree` 必须填写原因，优先归类为：
+2. 导出离线复核包，交给业务专家填写。
+3. 复核 `agree` 表示算法判断与业务判断一致。
+4. 复核 `disagree` 必须填写原因，优先归类为：
    - 算法误报；
    - 算法漏报；
    - 业务上下文不足；
    - 本体范围错误；
    - 轨迹数据质量异常。
-4. 达到 20 条复核后触发校准。
-5. 校准激活后观察 Top 告警排序是否朝业务预期移动。
+5. 导入复核结果，达到 20 条后触发并激活校准。
+6. 校准激活后观察 Top 告警排序是否朝业务预期移动。
+
+导出复核包：
+
+```powershell
+python platform/scripts/review_pack.py `
+  --db platform/var/traj-engine.db `
+  export `
+  --run-id <run-id> `
+  --output platform/var/review-pack.csv
+```
+
+业务专家填写 CSV 中的 `verdict`、`reviewer`、`label`、`comment`，不要修改
+`traceScoreId`、`traceId` 与算法输出列。
+
+导入复核结果：
+
+```powershell
+python platform/scripts/review_pack.py `
+  --db platform/var/traj-engine.db `
+  import `
+  --run-id <run-id> `
+  --csv platform/var/review-pack.csv `
+  --reviewer <reviewer-name>
+```
+
+达到 20 条标签后自动创建并激活校准：
+
+```powershell
+python platform/scripts/review_pack.py `
+  --db platform/var/traj-engine.db `
+  import `
+  --run-id <run-id> `
+  --csv platform/var/review-pack.csv `
+  --reviewer <reviewer-name> `
+  --trigger-calibration `
+  --activate
+```
 
 ### 3.4 连续观察
 
@@ -153,3 +191,11 @@ python platform/scripts/pilot_report.py --run-id <run-id> --output platform/var/
 - 工程门禁：全部通过
 - 业务门禁：人工复核 0 / 20，校准未激活
 - 结论：平台开发链路通过；本记录不计入业务试点结论，等待真实业务专家复核。
+
+### 2026-11-16 / M7.1 复核包已生成
+
+- Run ID：`run-9742814c77b54b0f`
+- 复核包：`platform/var/review-pack-run-9742814c77b54b0f.csv`
+- 说明文档：`platform/var/review-pack-run-9742814c77b54b0f.md`
+- 待业务专家填写：20 条
+- 当前状态：未回填，未触发校准

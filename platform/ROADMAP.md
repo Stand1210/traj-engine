@@ -396,3 +396,13 @@ R3：本体升级 MVP 已实现；后续如需审批流、回滚确认窗口或 
   - 试点建议包括 20 条人工复核与激活校准。
 - 首轮目标：一个真实 Langfuse Project 完成受控 Run、报告生成和业务联合检查。
 - 连续观察目标：3~7 天 R1 稳定运行，并回填真实复核结论。
+
+### 9.1 M7.1 真实复核与校准
+
+- 新增 `platform/scripts/review_pack.py`：
+  - `export`：为指定 Run 导出业务专家可离线填写的 CSV 与 Markdown。
+  - `import`：校验并导入 `agree / disagree / uncertain` 人工标签。
+  - 支持同一 reviewer 覆盖导入，避免重复标签。
+  - 可选 `--trigger-calibration --activate`，满足 20 条标签后创建并激活校准。
+- 当前真实复核包已导出，等待业务专家填写。
+- 验收出口：20 条真实标签、1 个激活校准版本、校准前后 Top 告警对比。
