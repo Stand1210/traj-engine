@@ -28,8 +28,13 @@ def build_test_release(directory: Path) -> Path:
         )
 
     frontend_dist = source / "frontend" / "dist"
-    frontend_dist.mkdir(parents=True)
-    (frontend_dist / "index.html").write_text("<html></html>\n", encoding="utf-8")
+    assets = frontend_dist / "assets"
+    assets.mkdir(parents=True)
+    (frontend_dist / "index.html").write_text(
+        '<html><script src="/assets/app.js"></script></html>\n',
+        encoding="utf-8",
+    )
+    (assets / "app.js").write_text("console.log(1)\n", encoding="utf-8")
 
     return release.build_release(
         source,
@@ -57,6 +62,8 @@ class ReleaseAcceptanceTest(unittest.TestCase):
 
             self.assertEqual("passed", result["status"])
             self.assertEqual("cloud-v4", result["profile"])
+            self.assertEqual("passed", result["frontend"]["status"])
+            self.assertEqual(1, result["frontend"]["assetCount"])
             self.assertEqual("passed", result["smoke"]["status"])
             self.assertTrue((work_dir / "platform" / "var" / "traj-engine.db").is_file())
             self.assertTrue((work_dir / "frontend" / "dist" / "index.html").is_file())
@@ -73,6 +80,16 @@ class ReleaseAcceptanceTest(unittest.TestCase):
                 "work directory is not empty",
             ):
                 release_acceptance.stage_release(package, work_dir)
+
+    def test_stage_release_resolves_relative_work_directory(self):
+        with tempfile.TemporaryDirectory(dir=".") as directory:
+            package = build_test_release(Path(directory))
+            relative_work_dir = Path(directory) / "work"
+
+            staged = release_acceptance.stage_release(package, relative_work_dir)
+
+            self.assertTrue(staged.is_absolute())
+            self.assertTrue((staged / "release-manifest.json").is_file())
 
     def _free_port(self) -> int:
         with socket.socket() as sock:

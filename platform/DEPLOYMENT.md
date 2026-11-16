@@ -403,6 +403,9 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   npm --prefix frontend run build
   ```
 - 产物：`frontend/dist`；将整个目录发布到静态服务器。
+- 后端本身也内置 SPA 静态资源回退：启动 `platform.app.service` 后，
+  `/` 与非 API 路径会读取 `frontend/dist/index.html`，`/assets/...`
+  会返回对应静态文件。内网试点可直接使用单进程模式。
 - 反向代理需把 `/api/` 转发到后端，其余路径回退到 `index.html`。
   Nginx 示例：
   ```nginx
@@ -511,6 +514,29 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 验收不访问 Langfuse，不需要业务 key；真实数据链路仍用
   `langfuse_production_smoke.py`。
 - 无新增数据库表、无新增三方件、无 embedding 模型变更。
+
+### 4.8 M6.3 单进程前端托管与验收
+
+- 启动命令与后端一致，无需额外静态服务器：
+  ```powershell
+  python -m platform.app.cli run --profile cloud-v4 --port 8000
+  ```
+- 访问 `http://127.0.0.1:8000/` 即为前端页面；`/api/` 仍由同一 FastAPI
+  服务处理。前端刷新或访问前端路由时回退到 `index.html`，静态资源按文件返回。
+- 该模式适合内网试点、演示和小规模部署。多实例或需要独立缓存时，可继续
+  使用 4.2 的 Nginx 分离部署模式。
+- 离线验收在 M6.2 基础上新增前端检查：
+  1. `GET /` 必须返回非空 `text/html`。
+  2. 解析 `index.html` 中的本地 `src` / `href` 引用。
+  3. 逐个请求静态资源并要求返回成功。
+- 隔离环境验收命令：
+  ```powershell
+  python platform/scripts/release_acceptance.py `
+    --package platform/var/releases/traj-engine-0.1.0.zip `
+    --work-dir platform/var/release-acceptance `
+    --create-venv
+  ```
+- 该阶段无新增数据库表、无新增三方件、无 embedding 模型变更。
 
 ## 5. M0 契约验证
 

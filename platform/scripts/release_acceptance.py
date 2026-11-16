@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 import subprocess
 import sys
 import time
@@ -22,7 +23,7 @@ class ReleaseAcceptanceError(RuntimeError):
 
 def stage_release(package: str | Path, work_dir: str | Path) -> Path:
     release.verify_release(package)
-    destination = Path(work_dir)
+    destination = Path(work_dir).resolve()
     if destination.exists() and any(destination.iterdir()):
         raise ReleaseAcceptanceError(f"work directory is not empty: {destination}")
     destination.mkdir(parents=True, exist_ok=True)
@@ -58,6 +59,49 @@ def _stop_process(process: subprocess.Popen) -> None:
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait(timeout=5)
+
+
+def _check_frontend(base_url: str, timeout: float) -> dict:
+    request = urllib.request.Request(
+        base_url + "/",
+        headers={"Accept": "text/html,application/xhtml+xml"},
+    )
+    with urllib.request.urlopen(request, timeout=min(timeout, 5.0)) as response:
+        content_type = response.headers.get_content_type()
+        index_html = response.read().decode("utf-8")
+
+    if content_type != "text/html" or not index_html.strip():
+        raise ReleaseAcceptanceError("frontend index is not valid HTML")
+
+    references = re.findall(r"(?:src|href)=[\"']([^\"']+)[\"']", index_html)
+    local_assets = []
+    for reference in references:
+        is_local_asset = (
+            reference.startswith("/")
+            and not reference.startswith("//")
+            and not reference.startswith("/api/")
+        )
+        if not is_local_asset:
+            continue
+        asset_path = reference.split("?", 1)[0].split("#", 1)[0]
+        if asset_path and asset_path != "/" and asset_path not in local_assets:
+            local_assets.append(asset_path)
+
+    checked_assets = []
+    for asset_path in local_assets[:20]:
+        with urllib.request.urlopen(
+            base_url + asset_path,
+            timeout=min(timeout, 5.0),
+        ) as response:
+            response.read()
+        checked_assets.append(asset_path)
+
+    return {
+        "status": "passed",
+        "indexChecked": True,
+        "assetCount": len(checked_assets),
+        "assets": checked_assets,
+    }
 
 
 def run_release_acceptance(
@@ -163,6 +207,8 @@ def run_release_acceptance(
         else:
             raise ReleaseAcceptanceError(f"service did not become ready: {last_error}")
 
+        frontend = _check_frontend(base_url, timeout)
+
         smoke = _run_command(
             [
                 python_executable,
@@ -192,6 +238,7 @@ def run_release_acceptance(
         "package": str(Path(package)),
         "workDir": str(staged),
         "venvCreated": create_venv,
+        "frontend": frontend,
         "smoke": smoke_result,
     }
 

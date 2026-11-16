@@ -33,6 +33,7 @@ from platform.app.calibration import (
     serialize_review_calibration,
 )
 from platform.app.engine import ENGINE
+from platform.app.frontend import router as frontend_router
 from platform.app.langfuse_source import LangfuseHttpError, LangfuseTraceSource
 from platform.app.langfuse_scores import LangfuseScoreWriter
 from platform.app.langfuse_reviews import (
@@ -1536,3 +1537,6 @@ def serialize_calibration(row) -> dict:
         "runId": row["run_id"], "kind": row["kind"], "labelCount": row["label_count"],
         "ece": row["ece"], "metrics": json.loads(row["metrics_json"] or "{}"),
     }
+
+
+app.include_router(frontend_router)
