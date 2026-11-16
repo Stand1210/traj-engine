@@ -101,7 +101,8 @@ class ReleaseTest(unittest.TestCase):
                     name: archive.read(name)
                     for name in archive.namelist()
                 }
-            contents["README.md"] = b"tamperedxxx\r\n"
+            original = contents["README.md"]
+            contents["README.md"] = b"X" + original[1:]
             tampered = root / "tampered.zip"
             with zipfile.ZipFile(tampered, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                 for name, data in contents.items():
