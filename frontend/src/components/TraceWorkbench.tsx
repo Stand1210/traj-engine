@@ -4,27 +4,43 @@ import { api, type TraceScore } from "../api";
 interface Props {
   runId: string;
   initialMode: "all" | "alerts" | "abstain";
+  initialCellId: string | null;
   onSelect: (path: string) => void;
 }
 
-export default function TraceWorkbench({ runId, initialMode, onSelect }: Props) {
+export default function TraceWorkbench({ runId, initialMode, initialCellId, onSelect }: Props) {
   const [mode, setMode] = useState(initialMode);
+  const [cellId] = useState(initialCellId);
   const [rows, setRows] = useState<TraceScore[]>([]);
+  const [cellKey, setCellKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setError(null);
-    const promise = mode === "alerts"
-      ? api.alerts(runId)
-      : api.traces(runId, mode === "abstain" ? "&abstainOnly=true" : "");
+    const filters = [
+      mode === "alerts" ? "&alertOnly=true" : "",
+      mode === "abstain" ? "&abstainOnly=true" : "",
+      cellId ? `&cellId=${encodeURIComponent(cellId)}` : ""
+    ].join("");
+    const promise = api.traces(runId, filters);
     void promise
-      .then(result => setRows("data" in result ? result.data : result))
+      .then(result => setRows(result.data))
       .catch(error => setError(String(error)));
-  }, [runId, mode]);
+  }, [runId, mode, cellId]);
+
+  useEffect(() => {
+    if (!cellId) {
+      setCellKey(null);
+      return;
+    }
+    void api.cells(runId)
+      .then(cells => setCellKey(cells.find(cell => cell.id === cellId)?.cellKey ?? null))
+      .catch(() => setCellKey(null));
+  }, [runId, cellId]);
 
   return (
     <section className="panel wide">
-      <h2>轨迹工作台</h2>
+      <h2>轨迹工作台{cellId ? ` · Cell ${cellKey ?? "…"}` : ""}</h2>
       <div className="tabs">
         <button className={mode === "alerts" ? "active" : ""} onClick={() => setMode("alerts")}>告警</button>
         <button className={mode === "all" ? "active" : ""} onClick={() => setMode("all")}>全部</button>

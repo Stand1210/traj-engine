@@ -51,7 +51,11 @@ export default function ClusterView({ runId, onSelect }: Props) {
                 <td>{cell.cellKey}</td>
                 <td>{cell.size}</td>
                 <td>-</td>
-                <td><button onClick={() => onSelect(`/runs/${runId}/traces`)}>查看轨迹</button></td>
+                <td>
+                  <button onClick={() => onSelect(`/runs/${runId}/traces?cellId=${cell.id}`)}>
+                    查看轨迹
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

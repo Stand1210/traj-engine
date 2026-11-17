@@ -18,13 +18,15 @@ type Route =
   | { name: "run"; runId: string }
   | { name: "cells"; runId: string }
   | { name: "lineage"; runId: string }
-  | { name: "traces"; runId: string; mode: "all" | "alerts" | "abstain" }
+  | { name: "traces"; runId: string; mode: "all" | "alerts" | "abstain"; cellId: string | null }
   | { name: "alerts"; runId: string }
   | { name: "calibration"; runId: string }
   | { name: "trace"; runId: string; traceId: string };
 
 function parseHash(): Route {
-  const parts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  const [hashPath, hashQuery = ""] = window.location.hash.replace(/^#\/?/, "").split("?");
+  const parts = hashPath.split("/").filter(Boolean);
+  const query = new URLSearchParams(hashQuery);
   if (parts[0] === "lifecycle") {
     return { name: "lifecycle" };
   }
@@ -39,7 +41,7 @@ function parseHash(): Route {
   }
   if (parts[0] === "runs" && parts[1] && parts[2] === "traces") {
     const mode = parts[3] === "alerts" || parts[3] === "abstain" ? parts[3] : "all";
-    return { name: "traces", runId: parts[1], mode };
+    return { name: "traces", runId: parts[1], mode, cellId: query.get("cellId") };
   }
   if (parts[0] === "runs" && parts[1] && parts[2] === "alerts") {
     return { name: "alerts", runId: parts[1] };
@@ -132,7 +134,15 @@ export default function App() {
         {route.name === "run" && <RunOverview runId={route.runId} onSelect={navigate} />}
         {route.name === "cells" && <ClusterView runId={route.runId} onSelect={navigate} />}
         {route.name === "lineage" && <LineageView runId={route.runId} onSelect={navigate} />}
-        {route.name === "traces" && <TraceWorkbench runId={route.runId} initialMode={route.mode} onSelect={navigate} />}
+        {route.name === "traces" && (
+          <TraceWorkbench
+            key={`${route.runId}:${route.cellId ?? "all"}:${route.mode}`}
+            runId={route.runId}
+            initialMode={route.mode}
+            initialCellId={route.cellId}
+            onSelect={navigate}
+          />
+        )}
         {route.name === "alerts" && <AlertWorkbench runId={route.runId} onSelect={navigate} />}
         {route.name === "calibration" && <CalibrationWorkbench runId={route.runId} />}
         {route.name === "trace" && <TraceDetail runId={route.runId} traceId={route.traceId} />}
