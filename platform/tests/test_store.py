@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import threading
 from pathlib import Path
 
 from platform.app import store
@@ -47,6 +48,20 @@ def span(span_id="s1", parent_id=None):
 
 
 class StoreTest(unittest.TestCase):
+    def test_connection_can_be_used_across_fastapi_worker_threads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "threaded.db"
+            connection = store.connect(db_path, initialize=True)
+
+            def execute():
+                connection.execute("SELECT COUNT(*) FROM tenants").fetchone()
+
+            thread = threading.Thread(target=execute)
+            thread.start()
+            thread.join()
+
+            connection.close()
+
     def test_tenant_ontology_and_precheck_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:
             db_path = Path(directory) / "test.db"

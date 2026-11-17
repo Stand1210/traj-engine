@@ -77,7 +77,12 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
       .catch(loadError => {
         setConfig(emptyConfig);
         setEvaluations([]);
-        setError(String(loadError));
+        if (String(loadError).includes("lifecycle_not_configured")) {
+          setError(null);
+          setMessage("当前本体尚未配置生命周期调度，可填写后保存。");
+        } else {
+          setError(String(loadError));
+        }
       });
   }, [ontologyId]);
 
