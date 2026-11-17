@@ -20,6 +20,9 @@ export default function CalibrationWorkbench({ runId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reviewFile, setReviewFile] = useState<File | null>(null);
+  const [reviewer, setReviewer] = useState("business-expert");
+  const [triggerAfterImport, setTriggerAfterImport] = useState(false);
 
   const load = useCallback(async () => {
     const [versionResult, reviewResult] = await Promise.all([
@@ -72,6 +75,38 @@ export default function CalibrationWorkbench({ runId }: Props) {
     }
   }
 
+  async function importReviewPack() {
+    if (!reviewFile) {
+      setError("请先选择复核结果 CSV 文件。");
+      return;
+    }
+    if (!reviewer.trim()) {
+      setError("请填写复核人。");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const csv = await reviewFile.text();
+      const result = await api.importReviewPack(runId, {
+        csv,
+        reviewer: reviewer.trim(),
+        triggerCalibration: triggerAfterImport
+      });
+      const counts = result.verdictCounts;
+      setMessage(
+        `已导入 ${result.imported} 条复核：agree ${counts.agree ?? 0}，` +
+        `disagree ${counts.disagree ?? 0}，uncertain ${counts.uncertain ?? 0}。`
+      );
+      await load();
+    } catch (submitError) {
+      setError(String(submitError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const reviewCount = reviews?.data.length ?? 0;
   const reviewedTraces = new Set(reviews?.data.map(item => item.traceScoreId) ?? []).size;
 
@@ -90,6 +125,37 @@ export default function CalibrationWorkbench({ runId }: Props) {
         <div className="button-row">
           <button className="primary" disabled={busy} onClick={() => void triggerCalibration()}>
             触发校准
+          </button>
+        </div>
+        <div className="form-grid">
+          <label>
+            复核结果 CSV
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={event => setReviewFile(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <label>
+            复核人
+            <input
+              value={reviewer}
+              onChange={event => setReviewer(event.target.value)}
+              placeholder="business-expert"
+            />
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={triggerAfterImport}
+              onChange={event => setTriggerAfterImport(event.target.checked)}
+            />
+            导入后自动触发校准
+          </label>
+        </div>
+        <div className="button-row">
+          <button disabled={busy || !reviewFile} onClick={() => void importReviewPack()}>
+            导入复核结果 CSV
           </button>
         </div>
         <p className="calibration-note">

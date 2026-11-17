@@ -4,8 +4,10 @@ import tempfile
 import unittest
 from contextlib import closing
 from pathlib import Path
+from unittest.mock import patch
 
 from platform.app import store
+from platform.app import service
 from platform.scripts import review_pack
 
 
@@ -76,6 +78,27 @@ class ReviewPackTest(unittest.TestCase):
                     "SELECT COUNT(*) AS n FROM human_reviews"
                 ).fetchone()["n"]
             self.assertEqual(0, review_count)
+
+    def test_service_imports_review_pack_csv(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "review.db"
+            csv_path = Path(directory) / "review-pack.csv"
+            self._seed_database(db_path)
+            review_pack.export_review_pack(db_path, "run-review", csv_path)
+            self._fill_review_pack(csv_path, csv_path)
+
+            with patch.dict("os.environ", {"TRAJ_DB_PATH": str(db_path)}):
+                result = service.import_review_pack_csv(
+                    "run-review",
+                    service.ReviewPackImportInput(
+                        csv=csv_path.read_text(encoding="utf-8-sig"),
+                        reviewer="frontend-reviewer",
+                    ),
+                )
+
+            self.assertEqual(20, result["imported"])
+            self.assertEqual("frontend-reviewer", result["reviewer"])
+            self.assertEqual({"agree": 15, "disagree": 5, "uncertain": 0}, result["verdictCounts"])
 
     def _seed_database(self, db_path: Path) -> None:
         created_at = store.utcnow()

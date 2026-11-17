@@ -186,6 +186,15 @@ export interface ReviewCalibration {
   activatedAt: string | null;
 }
 
+export interface ReviewPackImportResult {
+  runId: string;
+  imported: number;
+  reviewer: string;
+  verdictCounts: Record<string, number>;
+  calibration: ReviewCalibration | null;
+  calibrationError: string | null;
+}
+
 export interface RunInput {
   tenantId: string;
   ontologyId: string;
@@ -408,4 +417,13 @@ export const api = {
     }),
   syncReviewQueue: (runId: string) =>
     request<ReviewQueueResult>(`/api/v1/runs/${runId}/review-queue/sync`, { method: "POST" })
+  ,
+  importReviewPack: (
+    runId: string,
+    input: { csv: string; reviewer: string; triggerCalibration?: boolean; activate?: boolean }
+  ) =>
+    request<ReviewPackImportResult>(`/api/v1/runs/${runId}/review-pack/import`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    })
 };

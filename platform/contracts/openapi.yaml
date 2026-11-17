@@ -786,6 +786,30 @@ paths:
                 $ref: '#/components/schemas/ReviewQueuePushResult'
         '404':
           $ref: '#/components/responses/NotFound'
+  /runs/{runId}/review-pack/import:
+    post:
+      tags: [reviews]
+      operationId: importReviewPack
+      summary: Import an offline review pack CSV
+      parameters:
+        - $ref: '#/components/parameters/runId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewPackImportInput'
+      responses:
+        '201':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewPackImportResult'
+        '400':
+          description: Invalid review pack
+        '404':
+          $ref: '#/components/responses/NotFound'
   /runs/{runId}/review-queue/sync:
     post:
       tags: [reviews]
@@ -1294,6 +1318,29 @@ components:
         scope: {type: string, enum: [alerts, abstains, all], default: all}
         limit: {type: integer, minimum: 1, maximum: 100, default: 50}
         queueName: {type: string, default: traj-engine-review}
+    ReviewPackImportInput:
+      type: object
+      required: [csv, reviewer]
+      properties:
+        csv: {type: string, minLength: 1, maxLength: 1000000}
+        reviewer: {type: string, minLength: 1, maxLength: 120}
+        triggerCalibration: {type: boolean, default: false}
+        activate: {type: boolean, default: false}
+    ReviewPackImportResult:
+      type: object
+      required: [runId, imported, reviewer, verdictCounts]
+      properties:
+        runId: {type: string}
+        imported: {type: integer}
+        reviewer: {type: string}
+        verdictCounts:
+          type: object
+          additionalProperties: {type: integer}
+        calibration:
+          allOf:
+            - $ref: '#/components/schemas/ReviewCalibration'
+          nullable: true
+        calibrationError: {type: string, nullable: true}
     CalibrationTriggerInput:
       type: object
       required: [createdBy]

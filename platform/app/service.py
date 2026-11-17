@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import tempfile
 from datetime import datetime, timedelta, timezone
 from contextlib import closing
 from pathlib import Path
@@ -49,6 +50,7 @@ from platform.app.lifecycle import (
     serialize_schedule,
 )
 from platform.app.scheduler import LifecycleScheduler, scheduler_status
+from platform.scripts.review_pack import ReviewPackError, import_review_pack
 
 
 SCHEDULER = LifecycleScheduler(config=load_scheduler_config())
@@ -105,6 +107,13 @@ class ReviewQueueInput(BaseModel):
 
 class CalibrationTriggerInput(BaseModel):
     createdBy: str = Field(default="platform", min_length=1, max_length=120)
+
+
+class ReviewPackImportInput(BaseModel):
+    csv: str = Field(min_length=1, max_length=1000000)
+    reviewer: str = Field(min_length=1, max_length=120)
+    triggerCalibration: bool = False
+    activate: bool = False
 
 
 class TenantInput(BaseModel):
@@ -1016,6 +1025,28 @@ def submit_review(run_id: str, input_data: ReviewInput, connection=Depends(get_c
     connection.commit()
     row = connection.execute("SELECT * FROM human_reviews WHERE id = ?", (review_id,)).fetchone()
     return dict(row)
+
+
+@app.post("/api/v1/runs/{run_id}/review-pack/import", status_code=201)
+def import_review_pack_csv(
+    run_id: str,
+    input_data: ReviewPackImportInput,
+) -> dict:
+    with tempfile.TemporaryDirectory() as directory:
+        csv_path = Path(directory) / "review-pack.csv"
+        csv_path.write_text(input_data.csv, encoding="utf-8-sig", newline="")
+        try:
+            result = import_review_pack(
+                store.resolve_db_path(),
+                run_id,
+                csv_path,
+                reviewer=input_data.reviewer,
+                trigger_calibration=input_data.triggerCalibration,
+                activate=input_data.activate,
+            )
+        except (ReviewPackError, ValueError) as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+    return result
 
 
 @app.get("/api/v1/reviews")
