@@ -116,6 +116,7 @@ class StoreTest(unittest.TestCase):
                         max_traces INTEGER,
                         r2_novelty_threshold REAL NOT NULL,
                         r2_alert_rate_threshold REAL NOT NULL,
+                        r2_training_limit INTEGER NOT NULL DEFAULT 300,
                         writeback_to_langfuse INTEGER NOT NULL,
                         created_at TEXT NOT NULL,
                         updated_at TEXT NOT NULL
@@ -131,6 +132,7 @@ class StoreTest(unittest.TestCase):
                     for row in upgraded.execute("PRAGMA table_info(lifecycle_schedules)")
                 }
                 self.assertIn("r2_min_novelty_traces", columns)
+                self.assertIn("r2_training_limit", columns)
             finally:
                 upgraded.close()
 

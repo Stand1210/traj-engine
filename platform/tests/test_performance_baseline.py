@@ -45,7 +45,7 @@ class PerformanceBaselineTest(unittest.TestCase):
 
     def test_performance_config_is_validated(self):
         config = load_performance_config()
-        self.assertGreaterEqual(config["r2TrainingLimit"], 2)
+        self.assertTrue(config["r2TrainingLimit"] == 0 or config["r2TrainingLimit"] >= 2)
 
     def test_r2_training_selection_is_deterministic_and_bounded(self):
         traces = [{"trace_id": f"trace-{index}"} for index in range(101)]

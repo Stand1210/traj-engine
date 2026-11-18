@@ -4,12 +4,34 @@ from pathlib import Path
 from unittest.mock import patch
 
 from platform.app import store
+from platform.app.config import load_performance_config
+from platform.app.engine import resolve_r2_training_plan
 from platform.app.lifecycle import evaluate_lifecycle_state, get_lifecycle_schedule
-from platform.app.service import LifecycleEvaluateInput, LifecycleInput, configure_lifecycle
-from platform.app.service import evaluate_lifecycle, serialize_run
+from platform.app.service import LifecycleEvaluateInput, LifecycleInput, RunInput
+from platform.app.service import configure_lifecycle, create_run, evaluate_lifecycle, serialize_run
 
 
 class LifecycleTest(unittest.TestCase):
+    def test_r2_training_plan_uses_auto_budget(self):
+        performance = load_performance_config()
+        self.assertEqual(0, performance["r2TrainingLimit"])
+
+        full_limit, full_plan = resolve_r2_training_plan(300, 0, performance)
+        single_limit, _ = resolve_r2_training_plan(1, 0, performance)
+        self.assertEqual(2, single_limit)
+        self.assertEqual(300, full_limit)
+        self.assertEqual("auto_full", full_plan["strategy"])
+
+        sampled_limit, sampled_plan = resolve_r2_training_plan(10000, 0, performance)
+        self.assertLessEqual(sampled_plan["estimatedTrainingSeconds"], 3600)
+        self.assertGreaterEqual(sampled_limit, 2)
+        self.assertLess(sampled_limit, 10000)
+        self.assertEqual("auto_budget", sampled_plan["strategy"])
+
+        manual_limit, manual_plan = resolve_r2_training_plan(10000, 300, performance)
+        self.assertEqual(300, manual_limit)
+        self.assertEqual("manual", manual_plan["strategy"])
+
     def test_lifecycle_decisions_and_thresholds(self):
         with tempfile.TemporaryDirectory() as directory:
             connection = store.connect(Path(directory) / "test.db", initialize=True)
@@ -26,6 +48,7 @@ class LifecycleTest(unittest.TestCase):
                         windowHours=24,
                         r2NoveltyThreshold=0.15,
                         r2MinNoveltyTraces=0,
+                        r2TrainingLimit=300,
                         r2AlertRateThreshold=0.20,
                     ),
                     connection,
@@ -66,6 +89,14 @@ class LifecycleTest(unittest.TestCase):
                 )
                 store.set_run_status(connection, run_id, "succeeded", ended=True)
                 connection.commit()
+                failed_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "lifecycle", "R1",
+                    "2026-01-02T00:00:00Z", "2026-01-03T00:00:00Z", 1.0, "failed-test", None,
+                )
+                store.set_run_status(
+                    connection, failed_run_id, "failed", "test failure", ended=True
+                )
+                connection.commit()
 
                 novelty = evaluate_lifecycle_state(connection, ontology_id)
                 self.assertEqual("created_r2", novelty["decision"])
@@ -82,6 +113,43 @@ class LifecycleTest(unittest.TestCase):
                 disabled = evaluate_lifecycle_state(connection, ontology_id)
                 self.assertEqual("skipped", disabled["decision"])
                 self.assertEqual("schedule_disabled", disabled["reason"])
+            finally:
+                connection.close()
+
+    def test_manual_langfuse_run_reads_lifecycle_schedule(self):
+        with tempfile.TemporaryDirectory() as directory:
+            connection = store.connect(Path(directory) / "test.db", initialize=True)
+            try:
+                ids = store.create_tenant_with_tier0_ontology(
+                    connection, "Owner", "org", "project", "pk", "sk", "Agent"
+                )
+                configure_lifecycle(
+                    ids["ontology_id"],
+                    LifecycleInput(
+                        enabled=True,
+                        source="langfuse",
+                        sourceRef="lifecycle",
+                        r2TrainingLimit=300,
+                    ),
+                    connection,
+                )
+                with patch("platform.app.service.ENGINE.submit") as submit:
+                    run = create_run(
+                        RunInput(
+                            tenantId=ids["tenant_id"],
+                            ontologyId=ids["ontology_id"],
+                            source="langfuse",
+                            sourceRef="lifecycle",
+                            runType="R1",
+                            windowStart="2026-01-01T00:00:00Z",
+                            windowEnd="2026-01-02T00:00:00Z",
+                        ),
+                        connection,
+                    )
+
+                self.assertEqual("queued", run["status"])
+                submit.assert_called_once()
+                self.assertEqual(300, submit.call_args.kwargs["r2_training_limit"])
             finally:
                 connection.close()
 
@@ -193,6 +261,7 @@ class LifecycleTest(unittest.TestCase):
                         intervalHours=24,
                         r2NoveltyThreshold=0.15,
                         r2MinNoveltyTraces=2,
+                        r2TrainingLimit=300,
                     ),
                     connection,
                 )

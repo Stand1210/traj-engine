@@ -27,6 +27,24 @@
 4. 对平台筛出的低置信样本进行人工复核。
 5. 复核结果回流，用于后续校准。
 
+## 3.0 新业务接入（前端生产控制台）
+
+进入前端「业务接入」页面后按以下步骤操作：
+
+1. 业务方在当前平台对接的 Langfuse 实例中创建独立 Project，并取得该
+   Project 的 `public key` / `secret key`。
+2. 在页面填写业务显示名、Organization ID、Project ID、两个 key、
+   本体显示名和单 Run 最大轨迹数。
+3. 点击「校验连接」。平台会调用当前 profile 对应的 Langfuse health 与
+   projects 接口，确认服务版本、key 有效性和 Project 归属。
+4. 点击「注册业务 Project」。平台在本地数据库中原子创建租户记录、
+   Tier 0 本体记录和不可变本体 v1。
+5. 注册完成后进入「生命周期」页面，为本体启用 R2 冷启动训练；训练
+   生成冻结结构后，日常 R1 Run 复用该结构刷新基线。
+
+> 注意：前端「业务接入」页面不填写 Langfuse base URL 或 profile。
+   Langfuse 实例由平台启动参数决定，业务方只提交自己 Project 的身份与 key。
+
 ## 3.1 当前 M1 可用能力
 
 - 通过前端或 REST 发起基准数据集 Run。
@@ -229,12 +247,14 @@ R2 冷启动聚类；R1、查询和调度扫描在 100 条基线下均为秒级�
 
 ### 6.2 R2 抽样训练
 
-- 配置文件：`platform/config/performance.yaml`。
-- `r2TrainingLimit` 默认 64，表示 R2 结构学习最多使用的训练轨迹数；
-  全量轨迹仍会被检测和评分。
-- 抽样策略为确定性等距抽样，重复执行同一批轨迹会得到相同训练样本。
-- Run 详情的 `algorithm` Step 会显示 `trainingTraceCount`、
-  `fullTraceCount` 和 `strategy=systematic`。
+- 生命周期页面的 `R2 训练策略` 支持两种模式：
+  - 自动：默认模式。加载时间窗轨迹后估算全量 R2 耗时；预计不超过 1 小时
+    使用全量结构学习，超过 1 小时按预算推荐训练样本数。
+  - 手动：直接指定结构学习训练上限，适合调优或复现实验。
+- 自动与手动模式都只限制结构学习样本数；时间窗内全部轨迹仍会被检测和评分。
+- 超过训练上限时使用确定性等距抽样，重复执行同一批轨迹会得到相同训练样本。
+- Run 详情的 `algorithm` Step 会显示 `trainingTraceCount`、`fullTraceCount`、
+  `effectiveTrainingLimit`、`estimatedFullSeconds`、`budgetSeconds` 与 `strategy`。
 
 ### 6.3 流式评分与分批持久化
 
@@ -278,4 +298,35 @@ projectDefaultMaxTracesPerRun: 100000
   - `comment`： disagree 或 uncertain 必填原因。
 - 不要修改 `traceScoreId`、`traceId` 和算法输出列。
 - 填写完成后交回平台导入；重复导入同一 reviewer 的结果会覆盖旧标签。
+
+### 7.2 Langfuse 验证数据包
+
+当需要验证生产链路是否具备真实识别能力时，可导入带内部真值的验证包：
+
+```powershell
+python platform/scripts/langfuse_verification_pack.py `
+  --profile cloud-v4 `
+  --normal-count 180 `
+  --anomaly-count 20 `
+  --batch-size 50 `
+  --wait-seconds 60 `
+  --spread-seconds 1800 `
+  --id-offset 500000000000
+```
+
+- 默认选择 180 条正常轨迹与 20 条多类型异常轨迹，覆盖错误、幻觉数字、
+  非法步骤、时延尖峰、循环、缺步、token 膨胀、截断和未完成等类型。
+- 导入脚本会等待 Cloud 异步写入并回读校验；只有 200 条全部可读时才返回成功。
+- 真值清单输出在 `platform/var/verification/` 下的 JSON manifest 中，包含
+  Langfuse trace ID、基准 trace ID 和异常类型，可用于核对 Run 告警结果。
+- `--dry-run` 可在不写入 Langfuse 的情况下检查选样与 manifest 生成。
+- Run 完成后可用验证报告脚本自动对账：
+
+```powershell
+python platform/scripts/verify_langfuse_pack.py `
+  --manifest platform/var/verification/<manifest>.json `
+  --run-id <run-id>
+```
+
+报告输出异常命中率、正常误报数、漏检清单、弃权样本和最终告警状态。
 

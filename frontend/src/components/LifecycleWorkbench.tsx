@@ -3,10 +3,10 @@ import {
   api,
   type LifecycleEvaluation,
   type LifecycleInput,
+  type LifecycleSchedule,
   type Ontology,
   type SchedulerStatus
 } from "../api";
-
 interface Props {
   onSelect: (path: string) => void;
 }
@@ -21,6 +21,7 @@ const emptyConfig: LifecycleInput = {
   maxTraces: null,
   r2NoveltyThreshold: 0.15,
   r2MinNoveltyTraces: 50,
+  r2TrainingLimit: 0,
   r2AlertRateThreshold: 0.2,
   writebackToLangfuse: false
 };
@@ -36,6 +37,7 @@ function fromSchedule(schedule: LifecycleInput): LifecycleInput {
     maxTraces: schedule.maxTraces,
     r2NoveltyThreshold: schedule.r2NoveltyThreshold,
     r2MinNoveltyTraces: schedule.r2MinNoveltyTraces,
+    r2TrainingLimit: schedule.r2TrainingLimit,
     r2AlertRateThreshold: schedule.r2AlertRateThreshold,
     writebackToLangfuse: schedule.writebackToLangfuse
   };
@@ -44,6 +46,7 @@ function fromSchedule(schedule: LifecycleInput): LifecycleInput {
 export default function LifecycleWorkbench({ onSelect }: Props) {
   const [ontologies, setOntologies] = useState<Ontology[]>([]);
   const [ontologyId, setOntologyId] = useState("");
+  const [schedule, setSchedule] = useState<LifecycleSchedule | null>(null);
   const [config, setConfig] = useState<LifecycleInput>(emptyConfig);
   const [evaluations, setEvaluations] = useState<LifecycleEvaluation[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -71,10 +74,12 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
     setError(null);
     void Promise.all([api.lifecycle(ontologyId), api.lifecycleEvaluations(ontologyId)])
       .then(([schedule, history]) => {
+        setSchedule(schedule);
         setConfig(fromSchedule(schedule));
         setEvaluations(history.data);
       })
       .catch(loadError => {
+        setSchedule(null);
         setConfig(emptyConfig);
         setEvaluations([]);
         if (String(loadError).includes("lifecycle_not_configured")) {
@@ -93,6 +98,7 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
     setMessage(null);
     try {
       const schedule = await api.saveLifecycle(ontologyId, config);
+      setSchedule(schedule);
       setConfig(fromSchedule(schedule));
       setMessage("生命周期调度已保存。");
     } catch (submitError) {
@@ -157,6 +163,45 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
         <h2>生命周期调度</h2>
         {error && <div className="error-banner">{error}</div>}
         {message && <div className="success-banner">{message}</div>}
+        <div className={`lifecycle-summary ${schedule ? "registered" : "unregistered"}`}>
+          <div>
+            <span>注册状态</span>
+            <strong>{schedule ? "已注册" : "未注册"}</strong>
+          </div>
+          <div>
+            <span>调度 ID</span>
+            <strong>{schedule?.id ?? "-"}</strong>
+          </div>
+          <div>
+            <span>调度状态</span>
+            <strong>{schedule ? (schedule.enabled ? "启用" : "停用") : "-"}</strong>
+          </div>
+          <div>
+            <span>R1 周期</span>
+            <strong>{schedule ? `${schedule.intervalHours} 小时` : "-"}</strong>
+          </div>
+          <div>
+            <span>R2 训练上限</span>
+            <strong>
+              {schedule
+                ? (schedule.r2TrainingLimit === 0 ? "自动（1 小时预算）" : `${schedule.r2TrainingLimit} 条`)
+                : "-"}
+            </strong>
+          </div>
+          <div>
+            <span>分析窗口</span>
+            <strong>{schedule ? `${schedule.windowHours} 小时` : "-"}</strong>
+          </div>
+          <div>
+            <span>最近更新</span>
+            <strong>{formatLocalDateTime(schedule?.updatedAt)}</strong>
+          </div>
+        </div>
+        <p className="scheduler-note">
+          {schedule
+            ? "该业务本体已有生命周期配置，保存将更新原配置，不会重复注册。"
+            : "该业务本体尚未注册生命周期配置，保存后创建一条调度记录。"}
+        </p>
         <div className="form-grid">
           <label>业务本体
             <select value={ontologyId} onChange={event => setOntologyId(event.target.value)}>
@@ -218,6 +263,32 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
             type="number" min="0" max="1" step="0.01" value={config.r2AlertRateThreshold}
             onChange={event => setConfig({ ...config, r2AlertRateThreshold: Number(event.target.value) })}
           /></label>
+          <label>R2 训练策略
+            <select
+              value={config.r2TrainingLimit === 0 ? "auto" : "manual"}
+              onChange={event => setConfig({
+                ...config,
+                r2TrainingLimit: event.target.value === "auto" ? 0 : 300
+              })}
+            >
+              <option value="auto">自动：1 小时内全量，超时按预算采样</option>
+              <option value="manual">手动：指定训练上限</option>
+            </select>
+          </label>
+          {config.r2TrainingLimit !== 0 && (
+            <label>R2 训练上限（条）<input
+              type="number" min="2" step="1" value={config.r2TrainingLimit}
+              placeholder="例如 300"
+              onChange={event => setConfig({
+                ...config,
+                r2TrainingLimit: Number(event.target.value)
+              })}
+            /></label>
+          )}
+          <p className="scheduler-note">
+            自动策略在加载时间窗轨迹后决策：预计 R2 不超过 1 小时使用全量结构学习；
+            超过 1 小时则按预算推荐训练样本数。窗口内全部轨迹始终参与检测与评分。
+          </p>
           <label className="checkbox">
             <input
               type="checkbox"
@@ -228,7 +299,7 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
           </label>
         </div>
         <div className="button-row">
-          <button disabled={busy} onClick={() => void save()}>保存调度</button>
+          <button disabled={busy} onClick={() => void save()}>{schedule ? "更新调度" : "注册调度"}</button>
           <button disabled={busy} onClick={() => void evaluate(false)}>评估并按策略触发</button>
           <button disabled={busy} onClick={() => void evaluate(true)}>强制 R2 重聚类</button>
           <button disabled={busy} onClick={() => void evaluateAll()}>调度扫描全部本体</button>
@@ -259,7 +330,7 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
           <tbody>
             {evaluations.map(item => (
               <tr key={item.id}>
-                <td>{item.createdAt.replace("T", " ").slice(0, 19)}</td>
+                <td>{formatLocalDateTime(item.createdAt)}</td>
                 <td>{item.decision}</td>
                 <td>{item.reason}</td>
                 <td>{item.metrics.traceCount ?? "-"}</td>
@@ -283,3 +354,5 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
     </section>
   );
 }
+import { formatLocalDateTime } from "../time";
+

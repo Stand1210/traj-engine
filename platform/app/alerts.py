@@ -94,14 +94,15 @@ def persist_alert_decisions(connection, run_id: str, budget: int = DEFAULT_ALERT
             "SELECT * FROM trace_scores WHERE run_id = ? AND is_alert = 1", (run_id,)
         ).fetchall()
     ]
-    score_ids = [row["id"] for row in score_rows]
-    evidence_rows = []
-    for score_id in score_ids:
-        evidence_rows.extend(
-            dict(row) for row in connection.execute(
-                "SELECT * FROM score_evidence WHERE trace_score_id = ? ORDER BY dimension", (score_id,)
-            ).fetchall()
-        )
+    evidence_rows = [
+        dict(row) for row in connection.execute(
+            """SELECT e.* FROM score_evidence e
+               JOIN trace_scores t ON t.id = e.trace_score_id
+               WHERE t.run_id = ? AND t.is_alert = 1
+               ORDER BY e.trace_score_id, e.dimension""",
+            (run_id,),
+        ).fetchall()
+    ]
     cell_sizes = {
         row["id"]: int(row["size"])
         for row in connection.execute("SELECT id, size FROM cells WHERE run_id = ?", (run_id,)).fetchall()

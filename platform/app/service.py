@@ -36,6 +36,7 @@ from platform.app.calibration import (
 from platform.app.engine import ENGINE
 from platform.app.frontend import router as frontend_router
 from platform.app.langfuse_source import LangfuseHttpError, LangfuseTraceSource
+from platform.app.langfuse_admin import LangfuseAdminClient, LangfuseAdminError
 from platform.app.langfuse_scores import LangfuseScoreWriter
 from platform.app.langfuse_reviews import (
     COMMENT_SCORE_NAME,
@@ -58,13 +59,37 @@ SCHEDULER = LifecycleScheduler(config=load_scheduler_config())
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    profile = resolve_profile_from_args()
+    langfuse_version, startup_note = _check_langfuse_version(profile)
     with closing(store.connect(initialize=True)) as connection:
         store.ensure_internal_benchmark(connection)
-        store.record_startup(connection, resolve_profile_from_args())
+        store.record_startup(connection, profile, langfuse_version, startup_note)
     if os.environ.get("TRAJ_SCHEDULER") == "1":
         SCHEDULER.start()
     yield
     SCHEDULER.stop()
+
+
+def _check_langfuse_version(profile: dict) -> tuple[str | None, str]:
+    public_key = os.environ.get("LANGFUSE_PUBLIC_KEY")
+    secret_key = os.environ.get("LANGFUSE_SECRET_KEY")
+    if not public_key or not secret_key:
+        return None, "Langfuse health check skipped: platform keys are not configured"
+    try:
+        client = LangfuseAdminClient.from_config(
+            profile,
+            load_endpoints(),
+            {"publicKey": public_key, "secretKey": secret_key},
+            max_retries=1,
+            request_timeout=10.0,
+        )
+        health = client.check_health()
+        version = health.get("version")
+        if health.get("status") != "OK" or not version:
+            return None, "Langfuse health endpoint did not return status OK and version"
+        return str(version), "Langfuse health check succeeded"
+    except (LangfuseAdminError, OSError) as error:
+        return None, f"Langfuse health check failed: {error}"
 
 
 app = FastAPI(
@@ -126,6 +151,16 @@ class TenantInput(BaseModel):
     maxTracesPerRun: int | None = Field(default=None, ge=1)
 
 
+class LangfuseConnectionInput(BaseModel):
+    publicKey: str = Field(min_length=1, max_length=500)
+    secretKey: str = Field(min_length=1, max_length=500)
+    projectId: str = Field(min_length=1, max_length=200)
+
+
+class OnboardingInput(TenantInput):
+    ontologyDisplayName: str = Field(default="Agent", min_length=1, max_length=200)
+
+
 class ProjectQuotaInput(BaseModel):
     maxTracesPerRun: int = Field(ge=1)
 
@@ -155,6 +190,7 @@ class LifecycleInput(BaseModel):
     maxTraces: int | None = Field(default=None, ge=1)
     r2NoveltyThreshold: float = Field(default=0.15, ge=0.0, le=1.0)
     r2MinNoveltyTraces: int = Field(default=50, ge=0)
+    r2TrainingLimit: int = Field(default=0, ge=0)
     r2AlertRateThreshold: float = Field(default=0.20, ge=0.0, le=1.0)
     writebackToLangfuse: bool = False
 
@@ -216,6 +252,78 @@ def list_tenants(
     ).fetchall()
     total = connection.execute("SELECT COUNT(*) AS n FROM tenants").fetchone()["n"]
     return page([serialize_tenant(row) for row in rows], limit, offset, total)
+
+
+@app.post("/api/v1/langfuse/connection/check")
+def check_langfuse_connection(input_data: LangfuseConnectionInput) -> dict:
+    try:
+        profile = resolve_profile_from_args()
+        client = LangfuseAdminClient.from_config(
+            profile,
+            load_endpoints(),
+            {"publicKey": input_data.publicKey, "secretKey": input_data.secretKey},
+            max_retries=2,
+            request_timeout=30.0,
+        )
+        return client.check_project(input_data.projectId)
+    except LangfuseAdminError as error:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "langfuse_connection_failed", "message": str(error)},
+        )
+
+
+@app.post("/api/v1/onboarding/register", status_code=201)
+def register_langfuse_project(input_data: OnboardingInput, connection=Depends(get_connection)) -> dict:
+    try:
+        profile = resolve_profile_from_args()
+        client = LangfuseAdminClient.from_config(
+            profile,
+            load_endpoints(),
+            {"publicKey": input_data.publicKey, "secretKey": input_data.secretKey},
+            max_retries=2,
+            request_timeout=30.0,
+        )
+        check = client.check_project(input_data.projectId)
+    except LangfuseAdminError as error:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "langfuse_connection_failed", "message": str(error)},
+        )
+
+    default_max_traces = load_performance_config()["projectDefaultMaxTracesPerRun"]
+    try:
+        created = store.create_tenant_with_tier0_ontology(
+            connection,
+            input_data.displayName,
+            input_data.orgId,
+            input_data.projectId,
+            input_data.publicKey,
+            input_data.secretKey,
+            input_data.ontologyDisplayName,
+            input_data.queueId,
+            input_data.maxTracesPerRun or default_max_traces,
+        )
+    except ValueError as error:
+        if str(error) == "tenant org/project already registered":
+            raise HTTPException(status_code=409, detail={"code": "tenant_already_exists"})
+        raise HTTPException(status_code=400, detail={"code": "invalid_onboarding_request", "message": str(error)})
+
+    tenant = connection.execute(
+        "SELECT * FROM tenants WHERE id = ?", (created["tenant_id"],)
+    ).fetchone()
+    ontology = connection.execute(
+        "SELECT * FROM ontologies WHERE id = ?", (created["ontology_id"],)
+    ).fetchone()
+    return {
+        "tenant": serialize_tenant(tenant),
+        "ontology": serialize_ontology(ontology),
+        "langfuse": {
+            "version": check["langfuseVersion"],
+            "projectId": check["project"]["id"],
+            "projectName": check["project"]["name"],
+        },
+    }
 
 
 @app.get("/api/v1/tenants/{tenant_id}")
@@ -489,6 +597,7 @@ def configure_lifecycle(
             input_data.r2AlertRateThreshold,
             input_data.writebackToLangfuse,
             input_data.r2MinNoveltyTraces,
+            input_data.r2TrainingLimit,
         )
     except ValueError as error:
         if str(error) == "ontology not found":
@@ -675,6 +784,11 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
                 },
             )
             writeback_strict = input_data.writebackStrict
+    schedule_limit = None
+    if input_data.source == "langfuse":
+        schedule = get_lifecycle_schedule(connection, input_data.ontologyId)
+        if schedule is not None:
+            schedule_limit = int(schedule["r2_training_limit"])
     ENGINE.submit(
         run_id,
         input_data.sourceRef,
@@ -684,6 +798,7 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
         window=window,
         ontology_id=input_data.ontologyId,
         frozen_state=frozen_state,
+        r2_training_limit=schedule_limit,
         score_writer=score_writer,
         writeback_strict=writeback_strict,
     )
@@ -774,28 +889,36 @@ def list_trace_scores(
     connection=Depends(get_connection),
 ) -> dict:
     ensure_run(connection, run_id)
-    clauses = ["run_id = ?"]
+    clauses = ["s.run_id = ?"]
     values: list[Any] = [run_id]
     if cellId:
-        clauses.append("cell_id = ?")
+        clauses.append("s.cell_id = ?")
         values.append(cellId)
     if alertOnly:
-        clauses.append("is_alert = 1")
+        clauses.append("s.is_alert = 1")
     if abstainOnly:
-        clauses.append("is_abstain = 1")
+        clauses.append("s.is_abstain = 1")
     if minScore is not None:
-        clauses.append("total_score >= ?")
+        clauses.append("s.total_score >= ?")
         values.append(minScore)
     if maxScore is not None:
-        clauses.append("total_score <= ?")
+        clauses.append("s.total_score <= ?")
         values.append(maxScore)
     where = "WHERE " + " AND ".join(clauses)
     offset = decode_cursor(cursor)
     rows = connection.execute(
-        f"SELECT * FROM trace_scores {where} ORDER BY total_score ASC, trace_id LIMIT ? OFFSET ?",
+        f"""SELECT s.*, d.status AS alert_status
+            FROM trace_scores s
+            LEFT JOIN alert_decisions d
+              ON d.run_id = s.run_id AND d.trace_score_id = s.id
+            {where} ORDER BY s.total_score ASC, s.trace_id LIMIT ? OFFSET ?""",
         values + [limit, offset],
     ).fetchall()
-    total = connection.execute(f"SELECT COUNT(*) AS n FROM trace_scores {where}", values).fetchone()["n"]
+    total = connection.execute(
+        f"""SELECT COUNT(*) AS n
+            FROM trace_scores s {where}""",
+        values,
+    ).fetchone()["n"]
     return page([serialize_trace_score(row) for row in rows], limit, offset, total)
 
 
@@ -813,7 +936,15 @@ def get_trace_score(run_id: str, trace_id: str, connection=Depends(get_connectio
         (row["id"],),
     ).fetchall()
     result = serialize_trace_score(row)
-    result["evidence"] = [serialize_evidence(item) for item in evidence_rows]
+    evidence_sum = float(row["evidence_sum"] or 0.0)
+    base_score = float(row["total_score"]) - evidence_sum
+    result.update({
+        "baseScore": base_score,
+        "gateMultiplier": base_score / 100.0,
+        "evidenceSum": evidence_sum,
+        "attributionResidual": float(row["total_score"]) - base_score - evidence_sum,
+        "evidence": [serialize_evidence(item) for item in evidence_rows],
+    })
     return result
 
 
@@ -1273,13 +1404,15 @@ def _alert_decisions(connection, run_id: str, budget: int | None) -> list[dict]:
         return _decode_persisted_decisions(persisted)
 
     score_rows = list(_alert_score_rows(connection, run_id).values())
-    evidence_rows = []
-    for row in score_rows:
-        evidence_rows.extend(
-            dict(item) for item in connection.execute(
-                "SELECT * FROM score_evidence WHERE trace_score_id = ? ORDER BY dimension", (row["id"],)
-            ).fetchall()
-        )
+    evidence_rows = [
+        dict(item) for item in connection.execute(
+            """SELECT e.* FROM score_evidence e
+               JOIN trace_scores t ON t.id = e.trace_score_id
+               WHERE t.run_id = ? AND t.is_alert = 1
+               ORDER BY e.trace_score_id, e.dimension""",
+            (run_id,),
+        ).fetchall()
+    ]
     cell_sizes = {
         row["id"]: int(row["size"])
         for row in connection.execute("SELECT id, size FROM cells WHERE run_id = ?", (run_id,)).fetchall()
@@ -1459,7 +1592,7 @@ def serialize_startup(row) -> dict:
     return {
         "id": row["id"], "profile": row["profile_name"], "profileHash": row["profile_hash"],
         "langfuseVersion": row["langfuse_version"], "checkedAt": row["checked_at"],
-        "skipped": bool(row["skipped"]),
+        "skipped": bool(row["skipped"]), "note": row["note"],
     }
 
 
@@ -1528,13 +1661,15 @@ def serialize_cell(row) -> dict:
 
 
 def serialize_trace_score(row) -> dict:
+    alert_status = row["alert_status"] if "alert_status" in row.keys() else None
     return {
         "id": row["id"], "runId": row["run_id"], "traceId": row["trace_id"],
         "cellId": row["cell_id"], "totalScore": row["total_score"],
         "resultScore": row["result_score"], "processScore": row["process_score"],
         "latencyScore": row["latency_score"], "costScore": row["cost_score"],
         "robustnessScore": row["robustness_score"], "isAlert": bool(row["is_alert"]),
-        "isAbstain": bool(row["is_abstain"]), "structureVersion": row["structure_version_id"],
+        "isAbstain": bool(row["is_abstain"]), "alertStatus": alert_status,
+        "structureVersion": row["structure_version_id"],
         "ontologyVersion": 1, "codeHash": row["code_hash"],
     }
 

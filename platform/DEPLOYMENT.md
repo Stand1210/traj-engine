@@ -320,10 +320,15 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 
 ### 3.6 M5.1 R2 抽样训练部署记录
 
-- 新增配置文件：`platform/config/performance.yaml`。
-  - `r2TrainingLimit: 64`
-- 无新增数据库三方件、无新增数据表、无 embedding 模型变更。
-- R2 结构学习使用确定性等距抽样；全量轨迹仍使用冻结结构完成检测和评分。
+- 配置文件：`platform/config/performance.yaml`。
+  - `r2TrainingLimit: 0`：0 表示自动策略，正整数表示手动训练上限。
+  - `r2AutoBudgetSeconds: 3600`：自动策略的 R2 耗时预算。
+  - `r2FullCostPerTraceSeconds: 0.022` / `r2TrainingQuadraticCostSeconds: 0.020`：
+    基于既有压测拟合的耗时估算系数。
+- 生命周期配置表新增 `r2_training_limit` 字段，页面支持自动 / 手动两种模式。
+- 自动策略在加载时间窗轨迹后决策：预计不超过 1 小时使用全量结构学习；
+  超过预算则按剩余预算推荐训练样本数。全量轨迹仍使用冻结结构完成检测和评分。
+- 无新增数据库三方件、无新增 embedding 模型变更。
 - 10,000 条实测：R2 299.149s，R1 293.025s，SQLite 88,051,712 B，
   峰值内存 221,447,153 B。
 - 100,000 条前仍需完成流式读取与分批持久化，避免一次性内存放大。
@@ -367,6 +372,28 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 历史 Run 的 `ontology_version_id` 不迁移、不改写，新 Run 使用激活后的
   当前版本。
 - 前端新增 `#/ontologies/{id}/versions` 页面。
+
+### 3.10 生产接入控制台部署记录
+
+- 新增后端源：`platform/app/langfuse_admin.py`。
+  - `LangfuseAdminClient` 使用 Python 标准库访问
+    `GET /api/public/health` 与 `GET /api/public/projects`。
+  - 端点仍来自 `platform/config/endpoints.yaml`，后端源不写 URL 字面量。
+- 后端启动时读取当前 profile 与 `.env` 中的平台 key，调用 health 接口，
+  并把返回的 Langfuse server 版本写入 `startup_records.langfuse_version`。
+  - 网络失败不阻塞服务启动；记录 `skipped=1` 与失败原因。
+  - 当前 Cloud v4 实测返回 `4.81.0`。
+- REST 新增：
+  - `POST /api/v1/langfuse/connection/check`：校验 key 与 Project 归属。
+  - `POST /api/v1/onboarding/register`：校验通过后原子创建租户、
+    Tier 0 本体与本体 v1。
+- 前端新增 `#/onboarding` 生产接入控制台：
+  - 填写 Langfuse org/project/key 与本体信息。
+  - 支持连接校验、注册、查看已接入业务、进入本体版本管理。
+  - Run 发起页新增租户/本体选择、R1/R2/R3 类型选择、时间窗输入，
+    并区分「基准数据集 R1~R8」与「Langfuse Run 标识」。
+- 无新增数据库表、三方件或 embedding 模型；复用 `tenants`、
+  `ontologies`、`ontology_versions`、`startup_records`。
 
 ## 4. M6.0 生产交付与验收闭环
 

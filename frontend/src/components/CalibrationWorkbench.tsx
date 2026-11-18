@@ -144,7 +144,7 @@ export default function CalibrationWorkbench({ runId }: Props) {
               placeholder="business-expert"
             />
           </label>
-          <label>
+          <label className="checkbox">
             <input
               type="checkbox"
               checked={triggerAfterImport}

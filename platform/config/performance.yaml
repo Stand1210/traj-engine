@@ -1,6 +1,9 @@
 version: 1
 description: R2 cold-start performance guardrails.
-r2TrainingLimit: 64
+r2TrainingLimit: 0
+r2AutoBudgetSeconds: 3600
+r2FullCostPerTraceSeconds: 0.022
+r2TrainingQuadraticCostSeconds: 0.020
 persistBatchSize: 500
 scoreBatchSize: 1000
 projectDefaultMaxTracesPerRun: 100000

@@ -9,7 +9,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "platform" / "contracts" / "schema.sql"
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 
 def resolve_db_path() -> Path:
@@ -51,6 +51,15 @@ def _ensure_schema_migrations(connection: sqlite3.Connection) -> None:
             """ALTER TABLE lifecycle_schedules
                ADD COLUMN r2_min_novelty_traces INTEGER NOT NULL DEFAULT 50"""
         )
+    if "r2_training_limit" not in columns:
+        connection.execute(
+            """ALTER TABLE lifecycle_schedules
+               ADD COLUMN r2_training_limit INTEGER NOT NULL DEFAULT 0"""
+        )
+    connection.execute(
+        """CREATE INDEX IF NOT EXISTS idx_score_evidence_score
+           ON score_evidence (trace_score_id, dimension)"""
+    )
     connection.execute(
         """INSERT OR IGNORE INTO schema_migrations (version, applied_at)
            VALUES (?, ?)""",
@@ -116,7 +125,12 @@ def ensure_internal_benchmark(connection: sqlite3.Connection) -> dict[str, str]:
     return {"tenant_id": tenant_id, "ontology_id": ontology_id}
 
 
-def record_startup(connection: sqlite3.Connection, profile: dict, langfuse_version: str | None = None) -> str:
+def record_startup(
+    connection: sqlite3.Connection,
+    profile: dict,
+    langfuse_version: str | None = None,
+    note: str = "M1 internal mode; Langfuse version check deferred to M2",
+) -> str:
     startup_id = new_id("startup")
     import hashlib
     profile_hash = hashlib.sha256(
@@ -129,7 +143,7 @@ def record_startup(connection: sqlite3.Connection, profile: dict, langfuse_versi
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         (startup_id, profile["profile"], profile_hash, profile["baseUrl"],
          langfuse_version, utcnow(), 1 if langfuse_version is None else 0,
-         "M1 internal mode; Langfuse version check deferred to M2"),
+         note),
     )
     connection.commit()
     return startup_id
@@ -224,6 +238,66 @@ def create_tenant(
     )
     connection.commit()
     return tenant_id
+
+
+def create_tenant_with_tier0_ontology(
+    connection: sqlite3.Connection,
+    display_name: str,
+    org_id: str,
+    project_id: str,
+    public_key: str,
+    secret_key: str,
+    ontology_display_name: str,
+    queue_id: str | None = None,
+    max_traces_per_run: int = 100000,
+) -> dict:
+    if max_traces_per_run < 1:
+        raise ValueError("tenant quotas must be positive")
+    if not display_name or not org_id or not project_id:
+        raise ValueError("tenant display name, org, and project must be non-empty")
+    if not public_key or not secret_key:
+        raise ValueError("tenant Langfuse keys must be non-empty")
+    if not ontology_display_name:
+        raise ValueError("ontology display name must be non-empty")
+    existing = connection.execute(
+        "SELECT id FROM tenants WHERE org_id = ? AND project_id = ?",
+        (org_id, project_id),
+    ).fetchone()
+    if existing is not None:
+        raise ValueError("tenant org/project already registered")
+    tenant_id = new_id("tenant")
+    ontology_id = new_id("ontology")
+    now = utcnow()
+    connection.execute(
+        """INSERT INTO tenants
+           (id, display_name, org_id, project_id, public_key, secret_key, queue_id,
+            max_traces_per_run, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (tenant_id, display_name, org_id, project_id, public_key, secret_key,
+         queue_id, max_traces_per_run, now, now),
+    )
+    yaml_text = (
+        f"id: {ontology_id}\n"
+        "version: 1\n"
+        "unit_price:\n"
+        "  prompt: 0.0\n"
+        "  completion: 0.0\n"
+    )
+    from bench.runner import code_hash
+    connection.execute(
+        """INSERT INTO ontologies
+           (id, tenant_id, display_name, tier, current_version, created_at, updated_at)
+           VALUES (?, ?, ?, 'tier0', 1, ?, ?)""",
+        (ontology_id, tenant_id, ontology_display_name, now, now),
+    )
+    connection.execute(
+        """INSERT INTO ontology_versions
+           (id, ontology_id, version, yaml, code_hash, created_at)
+           VALUES (?, ?, 1, ?, ?, ?)""",
+        (new_id("ontology-version"), ontology_id, yaml_text, code_hash(), now),
+    )
+    connection.commit()
+    return {"tenant_id": tenant_id, "ontology_id": ontology_id}
 
 
 def update_project_quota(
@@ -427,6 +501,7 @@ def upsert_lifecycle_schedule(
     r2_alert_rate_threshold: float,
     writeback_to_langfuse: bool,
     r2_min_novelty_traces: int = 50,
+    r2_training_limit: int = 0,
 ) -> str:
     if connection.execute("SELECT id FROM ontologies WHERE id = ?", (ontology_id,)).fetchone() is None:
         raise ValueError("ontology not found")
@@ -440,6 +515,8 @@ def upsert_lifecycle_schedule(
         raise ValueError("thresholds must be in [0, 1]")
     if r2_min_novelty_traces < 0:
         raise ValueError("minimum novelty traces must be non-negative")
+    if r2_training_limit < 0 or r2_training_limit == 1:
+        raise ValueError("R2 training limit must be 0 for auto mode or at least 2 for manual mode")
 
     row = connection.execute(
         "SELECT id FROM lifecycle_schedules WHERE ontology_id = ?", (ontology_id,)
@@ -451,12 +528,12 @@ def upsert_lifecycle_schedule(
             """INSERT INTO lifecycle_schedules
                (id, ontology_id, enabled, source, source_ref, interval_hours,
                 window_hours, sampling_rate, max_traces, r2_novelty_threshold,
-                 r2_min_novelty_traces, r2_alert_rate_threshold,
+                 r2_min_novelty_traces, r2_training_limit, r2_alert_rate_threshold,
                  writeback_to_langfuse, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (schedule_id, ontology_id, int(enabled), source, source_ref, interval_hours,
              window_hours, sampling_rate, max_traces, r2_novelty_threshold,
-             r2_min_novelty_traces, r2_alert_rate_threshold,
+             r2_min_novelty_traces, r2_training_limit, r2_alert_rate_threshold,
              int(writeback_to_langfuse), now, now),
         )
     else:
@@ -466,11 +543,12 @@ def upsert_lifecycle_schedule(
                SET enabled = ?, source = ?, source_ref = ?, interval_hours = ?,
                    window_hours = ?, sampling_rate = ?, max_traces = ?,
                    r2_novelty_threshold = ?, r2_alert_rate_threshold = ?,
-                   r2_min_novelty_traces = ?, writeback_to_langfuse = ?, updated_at = ?
+                   r2_min_novelty_traces = ?, r2_training_limit = ?,
+                   writeback_to_langfuse = ?, updated_at = ?
                WHERE id = ?""",
             (int(enabled), source, source_ref, interval_hours, window_hours, sampling_rate,
              max_traces, r2_novelty_threshold, r2_alert_rate_threshold,
-             r2_min_novelty_traces, int(writeback_to_langfuse), now, schedule_id),
+             r2_min_novelty_traces, r2_training_limit, int(writeback_to_langfuse), now, schedule_id),
         )
     connection.commit()
     return schedule_id

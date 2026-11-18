@@ -8,6 +8,12 @@ interface Props {
   onSelect: (path: string) => void;
 }
 
+const traceStatusLabels: Record<string, string> = {
+  alerted: "正式告警",
+  candidate: "预算外候选",
+  suppressed_duplicate: "同组去重"
+};
+
 export default function TraceWorkbench({ runId, initialMode, initialCellId, onSelect }: Props) {
   const [mode, setMode] = useState(initialMode);
   const [cellId] = useState(initialCellId);
@@ -61,12 +67,22 @@ export default function TraceWorkbench({ runId, initialMode, initialCellId, onSe
               <td>{row.latencyScore.toFixed(2)}</td>
               <td>{row.costScore.toFixed(2)}</td>
               <td>{row.robustnessScore.toFixed(2)}</td>
-              <td>{row.isAlert ? "告警" : row.isAbstain ? "弃权" : "正常"}</td>
+              <td>
+                {row.alertStatus
+                  ? traceStatusLabels[row.alertStatus] ?? row.alertStatus
+                  : row.isAbstain
+                    ? "弃权"
+                    : "正常"}
+              </td>
               <td><button onClick={() => onSelect(`/runs/${runId}/trace/${row.traceId}`)}>下钻</button></td>
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="scheduler-note">
+        总分为 0~100；结果、过程、时延、成本、鲁棒性分值为 0~1。
+        标签显示告警去重后的最终状态，未进入告警候选池的轨迹显示为正常或弃权。
+      </p>
     </section>
   );
 }

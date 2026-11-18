@@ -34,6 +34,64 @@ DIMENSION_MAP = {
 }
 
 
+def resolve_r2_training_plan(
+    trace_count: int,
+    requested_limit: int,
+    performance: dict,
+) -> tuple[int, dict]:
+    if requested_limit < 0 or requested_limit == 1:
+        raise ValueError("R2 training limit must be 0 for auto mode or at least 2 for manual mode")
+    if requested_limit > 0:
+        effective_limit = max(2, min(requested_limit, trace_count))
+        full_seconds = _estimate_r2_full_seconds(trace_count, performance)
+        return effective_limit, {
+            "mode": "manual",
+            "strategy": "manual",
+            "requestedTrainingLimit": requested_limit,
+            "effectiveTrainingLimit": effective_limit,
+            "estimatedFullSeconds": full_seconds,
+            "budgetSeconds": performance["r2AutoBudgetSeconds"],
+        }
+
+    full_seconds = _estimate_r2_full_seconds(trace_count, performance)
+    budget = float(performance["r2AutoBudgetSeconds"])
+    if full_seconds <= budget:
+        effective_limit = max(2, trace_count)
+        return effective_limit, {
+            "mode": "auto",
+            "strategy": "auto_full",
+            "requestedTrainingLimit": 0,
+            "effectiveTrainingLimit": effective_limit,
+            "estimatedFullSeconds": full_seconds,
+            "budgetSeconds": budget,
+        }
+
+    remaining_budget = budget - float(performance["r2FullCostPerTraceSeconds"]) * trace_count
+    if remaining_budget <= 0:
+        effective_limit = 2
+    else:
+        effective_limit = int(math.floor(math.sqrt(
+            remaining_budget / float(performance["r2TrainingQuadraticCostSeconds"])
+        )))
+    effective_limit = max(2, min(trace_count, effective_limit))
+    estimated_seconds = _estimate_r2_full_seconds(effective_limit, performance)
+    return effective_limit, {
+        "mode": "auto",
+        "strategy": "auto_budget",
+        "requestedTrainingLimit": 0,
+        "effectiveTrainingLimit": effective_limit,
+        "estimatedFullSeconds": full_seconds,
+        "estimatedTrainingSeconds": estimated_seconds,
+        "budgetSeconds": budget,
+    }
+
+
+def _estimate_r2_full_seconds(trace_count: int, performance: dict) -> float:
+    full_cost = float(performance["r2FullCostPerTraceSeconds"])
+    training_cost = float(performance["r2TrainingQuadraticCostSeconds"])
+    return round(full_cost * trace_count + training_cost * trace_count * trace_count, 3)
+
+
 def select_r2_training_traces(traces: list[dict], limit: int) -> list[dict]:
     if limit < 2:
         raise ValueError("R2 training limit must be at least 2")
@@ -56,9 +114,12 @@ class RunEngine:
         performance = load_performance_config()
         if r2_training_limit is None:
             r2_training_limit = int(performance["r2TrainingLimit"])
-        if r2_training_limit < 2:
-            raise ValueError("R2 training limit must be at least 2")
+        if r2_training_limit < 0 or r2_training_limit == 1:
+            raise ValueError("R2 training limit must be 0 for auto mode or at least 2 for manual mode")
         self.r2_training_limit = r2_training_limit
+        self.r2_auto_budget = float(performance["r2AutoBudgetSeconds"])
+        self.r2_full_cost = float(performance["r2FullCostPerTraceSeconds"])
+        self.r2_training_cost = float(performance["r2TrainingQuadraticCostSeconds"])
         self.persist_batch_size = int(performance["persistBatchSize"])
         self.score_batch_size = int(performance["scoreBatchSize"])
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="traj-run")
@@ -74,13 +135,14 @@ class RunEngine:
         window: dict | None = None,
         ontology_id: str | None = None,
         frozen_state: dict | None = None,
+        r2_training_limit: int | None = None,
         score_writer=None,
         writeback_strict: bool = False,
     ) -> None:
         self.executor.submit(
             self._execute, run_id, source_ref, sampling_rate, limit,
             trace_source, window, ontology_id,
-            frozen_state, score_writer, writeback_strict,
+            frozen_state, r2_training_limit, score_writer, writeback_strict,
         )
 
     def cancel(self, run_id: str) -> None:
@@ -99,12 +161,16 @@ class RunEngine:
         window: dict | None = None,
         ontology_id: str | None = None,
         frozen_state: dict | None = None,
+        r2_training_limit: int | None = None,
         score_writer=None,
         writeback_strict: bool = False,
     ) -> None:
         run_dir = self.var_root / "runs" / run_id
         data_root = run_dir / "data"
         out_root = run_dir / "reports"
+        requested_r2_training_limit = (
+            r2_training_limit if r2_training_limit is not None else self.r2_training_limit
+        )
         try:
             data_root.mkdir(parents=True, exist_ok=True)
             out_root.mkdir(parents=True, exist_ok=True)
@@ -148,12 +214,20 @@ class RunEngine:
                 result = run_regime(source_ref, data_root=data_root, out_root=out_root)
             else:
                 training = None
-                if (
-                    frozen_state is None
-                    and run_type == "R2"
-                    and trace_count > self.r2_training_limit
-                ):
-                    training = select_r2_training_traces(traces, self.r2_training_limit)
+                training_plan = None
+                if frozen_state is None and run_type == "R2":
+                    performance = {
+                        "r2TrainingLimit": self.r2_training_limit,
+                        "r2AutoBudgetSeconds": self.r2_auto_budget,
+                        "r2FullCostPerTraceSeconds": self.r2_full_cost,
+                        "r2TrainingQuadraticCostSeconds": self.r2_training_cost,
+                    }
+                    effective_r2_training_limit, training_plan = resolve_r2_training_plan(
+                        trace_count, requested_r2_training_limit, performance
+                    )
+                    training = select_r2_training_traces(
+                        traces, effective_r2_training_limit
+                    )
                     training_result, _ = run_production(
                         training,
                         ontology_id or source_ref,
@@ -176,10 +250,10 @@ class RunEngine:
                 if training is not None:
                     result["cold_start"] = trace_count < regime_config.COLD_START_MIN_TRACES
                     result["training"] = {
-                        "sampled": True,
+                        **training_plan,
+                        "sampled": len(training) < trace_count,
                         "trainingTraceCount": len(training),
                         "fullTraceCount": trace_count,
-                        "strategy": "systematic",
                     }
                 write_production_metrics(report_dir, result)
             if self._is_canceled(run_id):
@@ -408,15 +482,19 @@ class RunEngine:
              store.utcnow()),
         )
         evidence_payload = row.get("evidence") or []
+        primary_span_id = next(
+            (item.get("span_id") for item in evidence_payload if item.get("span_id")),
+            None,
+        )
         for dimension_key, contribution in row.get("contrib", {}).items():
             dimension = DIMENSION_MAP[dimension_key]
             connection.execute(
                 """INSERT INTO score_evidence
                    (id, trace_score_id, dimension, span_id, contribution,
                     explanation, payload_json, created_at)
-                   VALUES (?, ?, ?, NULL, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (store.new_id("evidence"), trace_score_id, dimension,
-                 float(contribution),
+                 primary_span_id, float(contribution),
                  f"Dimension {dimension} contribution for trace {trace_id}",
                  json.dumps({"kernel_evidence": evidence_payload}, ensure_ascii=False,
                             sort_keys=True), store.utcnow()),

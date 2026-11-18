@@ -116,7 +116,7 @@ export default function OntologyVersions({ ontologyId, onBack }: Props) {
               <tr key={item.version} className={item.version === ontology?.currentVersion ? "alert-row" : ""}>
                 <td>v{item.version}</td>
                 <td>{item.version === ontology?.currentVersion ? "当前生效" : "历史版本"}</td>
-                <td>{item.createdAt.replace("T", " ").slice(0, 19)}</td>
+                <td>{formatLocalDateTime(item.createdAt)}</td>
                 <td>{item.codeHash}</td>
                 <td>
                   {item.version !== ontology?.currentVersion && (
@@ -134,3 +134,5 @@ export default function OntologyVersions({ ontologyId, onBack }: Props) {
     </section>
   );
 }
+import { formatLocalDateTime } from "../time";
+

@@ -10,9 +10,11 @@ import CalibrationWorkbench from "./components/CalibrationWorkbench";
 import LifecycleWorkbench from "./components/LifecycleWorkbench";
 import LineageView from "./components/LineageView";
 import OntologyVersions from "./components/OntologyVersions";
+import ProjectOnboarding from "./components/ProjectOnboarding";
 
 type Route =
   | { name: "runs" }
+  | { name: "onboarding" }
   | { name: "lifecycle" }
   | { name: "ontologyVersions"; ontologyId: string }
   | { name: "run"; runId: string }
@@ -29,6 +31,9 @@ function parseHash(): Route {
   const query = new URLSearchParams(hashQuery);
   if (parts[0] === "lifecycle") {
     return { name: "lifecycle" };
+  }
+  if (parts[0] === "onboarding") {
+    return { name: "onboarding" };
   }
   if (parts[0] === "ontologies" && parts[1] && parts[2] === "versions") {
     return { name: "ontologyVersions", ontologyId: parts[1] };
@@ -88,7 +93,8 @@ export default function App() {
   const refreshRuns = useCallback(() => setRunsVersion(value => value + 1), []);
   const activeRunId = useMemo(
     () => (
-      route.name === "runs" || route.name === "lifecycle" || route.name === "ontologyVersions"
+      route.name === "runs" || route.name === "onboarding" || route.name === "lifecycle"
+      || route.name === "ontologyVersions"
         ? null
         : route.runId
     ),
@@ -100,38 +106,47 @@ export default function App() {
       <header className="app-header">
         <div>
           <div className="brand">轨迹质量评估平台</div>
-          <div className="subtitle">M1 基准闭环 · 聚类 / 异常 / 打分 / 证据</div>
+      <div className="subtitle">生产接入 · 聚类 / 异常 / 打分 / 证据</div>
         </div>
         <div className="profile-box">
           <span>Profile：{profile?.profile ?? "..."}</span>
-          <span>Langfuse：{startup?.langfuseVersion ?? "未核对"}</span>
+          <span title={startup?.note ?? undefined}>
+            Langfuse：{startup?.langfuseVersion ?? "版本未获取"}
+          </span>
           <span>Kernel：2064664e6aa5fb46</span>
         </div>
       </header>
-      <nav className="app-nav">
-        <button className={route.name === "runs" ? "active" : ""} onClick={() => navigate("/")}>Run 列表</button>
-        <button className={route.name === "lifecycle" ? "active" : ""} onClick={() => navigate("/lifecycle")}>生命周期</button>
+      <div className="nav-shell">
+        <nav className="app-nav" aria-label="主导航">
+          <button className={route.name === "runs" ? "active" : ""} onClick={() => navigate("/")}>运行工作台</button>
+          <button className={route.name === "onboarding" ? "active" : ""} onClick={() => navigate("/onboarding")}>业务接入</button>
+          <button className={route.name === "lifecycle" ? "active" : ""} onClick={() => navigate("/lifecycle")}>生命周期</button>
+        </nav>
         {activeRunId && (
-          <>
-            <button onClick={() => navigate(`/runs/${activeRunId}`)}>Run 概览</button>
-            <button onClick={() => navigate(`/runs/${activeRunId}/cells`)}>聚类结果</button>
-            <button onClick={() => navigate(`/runs/${activeRunId}/lineage`)}>结构演化</button>
-            <button onClick={() => navigate(`/runs/${activeRunId}/traces`)}>轨迹工作台</button>
-            <button onClick={() => navigate(`/runs/${activeRunId}/alerts`)}>告警工作台</button>
-            <button onClick={() => navigate(`/runs/${activeRunId}/calibration`)}>校准工作台</button>
-          </>
+          <nav className="run-nav" aria-label="Run 导航">
+            <span className="run-nav-label">当前 Run</span>
+            <button className={route.name === "run" ? "active" : ""} onClick={() => navigate(`/runs/${activeRunId}`)}>概览</button>
+            <button className={route.name === "cells" ? "active" : ""} onClick={() => navigate(`/runs/${activeRunId}/cells`)}>聚类</button>
+            <button className={route.name === "lineage" ? "active" : ""} onClick={() => navigate(`/runs/${activeRunId}/lineage`)}>演化</button>
+            <button className={route.name === "traces" || route.name === "trace" ? "active" : ""} onClick={() => navigate(`/runs/${activeRunId}/traces`)}>轨迹</button>
+            <button className={route.name === "alerts" ? "active" : ""} onClick={() => navigate(`/runs/${activeRunId}/alerts`)}>告警</button>
+            <button className={route.name === "calibration" ? "active" : ""} onClick={() => navigate(`/runs/${activeRunId}/calibration`)}>校准</button>
+          </nav>
         )}
-      </nav>
+      </div>
       <main>
         {error && <div className="error-banner">{error}</div>}
         {route.name === "runs" && (
           <RunLauncher onCreated={refreshRuns} runsVersion={runsVersion} onSelect={navigate} />
         )}
+        {route.name === "onboarding" && (
+          <ProjectOnboarding onRegistered={refreshRuns} onSelect={navigate} />
+        )}
         {route.name === "lifecycle" && <LifecycleWorkbench onSelect={navigate} />}
         {route.name === "ontologyVersions" && (
           <OntologyVersions ontologyId={route.ontologyId} onBack={() => navigate("/")} />
         )}
-        {route.name === "run" && <RunOverview runId={route.runId} onSelect={navigate} />}
+        {route.name === "run" && <RunOverview runId={route.runId} />}
         {route.name === "cells" && <ClusterView runId={route.runId} onSelect={navigate} />}
         {route.name === "lineage" && <LineageView runId={route.runId} onSelect={navigate} />}
         {route.name === "traces" && (

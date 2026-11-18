@@ -16,6 +16,7 @@ export interface StartupRecord {
   langfuseVersion: string | null;
   checkedAt: string;
   skipped: boolean;
+  note: string | null;
 }
 
 export interface Tenant {
@@ -24,6 +25,42 @@ export interface Tenant {
   orgId: string;
   projectId: string;
   maxTracesPerRun: number;
+}
+
+export interface LangfuseConnectionInput {
+  publicKey: string;
+  secretKey: string;
+  projectId: string;
+}
+
+export interface LangfuseConnectionCheck {
+  status: string;
+  langfuseVersion: string | null;
+  project: {
+    id: string | null;
+    name: string | null;
+  };
+}
+
+export interface OnboardingInput {
+  displayName: string;
+  orgId: string;
+  projectId: string;
+  publicKey: string;
+  secretKey: string;
+  queueId?: string | null;
+  maxTracesPerRun?: number;
+  ontologyDisplayName: string;
+}
+
+export interface OnboardingResult {
+  tenant: Tenant;
+  ontology: Ontology;
+  langfuse: {
+    version: string | null;
+    projectId: string | null;
+    projectName: string | null;
+  };
 }
 
 export interface ProjectQuotaInput {
@@ -109,6 +146,7 @@ export interface TraceScore {
   robustnessScore: number;
   isAlert: boolean;
   isAbstain: boolean;
+  alertStatus: "alerted" | "candidate" | "suppressed_duplicate" | null;
   structureVersion: string | null;
   ontologyVersion: number;
   codeHash: string;
@@ -126,6 +164,10 @@ export interface Evidence {
 
 export interface TraceScoreDetail extends TraceScore {
   evidence: Evidence[];
+  baseScore: number;
+  gateMultiplier: number;
+  evidenceSum: number;
+  attributionResidual: number;
 }
 
 export interface AlertTraceScore extends TraceScore {
@@ -223,6 +265,7 @@ export interface LifecycleSchedule {
   maxTraces: number | null;
   r2NoveltyThreshold: number;
   r2MinNoveltyTraces: number;
+  r2TrainingLimit: number;
   r2AlertRateThreshold: number;
   writebackToLangfuse: boolean;
   createdAt: string;
@@ -239,6 +282,7 @@ export interface LifecycleInput {
   maxTraces?: number | null;
   r2NoveltyThreshold: number;
   r2MinNoveltyTraces: number;
+  r2TrainingLimit: number;
   r2AlertRateThreshold: number;
   writebackToLangfuse: boolean;
 }
@@ -343,6 +387,16 @@ export const api = {
   profile: () => request<ProfileInfo>("/api/v1/config/profile"),
   startup: () => request<StartupRecord>("/api/v1/startup-records/current"),
   tenants: () => request<Page<Tenant>>("/api/v1/tenants?limit=100"),
+  checkLangfuseConnection: (input: LangfuseConnectionInput) =>
+    request<LangfuseConnectionCheck>("/api/v1/langfuse/connection/check", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  registerProject: (input: OnboardingInput) =>
+    request<OnboardingResult>("/api/v1/onboarding/register", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
   updateProjectQuota: (id: string, quota: ProjectQuotaInput) =>
     request<Tenant>(`/api/v1/tenants/${id}/quota`, {
       method: "PATCH",

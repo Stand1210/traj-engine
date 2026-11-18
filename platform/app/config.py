@@ -69,12 +69,17 @@ def load_scheduler_config(path: Path = CONFIG_ROOT / "scheduler.yaml") -> dict:
 
 def load_performance_config(path: Path = CONFIG_ROOT / "performance.yaml") -> dict:
     config = yaml.safe_load(path.read_text(encoding="utf-8"))
-    limit = int(config.get("r2TrainingLimit", 64))
+    limit = int(config.get("r2TrainingLimit", 0))
+    auto_budget = float(config.get("r2AutoBudgetSeconds", 3600))
+    full_cost = float(config.get("r2FullCostPerTraceSeconds", 0.022))
+    training_cost = float(config.get("r2TrainingQuadraticCostSeconds", 0.020))
     batch_size = int(config.get("persistBatchSize", 500))
     score_batch_size = int(config.get("scoreBatchSize", 1000))
     max_traces = int(config.get("projectDefaultMaxTracesPerRun", 100000))
-    if limit < 2:
-        raise ValueError("R2 training limit must be at least 2")
+    if limit < 0 or limit == 1:
+        raise ValueError("R2 training limit must be 0 for auto mode or at least 2 for manual mode")
+    if auto_budget <= 0 or full_cost < 0 or training_cost <= 0:
+        raise ValueError("R2 auto budget and cost model must be positive")
     if batch_size < 1:
         raise ValueError("persist batch size must be positive")
     if score_batch_size < 1:
@@ -83,6 +88,9 @@ def load_performance_config(path: Path = CONFIG_ROOT / "performance.yaml") -> di
         raise ValueError("project quota default must be positive")
     return {
         "r2TrainingLimit": limit,
+        "r2AutoBudgetSeconds": auto_budget,
+        "r2FullCostPerTraceSeconds": full_cost,
+        "r2TrainingQuadraticCostSeconds": training_cost,
         "persistBatchSize": batch_size,
         "scoreBatchSize": score_batch_size,
         "projectDefaultMaxTracesPerRun": max_traces,

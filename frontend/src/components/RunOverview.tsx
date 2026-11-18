@@ -3,10 +3,9 @@ import { api, type Calibration, type Run, type RunStep } from "../api";
 
 interface Props {
   runId: string;
-  onSelect: (path: string) => void;
 }
 
-export default function RunOverview({ runId, onSelect }: Props) {
+export default function RunOverview({ runId }: Props) {
   const [run, setRun] = useState<Run | null>(null);
   const [steps, setSteps] = useState<RunStep[]>([]);
   const [calibration, setCalibration] = useState<Calibration | null>(null);
@@ -69,8 +68,8 @@ export default function RunOverview({ runId, onSelect }: Props) {
   }
 
   return (
-    <section className="panel-grid">
-      <div className="panel wide">
+    <section className="run-overview-grid">
+      <div className="panel run-overview-main">
         <h2>Run 概览</h2>
         {error && <div className="error-banner">{error}</div>}
         {run && (
@@ -79,18 +78,13 @@ export default function RunOverview({ runId, onSelect }: Props) {
             <div><span>数据集</span><strong>{run.sourceRef ?? "-"}</strong></div>
             <div><span>结构版本</span><strong>{run.structureVersion ?? "-"}</strong></div>
             <div><span>Kernel Hash</span><strong>{run.codeHash}</strong></div>
-            <div><span>开始</span><strong>{run.startedAt?.replace("T", " ").slice(0, 19) ?? "-"}</strong></div>
-            <div><span>结束</span><strong>{run.endedAt?.replace("T", " ").slice(0, 19) ?? "-"}</strong></div>
+            <div><span>开始</span><strong>{formatLocalDateTime(run.startedAt)}</strong></div>
+            <div><span>结束</span><strong>{formatLocalDateTime(run.endedAt)}</strong></div>
           </div>
         )}
         {run?.error && <div className="error-banner">{run.error}</div>}
         {reviewMessage && <div className="success-banner">{reviewMessage}</div>}
-        <div className="button-row">
-          <button onClick={() => onSelect(`/runs/${runId}/cells`)}>查看聚类</button>
-          <button onClick={() => onSelect(`/runs/${runId}/lineage`)}>查看演化</button>
-          <button onClick={() => onSelect(`/runs/${runId}/traces`)}>查看轨迹</button>
-          <button onClick={() => onSelect(`/runs/${runId}/alerts`)}>查看告警</button>
-          <button onClick={() => onSelect(`/runs/${runId}/calibration`)}>查看校准</button>
+        <div className="button-row review-actions">
           {run?.source === "langfuse" && run.status === "succeeded" && (
             <>
               <button disabled={reviewBusy} onClick={() => void pushReviewQueue("all")}>
@@ -103,7 +97,7 @@ export default function RunOverview({ runId, onSelect }: Props) {
           )}
         </div>
       </div>
-      <div className="panel">
+      <div className="panel run-overview-steps">
         <h2>执行步骤</h2>
         <table>
           <thead><tr><th>步骤</th><th>状态</th><th>开始</th><th>结束</th></tr></thead>
@@ -112,14 +106,14 @@ export default function RunOverview({ runId, onSelect }: Props) {
               <tr key={step.id}>
                 <td>{step.name}</td>
                 <td><span className={`status ${step.status}`}>{step.status}</span></td>
-                <td>{step.startedAt.replace("T", " ").slice(0, 19)}</td>
-                <td>{step.endedAt?.replace("T", " ").slice(0, 19) ?? "-"}</td>
+                <td>{formatLocalDateTime(step.startedAt)}</td>
+                <td>{formatLocalDateTime(step.endedAt)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="panel">
+      <div className="panel run-overview-calibration">
         <h2>校准</h2>
         {calibration ? (
           <div className="metric-grid">
@@ -132,3 +126,5 @@ export default function RunOverview({ runId, onSelect }: Props) {
     </section>
   );
 }
+import { formatLocalDateTime } from "../time";
+

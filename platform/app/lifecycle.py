@@ -14,7 +14,7 @@ def evaluate_lifecycle_state(connection, ontology_id: str, force_r2: bool = Fals
 
     active_structure = store.get_active_structure(connection, ontology_id)
     latest_run = connection.execute(
-        """SELECT * FROM cohort_runs WHERE ontology_id = ?
+        """SELECT * FROM cohort_runs WHERE ontology_id = ? AND status = 'succeeded'
            ORDER BY COALESCE(ended_at, created_at) DESC, id LIMIT 1""",
         (ontology_id,),
     ).fetchone()
@@ -67,6 +67,7 @@ def serialize_schedule(row: dict) -> dict:
         "maxTraces": row["max_traces"],
         "r2NoveltyThreshold": row["r2_novelty_threshold"],
         "r2MinNoveltyTraces": row["r2_min_novelty_traces"],
+        "r2TrainingLimit": row["r2_training_limit"],
         "r2AlertRateThreshold": row["r2_alert_rate_threshold"],
         "writebackToLangfuse": bool(row["writeback_to_langfuse"]),
         "createdAt": row["created_at"],

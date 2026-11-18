@@ -37,6 +37,24 @@ export default function TraceDetail({ runId, traceId }: Props) {
                 {detail.isAlert ? "告警" : detail.isAbstain ? "弃权" : "正常"}
               </span>
             </div>
+            <div className="metric-grid">
+              <div>
+                <span>硬门禁基准分 100G</span>
+                <strong>{detail.baseScore.toFixed(4)}</strong>
+              </div>
+              <div>
+                <span>门禁乘数 G</span>
+                <strong>{detail.gateMultiplier.toFixed(4)}</strong>
+              </div>
+              <div>
+                <span>LMDI 扣分合计</span>
+                <strong>{detail.evidenceSum.toFixed(4)}</strong>
+              </div>
+              <div>
+                <span>对账残差</span>
+                <strong>{detail.attributionResidual.toFixed(6)}</strong>
+              </div>
+            </div>
             <div className="dimension-list">
               {dimensions.map(item => (
                 <div key={item.key} className="dimension">
@@ -64,10 +82,22 @@ export default function TraceDetail({ runId, traceId }: Props) {
             ))}
           </tbody>
         </table>
+        {detail && (
+          <p className="scheduler-note">
+            对账公式：总分 S = 硬门禁基准分 100G + LMDI 维度扣分合计。
+            本条轨迹不是从 100 分直接扣分：硬门禁先把基准乘到 {detail.baseScore.toFixed(4)}，
+            再由各维度扣 {detail.evidenceSum.toFixed(4)}，得到总分 {detail.totalScore.toFixed(4)}。
+            五个维度分是 0~1 的质量项，通过加权几何均值进入总分，不能直接相加或直接乘 100。
+          </p>
+        )}
         {detail?.evidence.some(item => item.payload?.kernel_evidence) && (
           <details>
             <summary>内核原始证据</summary>
-            <pre>{JSON.stringify(detail.evidence.map(item => item.payload?.kernel_evidence), null, 2)}</pre>
+            <p className="scheduler-note">
+              内核原始证据是轨迹级证据，下面只展示一份；上方五条维度扣分是 LMDI 归因结果，
+              不是五个维度各自持有不同原始证据。
+            </p>
+            <pre>{JSON.stringify(detail.evidence[0]?.payload?.kernel_evidence, null, 2)}</pre>
           </details>
         )}
       </div>

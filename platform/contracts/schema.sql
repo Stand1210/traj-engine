@@ -284,6 +284,7 @@ CREATE TABLE IF NOT EXISTS lifecycle_schedules (
     max_traces INTEGER CHECK (max_traces IS NULL OR max_traces > 0),
     r2_novelty_threshold REAL NOT NULL CHECK (r2_novelty_threshold >= 0 AND r2_novelty_threshold <= 1),
     r2_min_novelty_traces INTEGER NOT NULL DEFAULT 50 CHECK (r2_min_novelty_traces >= 0),
+    r2_training_limit INTEGER NOT NULL DEFAULT 0 CHECK (r2_training_limit = 0 OR r2_training_limit >= 2),
     r2_alert_rate_threshold REAL NOT NULL CHECK (r2_alert_rate_threshold >= 0 AND r2_alert_rate_threshold <= 1),
     writeback_to_langfuse INTEGER NOT NULL DEFAULT 0 CHECK (writeback_to_langfuse IN (0, 1)),
     created_at TEXT NOT NULL,
@@ -321,6 +322,8 @@ CREATE INDEX IF NOT EXISTS idx_trace_scores_run_alert
     ON trace_scores (run_id, is_alert, total_score);
 CREATE INDEX IF NOT EXISTS idx_trace_scores_cell
     ON trace_scores (run_id, cell_id);
+CREATE INDEX IF NOT EXISTS idx_score_evidence_score
+    ON score_evidence (trace_score_id, dimension);
 CREATE INDEX IF NOT EXISTS idx_reviews_score
     ON human_reviews (trace_score_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_review_queue_items_run
