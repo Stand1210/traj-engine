@@ -309,6 +309,7 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
         <h2>调度器状态</h2>
         {scheduler && (
           <div className="metric-grid scheduler-grid">
+            <div><span>调度线程</span><strong>{formatThreadState(scheduler.threadAlive)}</strong></div>
             <div><span>启用调度</span><strong>{scheduler.enabledSchedules}</strong></div>
             <div><span>当前锁</span><strong>{scheduler.lock ? "占用" : "空闲"}</strong></div>
             <div><span>最近扫描</span><strong>{scheduler.latestScan?.status ?? "-"}</strong></div>
@@ -353,6 +354,11 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
       </div>
     </section>
   );
+}
+
+function formatThreadState(alive: boolean | null | undefined) {
+  if (alive === null || alive === undefined) return "未知";
+  return alive ? "运行中" : "已停止";
 }
 import { formatLocalDateTime } from "../time";
 

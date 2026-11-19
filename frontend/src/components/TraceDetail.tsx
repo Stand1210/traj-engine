@@ -47,6 +47,10 @@ export default function TraceDetail({ runId, traceId }: Props) {
                 <strong>{detail.gateMultiplier.toFixed(4)}</strong>
               </div>
               <div>
+                <span>硬门禁扣分</span>
+                <strong>{detail.gateDeduction.toFixed(4)}</strong>
+              </div>
+              <div>
                 <span>LMDI 扣分合计</span>
                 <strong>{detail.evidenceSum.toFixed(4)}</strong>
               </div>
@@ -54,6 +58,30 @@ export default function TraceDetail({ runId, traceId }: Props) {
                 <span>对账残差</span>
                 <strong>{detail.attributionResidual.toFixed(6)}</strong>
               </div>
+            </div>
+            <div className="gate-panel">
+              <h3>硬门禁命中明细</h3>
+              {Object.keys(detail.gates).length === 0 ? (
+                <p className="muted">
+                  {detail.gateMultiplier === 1
+                    ? "未命中硬门禁，G = 1。"
+                    : "本条历史记录未持久化门禁明细；新 Run 将完整记录命中项和乘数。"}
+                </p>
+              ) : (
+                <table>
+                  <thead><tr><th>门禁</th><th>触发条件</th><th>乘数</th><th>累计 G</th></tr></thead>
+                  <tbody>
+                    {Object.entries(detail.gates).map(([name, multiplier], index, items) => (
+                      <tr key={name}>
+                        <td>{name}</td>
+                        <td>{gateCondition(name)}</td>
+                        <td>{multiplier.toFixed(4)}</td>
+                        <td>{items.slice(0, index + 1).map(([, value]) => value).reduce((left, right) => left * right, 1).toFixed(4)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
             <div className="dimension-list">
               {dimensions.map(item => (
@@ -103,4 +131,18 @@ export default function TraceDetail({ runId, traceId }: Props) {
       </div>
     </section>
   );
+}
+
+function gateCondition(name: string) {
+  const conditions: Record<string, string> = {
+    guard_violation: "业务护栏 / 禁用动作命中",
+    forbidden_action: "执行了本体声明的 forbidden action",
+    t0_result_broken: "结果破坏：答案可追溯比例过低或生成被截断",
+    t1_unfinished: "确认未完成：结束步骤缺失且判为 unfinished",
+    loop_runaway: "循环失控：循环次数达到饱和阈值",
+    drift_suspect: "漂移检测判定为疑似轨迹",
+    t2_untraceable_number: "答案数字可追溯性校验未通过",
+    novelty: "新簇弃权 / 低共识样本",
+  };
+  return conditions[name] ?? "硬门禁命中";
 }

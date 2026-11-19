@@ -10,7 +10,7 @@
 | Langfuse | Cloud v4 或自托管 v4 | 已定；自托管 v3 延后 |
 | 平后端 | FastAPI `0.115.6` + Uvicorn `0.34.0` | M1 最小闭环已实现 |
 | 前端 | Node.js `24.x` + Vite `6.0.7` + React `18.3.1` + ECharts `5.6.0` | M1 最小闭环已实现 |
-| 数据库 | SQLite（内置于 Python 3.11） | 当前契约：23 张表，schema v7 |
+| 数据库 | SQLite（内置于 Python 3.11） | 当前契约：23 张表，schema v9 |
 | Embedding | 待定 | 选型后记录模型名、版本、维度、输入截断规则与哈希 |
 
 ## 2. 持续记录规则
@@ -395,6 +395,19 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 无新增数据库表、三方件或 embedding 模型；复用 `tenants`、
   `ontologies`、`ontology_versions`、`startup_records`。
 
+### 3.11 轨迹门禁明细部署记录
+
+- 数据库变更：`trace_scores` 新增可空列 `gates_json TEXT`。
+  - 新库由 `platform/contracts/schema.sql` 创建。
+  - 旧 SQLite 库在后端初始化连接时自动 `ALTER TABLE` 补列。
+  - `gates_json` 记录内核硬门禁命中项与乘数，例如
+    `{"loop_runaway": 0.35, "t1_unfinished": 0.25}`。
+- 无新增数据表、无新增三方件、无 embedding 模型变更。
+- REST：`GET /api/v1/runs/{runId}/traces/{traceId}` 新增返回
+  `gates` 与 `gateDeduction`。
+- 前端轨迹详情页新增「硬门禁命中明细」，逐项展示门禁、触发条件、
+  乘数与累计 G。
+
 ## 4. M6.0 生产交付与验收闭环
 
 ### 4.1 一键初始化、升级与启动
@@ -402,7 +415,7 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 数据库版本记录新增 `schema_migrations` 表：
   - `version INTEGER PRIMARY KEY`
   - `applied_at TEXT NOT NULL`
-- 当前版本为 `7`；`init` 与 `upgrade` 都会执行幂等建表和补列迁移。
+- 当前版本为 `9`；`init` 与 `upgrade` 都会执行幂等建表和补列迁移。
 - DB 路径统一由 `TRAJ_DB_PATH` 或 CLI `--db` 控制；未配置时仍为
   `platform/var/traj-engine.db`，兼容既有部署。
 - 首次部署：

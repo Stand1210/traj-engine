@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS trace_scores (
     robustness_score REAL NOT NULL,
     deduction_total REAL NOT NULL,
     evidence_sum REAL NOT NULL,
+    gates_json TEXT,
     is_alert INTEGER NOT NULL CHECK (is_alert IN (0, 1)),
     is_abstain INTEGER NOT NULL CHECK (is_abstain IN (0, 1)),
     ontology_version_id TEXT NOT NULL,

@@ -11,7 +11,7 @@ export default function RunOverview({ runId }: Props) {
   const [calibration, setCalibration] = useState<Calibration | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reviewMessage, setReviewMessage] = useState<string | null>(null);
-  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewBusy, setReviewBusy] = useState<"push" | "sync" | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -38,7 +38,7 @@ export default function RunOverview({ runId }: Props) {
   }, [runId]);
 
   async function pushReviewQueue(scope: "alerts" | "abstains" | "all") {
-    setReviewBusy(true);
+    setReviewBusy("push");
     setError(null);
     setReviewMessage(null);
     try {
@@ -47,12 +47,12 @@ export default function RunOverview({ runId }: Props) {
     } catch (submitError) {
       setError(String(submitError));
     } finally {
-      setReviewBusy(false);
+      setReviewBusy(null);
     }
   }
 
   async function syncReviewQueue() {
-    setReviewBusy(true);
+    setReviewBusy("sync");
     setError(null);
     setReviewMessage(null);
     try {
@@ -63,7 +63,7 @@ export default function RunOverview({ runId }: Props) {
     } catch (submitError) {
       setError(String(submitError));
     } finally {
-      setReviewBusy(false);
+      setReviewBusy(null);
     }
   }
 
@@ -84,14 +84,29 @@ export default function RunOverview({ runId }: Props) {
         )}
         {run?.error && <div className="error-banner">{run.error}</div>}
         {reviewMessage && <div className="success-banner">{reviewMessage}</div>}
+        {reviewBusy && (
+          <div className="loading-panel muted">正在与 Langfuse 交互，请稍候...</div>
+        )}
         <div className="button-row review-actions">
           {run?.source === "langfuse" && run.status === "succeeded" && (
             <>
-              <button disabled={reviewBusy} onClick={() => void pushReviewQueue("all")}>
-                推送告警/弃权到复核队列
+              <button
+                className={reviewBusy === "push" ? "busy" : undefined}
+                disabled={reviewBusy !== null}
+                aria-busy={reviewBusy === "push"}
+                onClick={() => void pushReviewQueue("all")}
+              >
+                {reviewBusy === "push" && <span className="button-spinner" aria-hidden="true" />}
+                {reviewBusy === "push" ? "推送复核队列中..." : "推送告警/弃权到复核队列"}
               </button>
-              <button disabled={reviewBusy} onClick={() => void syncReviewQueue()}>
-                同步 Langfuse 人工复核
+              <button
+                className={reviewBusy === "sync" ? "busy" : undefined}
+                disabled={reviewBusy !== null}
+                aria-busy={reviewBusy === "sync"}
+                onClick={() => void syncReviewQueue()}
+              >
+                {reviewBusy === "sync" && <span className="button-spinner" aria-hidden="true" />}
+                {reviewBusy === "sync" ? "同步人工复核中..." : "同步 Langfuse 人工复核"}
               </button>
             </>
           )}

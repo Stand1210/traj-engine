@@ -166,6 +166,8 @@ export interface TraceScoreDetail extends TraceScore {
   evidence: Evidence[];
   baseScore: number;
   gateMultiplier: number;
+  gateDeduction: number;
+  gates: Record<string, number>;
   evidenceSum: number;
   attributionResidual: number;
 }
@@ -329,6 +331,7 @@ export interface SchedulerStatus {
     expiresAt: string;
   } | null;
   enabledSchedules: number;
+  threadAlive: boolean | null;
   latestScan: SchedulerLatestScan | null;
 }
 

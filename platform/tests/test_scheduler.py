@@ -1,4 +1,5 @@
 import tempfile
+import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -73,6 +74,7 @@ class SchedulerTest(unittest.TestCase):
             self.assertIsNotNone(watchdog)
             self.assertIsNone(lock)
             self.assertEqual(1, status["enabledSchedules"])
+            self.assertFalse(status["threadAlive"])
             self.assertEqual("succeeded", status["latestScan"]["status"])
             self.assertEqual(1, status["latestScan"]["evaluationCount"])
             self.assertEqual(1, status["latestScan"]["createdRunCount"])
@@ -94,6 +96,46 @@ class SchedulerTest(unittest.TestCase):
             self.assertEqual("skipped", result["status"])
             self.assertEqual("lock_held", result["reason"])
             self.assertEqual("other-owner", result["lock"]["owner_id"])
+
+    def test_scheduler_thread_survives_scan_exception(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db_path = Path(directory) / "test.db"
+            connection = store.connect(db_path, initialize=True)
+            connection.close()
+            scheduler = LifecycleScheduler(
+                db_path=db_path,
+                config={
+                    "intervalSeconds": 0.02,
+                    "leaseSeconds": 60,
+                    "watchdog": {"queuedTimeoutSeconds": 60, "runningTimeoutSeconds": 60},
+                },
+                evaluator=lambda *_: {},
+            )
+            calls = 0
+
+            def failing_execute_scan():
+                nonlocal calls
+                calls += 1
+                raise RuntimeError("scan failed")
+
+            scheduler.execute_scan = failing_execute_scan
+            scheduler.start()
+            try:
+                thread = scheduler.thread
+                self.assertIsNotNone(thread)
+                self.assertTrue(thread.is_alive())
+                with self.assertLogs("platform.app.scheduler", level="ERROR"):
+                    deadline = time.monotonic() + 1
+                    while calls < 2 and time.monotonic() < deadline:
+                        time.sleep(0.01)
+                    self.assertGreaterEqual(calls, 2)
+                    scheduler.stop(timeout=1)
+                self.assertFalse(thread.is_alive())
+                self.assertFalse(
+                    scheduler_status(db_path=db_path, scheduler=scheduler)["threadAlive"]
+                )
+            finally:
+                scheduler.stop(timeout=1)
 
     def test_scheduler_config_is_validated(self):
         config = load_scheduler_config()

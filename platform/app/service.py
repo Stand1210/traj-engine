@@ -697,7 +697,7 @@ def list_lifecycle_evaluations(
 
 @app.get("/api/v1/scheduler/status")
 def get_scheduler_status() -> dict:
-    return scheduler_status()
+    return scheduler_status(scheduler=SCHEDULER)
 
 
 @app.post("/api/v1/scheduler/evaluate-all", status_code=200)
@@ -941,6 +941,8 @@ def get_trace_score(run_id: str, trace_id: str, connection=Depends(get_connectio
     result.update({
         "baseScore": base_score,
         "gateMultiplier": base_score / 100.0,
+        "gateDeduction": 100.0 - base_score,
+        "gates": json.loads(row["gates_json"] or "{}"),
         "evidenceSum": evidence_sum,
         "attributionResidual": float(row["total_score"]) - base_score - evidence_sum,
         "evidence": [serialize_evidence(item) for item in evidence_rows],

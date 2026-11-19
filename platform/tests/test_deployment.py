@@ -133,10 +133,15 @@ class DeploymentTest(unittest.TestCase):
                         0.0, 0.0, ?, 0, 'ontology-version-test', 'hash',
                         '2026-01-01T00:00:00Z')""",
                     [
-                        ("score-alerted", "trace-alerted", 20.0, 1),
+                        ("score-alerted", "trace-alerted", 35.0, 1),
                         ("score-deduped", "trace-deduped", 18.0, 1),
                         ("score-normal", "trace-normal", 90.0, 0),
                     ],
+                )
+                connection.execute(
+                    """UPDATE trace_scores SET gates_json = ?
+                       WHERE id = 'score-alerted'""",
+                    (json.dumps({"loop_runaway": 0.35}),),
                 )
                 connection.executemany(
                     """INSERT INTO alert_decisions
@@ -152,6 +157,7 @@ class DeploymentTest(unittest.TestCase):
                 connection.commit()
 
                 result = service.list_trace_scores("run-test", limit=100, connection=connection)
+                detail = service.get_trace_score("run-test", "trace-alerted", connection=connection)
                 alert_only = service.list_trace_scores(
                     "run-test", alertOnly=True, limit=100, connection=connection
                 )
@@ -169,6 +175,8 @@ class DeploymentTest(unittest.TestCase):
                 ["trace-deduped", "trace-alerted"],
                 [row["traceId"] for row in alert_only["data"]],
             )
+            self.assertEqual({"loop_runaway": 0.35}, detail["gates"])
+            self.assertEqual(65.0, detail["gateDeduction"])
 
     def test_service_lifespan_initializes_database_and_records_startup(self):
         with tempfile.TemporaryDirectory() as directory:

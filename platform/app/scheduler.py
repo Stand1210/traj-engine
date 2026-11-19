@@ -1,5 +1,6 @@
 import threading
 import uuid
+import logging
 from contextlib import closing
 from pathlib import Path
 from typing import Callable
@@ -8,6 +9,7 @@ from platform.app import store
 
 
 Evaluator = Callable[[object, str], dict]
+logger = logging.getLogger(__name__)
 
 
 class LifecycleScheduler:
@@ -51,7 +53,10 @@ class LifecycleScheduler:
 
     def _run_forever(self) -> None:
         while not self.stop_event.wait(float(self.config["intervalSeconds"])):
-            self.execute_scan()
+            try:
+                self.execute_scan()
+            except Exception:
+                logger.exception("lifecycle scheduler scan failed; retrying next interval")
 
     def execute_scan(self) -> dict:
         with closing(store.connect(self.db_path, initialize=True)) as connection:
@@ -125,7 +130,10 @@ class LifecycleScheduler:
                 store.release_scheduler_lock(connection, self.owner_id)
 
 
-def scheduler_status(db_path: str | Path | None = None) -> dict:
+def scheduler_status(
+    db_path: str | Path | None = None,
+    scheduler: "LifecycleScheduler | None" = None,
+) -> dict:
     with closing(store.connect(db_path, initialize=False)) as connection:
         lock = store.get_scheduler_lock(connection)
         scan = connection.execute(
@@ -138,6 +146,10 @@ def scheduler_status(db_path: str | Path | None = None) -> dict:
     return {
         "lock": lock,
         "enabledSchedules": int(schedule_count),
+        "threadAlive": (
+            scheduler.thread is not None and scheduler.thread.is_alive()
+            if scheduler is not None else None
+        ),
         "latestScan": {
             "id": scan["id"],
             "status": scan["status"],

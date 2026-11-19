@@ -1215,6 +1215,14 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Evidence'
+            baseScore: {type: number}
+            gateMultiplier: {type: number}
+            gateDeduction: {type: number}
+            gates:
+              type: object
+              additionalProperties: {type: number}
+            evidenceSum: {type: number}
+            attributionResidual: {type: number}
     AlertTraceScore:
       allOf:
         - $ref: '#/components/schemas/TraceScore'

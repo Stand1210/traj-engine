@@ -81,7 +81,7 @@ export default function AlertWorkbench({ runId, onSelect }: Props) {
           <div className="group-list">
             {summary.topGroups.map(group => (
               <div key={group.groupKey} className="alert-group">
-                <strong>{group.cause}</strong>
+                <strong>{formatCause(group.cause)}</strong>
                 <span>组大小 {group.groupSize} · 优先级 {group.topPriority.toFixed(2)}</span>
               </div>
             ))}
@@ -117,13 +117,15 @@ export default function AlertWorkbench({ runId, onSelect }: Props) {
                 <td className="score">{row.priority.toFixed(2)}</td>
                 <td>{row.traceId}</td>
                 <td>{row.totalScore.toFixed(2)}</td>
-                <td>{row.cause}</td>
+                <td>{formatCause(row.cause)}</td>
                 <td
                   title={`同聚类 Cell + 同根因聚合为组；仅组内第 1 条进入正式告警，其余去重。当前组大小：${row.groupSize}`}
                 >
                   组内 {row.groupRank} / {row.groupSize}
                 </td>
-                <td title={row.reasons.join(" · ")}>{row.reasons.slice(0, 2).join(" · ")}</td>
+                <td title={row.reasons.map(formatReason).join(" · ")}>
+                  {row.reasons.slice(0, 2).map(formatReason).join(" · ")}
+                </td>
                 <td><button onClick={() => onSelect(`/runs/${runId}/trace/${row.traceId}`)}>下钻</button></td>
               </tr>
             ))}
@@ -133,4 +135,67 @@ export default function AlertWorkbench({ runId, onSelect }: Props) {
       </div>
     </section>
   );
+}
+
+function formatCause(cause: string) {
+  const labels: Record<string, string> = {
+    "rule:result_broken": "结果破坏",
+    "rule:forbidden_action": "禁用动作",
+    "rule:unrecovered_error": "错误未恢复",
+    "rule:truncated_generation": "生成被截断",
+    "rule:unfinished": "未完成",
+    "rule:missing_step": "步骤缺失",
+    "rule:missing_declared_step": "声明步骤缺失",
+    "rule:untraceable_answer_number": "数字不可追溯",
+    "rule:untraceable_answer_fact": "事实不可追溯",
+    "rule:runaway_loop": "循环失控",
+    "alert:unspecified": "未指定根因",
+  };
+  if (labels[cause]) return `${cause}（${labels[cause]}）`;
+  if (cause.startsWith("metric:")) {
+    const metric = cause.slice("metric:".length);
+    return `${cause}（${metricLabel(metric)}偏离）`;
+  }
+  return cause;
+}
+
+function metricLabel(metric: string) {
+  const labels: Record<string, string> = {
+    retry_count: "重试次数",
+    loop_count: "循环次数",
+    latency_ms: "时延",
+    tok: "Token 用量",
+    total_tokens: "总 Token",
+    input_tokens: "输入 Token",
+    output_tokens: "输出 Token",
+    cost: "成本",
+  };
+  if (metric.includes(":")) {
+    const [action, name] = metric.split(":");
+    return `${action} 的${labels[name] ?? name}`;
+  }
+  return labels[metric] ?? metric;
+}
+
+function formatReason(reason: string) {
+  if (reason.startsWith("total_score=")) return `${reason}（总分）`;
+  if (reason.startsWith("worst_dimension=")) {
+    const dimension = reason.split(":", 1)[0].slice("worst_dimension=".length);
+    return `${reason}（最弱维度：${dimensionLabel(dimension)}）`;
+  }
+  if (reason.startsWith("deduction=")) return `${reason}（LMDI 扣分）`;
+  if (reason.startsWith("primary_cause=")) return formatCause(reason.slice("primary_cause=".length));
+  if (reason.startsWith("priority=")) return `${reason}（优先级）`;
+  return reason;
+}
+
+function dimensionLabel(dimension: string) {
+  const labels: Record<string, string> = {
+    result: "结果符合度",
+    process: "过程合规",
+    latency: "时延",
+    cost: "成本",
+    robustness: "鲁棒性",
+  };
+  return labels[dimension] ?? dimension;
 }
