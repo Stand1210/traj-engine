@@ -324,6 +324,9 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
           再按策略评估全部启用调度。若另一个实例正在执行扫描，本轮会直接跳过。
         </p>
         <h2>评估历史</h2>
+        <p className="scheduler-note">
+          展示最近 48 小时的评估记录；连续未到期扫描会合并为一行，完整记录仍在数据库审计中保留。
+        </p>
         <table>
           <thead>
             <tr><th>时间</th><th>决策</th><th>触发原因</th><th>窗口内轨迹</th><th>novelty</th><th>累计 novelty</th><th>告警率</th><th>Run</th></tr>
@@ -331,8 +334,15 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
           <tbody>
             {evaluations.map(item => (
               <tr key={item.id}>
-                <td>{formatLocalDateTime(item.createdAt)}</td>
-                <td>{item.decision}</td>
+                <td>
+                  {formatLocalDateTime(item.lastSeenAt ?? item.createdAt)}
+                  {item.repeatCount && item.repeatCount > 1 && item.firstSeenAt && (
+                    <span className="table-subtext">
+                      {`（${formatLocalDateTime(item.firstSeenAt)} 起）`}
+                    </span>
+                  )}
+                </td>
+                <td>{formatDecision(item)}</td>
                 <td>{item.reason}</td>
                 <td>{item.metrics.traceCount ?? "-"}</td>
                 <td>{item.metrics.noveltyRate == null ? "-" : `${(item.metrics.noveltyRate * 100).toFixed(1)}%`}</td>
@@ -359,6 +369,11 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
 function formatThreadState(alive: boolean | null | undefined) {
   if (alive === null || alive === undefined) return "未知";
   return alive ? "运行中" : "已停止";
+}
+
+function formatDecision(item: LifecycleEvaluation) {
+  const repeatCount = item.repeatCount ?? 1;
+  return repeatCount > 1 ? `${item.decision} ×${repeatCount}` : item.decision;
 }
 import { formatLocalDateTime } from "../time";
 

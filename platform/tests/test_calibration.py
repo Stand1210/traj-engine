@@ -12,6 +12,7 @@ from platform.app import store
 from platform.app.service import (
     CalibrationTriggerInput,
     activate_calibration,
+    list_reviews,
     trigger_review_calibration,
 )
 
@@ -96,6 +97,93 @@ class ReviewCalibrationTest(unittest.TestCase):
                 self.assertEqual(
                     "calibration_insufficient_labels", context.exception.detail["code"]
                 )
+            finally:
+                connection.close()
+
+    def test_calibration_uses_historical_labels_for_same_ontology(self):
+        with tempfile.TemporaryDirectory() as directory:
+            connection = store.connect(Path(directory) / "test.db", initialize=True)
+            try:
+                tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
+                ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+                source_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke", "R1",
+                    "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 1.0, "test", None,
+                )
+                target_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke", "R1",
+                    "2026-01-02T00:00:00Z", "2026-01-03T00:00:00Z", 1.0, "test", None,
+                )
+                ontology_version = connection.execute(
+                    """SELECT id FROM ontology_versions WHERE ontology_id = ?
+                       ORDER BY version LIMIT 1""",
+                    (ontology_id,),
+                ).fetchone()["id"]
+                score_ids = self._insert_scores(
+                    connection, source_run_id, tenant_id, ontology_version
+                )
+                self._insert_alerts(connection, source_run_id, score_ids)
+                self._insert_reviews(connection, score_ids, count=3)
+                connection.execute(
+                    """INSERT INTO trace_scores
+                       (id, run_id, tenant_id, trace_id, total_score, result_score,
+                        process_score, latency_score, cost_score, robustness_score,
+                        deduction_total, evidence_sum, is_alert, is_abstain,
+                        ontology_version_id, structure_version_id, code_hash, created_at)
+                       VALUES ('score-target', ?, ?, 'trace-target', 90.0, 90.0, 90.0,
+                               90.0, 90.0, 90.0, 10.0, 10.0, 1, 0, ?, NULL,
+                               'hash', '2026-01-02T00:00:00Z')""",
+                    (target_run_id, tenant_id, ontology_version),
+                )
+                connection.commit()
+
+                with patch(
+                    "platform.app.service.load_calibration_config",
+                    return_value={"minimumLabels": 3, "minimumReviewedAlerts": 3},
+                ):
+                    calibration = trigger_review_calibration(
+                        target_run_id,
+                        CalibrationTriggerInput(createdBy="reviewer-a"),
+                        connection,
+                    )
+
+                self.assertEqual(target_run_id, calibration["sourceRunId"])
+                self.assertEqual(3, calibration["labelCount"])
+                self.assertEqual(3, calibration["traceCount"])
+                self.assertEqual(3, calibration["alertReviewed"])
+            finally:
+                connection.close()
+
+    def test_lists_reviews_using_contract_field_names(self):
+        with tempfile.TemporaryDirectory() as directory:
+            connection = store.connect(Path(directory) / "test.db", initialize=True)
+            try:
+                tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
+                ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+                run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke", "R1",
+                    "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 1.0, "test", None,
+                )
+                ontology_version = connection.execute(
+                    """SELECT id FROM ontology_versions WHERE ontology_id = ?
+                       ORDER BY version LIMIT 1""",
+                    (ontology_id,),
+                ).fetchone()["id"]
+                score_ids = self._insert_scores(
+                    connection, run_id, tenant_id, ontology_version
+                )
+                self._insert_reviews(connection, score_ids, count=6)
+
+                result = list_reviews(runId=run_id, limit=100, connection=connection)
+
+                self.assertEqual(6, len(result["data"]))
+                self.assertIn("traceScoreId", result["data"][0])
+                self.assertNotIn("trace_score_id", result["data"][0])
+                self.assertEqual(3, len({item["traceScoreId"] for item in result["data"]}))
+                ontology_result = list_reviews(
+                    runId=run_id, scope="ontology", limit=100, connection=connection
+                )
+                self.assertEqual(6, len(ontology_result["data"]))
             finally:
                 connection.close()
 

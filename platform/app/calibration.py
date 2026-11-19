@@ -138,15 +138,56 @@ def create_review_calibration(
     score_rows = [dict(row) for row in connection.execute(
         "SELECT * FROM trace_scores WHERE run_id = ?", (run_id,)
     ).fetchall()]
+    scores_by_trace = {row["trace_id"]: row for row in score_rows}
     review_rows = [dict(row) for row in connection.execute(
-        """SELECT r.* FROM human_reviews r
+        """SELECT r.*, s.trace_id, s.run_id, c.created_at AS run_created_at
+           FROM human_reviews r
            JOIN trace_scores s ON s.id = r.trace_score_id
-           WHERE s.run_id = ? ORDER BY r.created_at, r.id""",
-        (run_id,),
+           JOIN cohort_runs c ON c.id = s.run_id
+           WHERE c.ontology_id = ?
+           ORDER BY c.created_at DESC, r.created_at DESC, r.id DESC""",
+        (run["ontology_id"],),
     ).fetchall()]
+    historical_scores = [dict(row) for row in connection.execute(
+        """SELECT s.* FROM trace_scores s
+           JOIN cohort_runs c ON c.id = s.run_id
+           WHERE c.ontology_id = ?
+           ORDER BY c.created_at DESC, s.created_at DESC""",
+        (run["ontology_id"],),
+    ).fetchall()]
+    reviewed_runs = {}
+    for row in review_rows:
+        reviewed_runs.setdefault(row["trace_id"], row["run_id"])
+    for row in historical_scores:
+        if (
+            row["trace_id"] not in scores_by_trace
+            and row["run_id"] == reviewed_runs.get(row["trace_id"])
+        ):
+            scores_by_trace[row["trace_id"]] = row
+    score_rows = list(scores_by_trace.values())
+    selected_score_ids = {row["id"] for row in score_rows}
+
+    preferred_runs = {trace_id: row["run_id"] for trace_id, row in scores_by_trace.items()}
+    normalized_reviews = []
+    for row in review_rows:
+        if row["run_id"] != preferred_runs[row["trace_id"]]:
+            continue
+        normalized_reviews.append({
+            "id": row["id"],
+            "trace_score_id": scores_by_trace[row["trace_id"]]["id"],
+            "reviewer": row["reviewer"],
+            "verdict": row["verdict"],
+            "label": row["label"],
+            "comment": row["comment"],
+            "created_at": row["created_at"],
+        })
+    review_rows = normalized_reviews
+    placeholders = ",".join("?" for _ in selected_score_ids)
     alert_rows = [dict(row) for row in connection.execute(
-        "SELECT * FROM alert_decisions WHERE run_id = ?", (run_id,)
-    ).fetchall()]
+        f"""SELECT * FROM alert_decisions
+            WHERE trace_score_id IN ({placeholders})""",
+        tuple(selected_score_ids),
+    ).fetchall()] if selected_score_ids else []
     result = compute_review_calibration(score_rows, review_rows, alert_rows, config)
     if not result["metrics"]["eligible"]:
         raise ValueError("insufficient review labels")

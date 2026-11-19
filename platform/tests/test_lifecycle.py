@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -8,7 +9,13 @@ from platform.app.config import load_performance_config
 from platform.app.engine import resolve_r2_training_plan
 from platform.app.lifecycle import evaluate_lifecycle_state, get_lifecycle_schedule
 from platform.app.service import LifecycleEvaluateInput, LifecycleInput, RunInput
-from platform.app.service import configure_lifecycle, create_run, evaluate_lifecycle, serialize_run
+from platform.app.service import (
+    configure_lifecycle,
+    create_run,
+    evaluate_lifecycle,
+    list_lifecycle_evaluations,
+    serialize_run,
+)
 
 
 class LifecycleTest(unittest.TestCase):
@@ -243,6 +250,60 @@ class LifecycleTest(unittest.TestCase):
                 self.assertEqual("created_r2", first["decision"])
                 self.assertEqual(first["run"]["id"], second["run"]["id"])
                 self.assertEqual(1, len(calls))
+            finally:
+                connection.close()
+
+    def test_recent_evaluation_history_collapses_repeated_not_due(self):
+        with tempfile.TemporaryDirectory() as directory:
+            connection = store.connect(Path(directory) / "test.db", initialize=True)
+            try:
+                tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
+                ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+
+                def insert_evaluation(decision: str, reason: str, created_at: str) -> None:
+                    connection.execute(
+                        """INSERT INTO lifecycle_evaluations
+                           (id, ontology_id, decision, reason, metrics_json,
+                            created_run_id, created_at)
+                           VALUES (?, ?, ?, ?, '{}', NULL, ?)""",
+                        (store.new_id("evaluation"), ontology_id, decision, reason, created_at),
+                    )
+
+                base_time = datetime.now(timezone.utc).replace(microsecond=0)
+                timestamps = [
+                    (base_time + timedelta(minutes=minute)).isoformat()
+                    for minute in range(5)
+                ]
+                insert_evaluation("skipped", "not_due", timestamps[0])
+                insert_evaluation("skipped", "not_due", timestamps[1])
+                insert_evaluation("skipped", "not_due", timestamps[2])
+                insert_evaluation("created_r1", "interval_due", timestamps[3])
+                insert_evaluation("skipped", "not_due", timestamps[4])
+                connection.commit()
+
+                result = list_lifecycle_evaluations(
+                    ontology_id, limit=10, cursor=None, connection=connection
+                )
+
+                self.assertEqual(
+                    [
+                        ("skipped", "not_due", 1),
+                        ("created_r1", "interval_due", 1),
+                        ("skipped", "not_due", 3),
+                    ],
+                    [
+                        (item["decision"], item["reason"], item["repeatCount"])
+                        for item in result["data"]
+                    ],
+                )
+                self.assertEqual(
+                    timestamps[2],
+                    result["data"][2]["lastSeenAt"],
+                )
+                self.assertEqual(
+                    timestamps[0],
+                    result["data"][2]["firstSeenAt"],
+                )
             finally:
                 connection.close()
 

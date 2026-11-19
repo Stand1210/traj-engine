@@ -14,6 +14,9 @@ interface ReviewRow {
   comment: string | null;
 }
 
+const MINIMUM_LABELS = 20;
+const MINIMUM_REVIEWED_ALERTS = 5;
+
 export default function CalibrationWorkbench({ runId }: Props) {
   const [versions, setVersions] = useState<Page<ReviewCalibration> | null>(null);
   const [reviews, setReviews] = useState<Page<ReviewRow> | null>(null);
@@ -27,7 +30,7 @@ export default function CalibrationWorkbench({ runId }: Props) {
   const load = useCallback(async () => {
     const [versionResult, reviewResult] = await Promise.all([
       api.reviewCalibrations(runId),
-      api.reviews(runId),
+      api.reviews(runId, "ontology"),
     ]);
     setVersions(versionResult);
     setReviews(reviewResult);
@@ -54,7 +57,7 @@ export default function CalibrationWorkbench({ runId }: Props) {
       setMessage(`校准版本已创建：${calibration.id}，可审核后激活。`);
       await load();
     } catch (submitError) {
-      setError(String(submitError));
+      setError(formatCalibrationError(submitError));
     } finally {
       setBusy(false);
     }
@@ -69,7 +72,7 @@ export default function CalibrationWorkbench({ runId }: Props) {
       setMessage(`校准版本已激活：${id}。后续告警排序将应用根因严重度修正。`);
       await load();
     } catch (submitError) {
-      setError(String(submitError));
+      setError(formatCalibrationError(submitError));
     } finally {
       setBusy(false);
     }
@@ -109,6 +112,7 @@ export default function CalibrationWorkbench({ runId }: Props) {
 
   const reviewCount = reviews?.data.length ?? 0;
   const reviewedTraces = new Set(reviews?.data.map(item => item.traceScoreId) ?? []).size;
+  const missingLabels = Math.max(0, MINIMUM_LABELS - reviewCount);
 
   return (
     <section className="panel-grid">
@@ -117,13 +121,17 @@ export default function CalibrationWorkbench({ runId }: Props) {
         {error && <div className="error-banner">{error}</div>}
         {message && <div className="success-banner">{message}</div>}
         <div className="metric-grid">
-          <div><span>复核记录</span><strong>{reviewCount}</strong></div>
+          <div><span>复核记录</span><strong>{reviewCount} / {MINIMUM_LABELS}</strong></div>
           <div><span>复核轨迹</span><strong>{reviewedTraces}</strong></div>
           <div><span>校准版本</span><strong>{versions?.data.length ?? 0}</strong></div>
           <div><span>激活版本</span><strong>{versions?.data.filter(item => item.activatedAt).length ?? 0}</strong></div>
         </div>
         <div className="button-row">
-          <button className="primary" disabled={busy} onClick={() => void triggerCalibration()}>
+          <button
+            className="primary"
+            disabled={busy || missingLabels > 0}
+            onClick={() => void triggerCalibration()}
+          >
             触发校准
           </button>
         </div>
@@ -159,7 +167,9 @@ export default function CalibrationWorkbench({ runId }: Props) {
           </button>
         </div>
         <p className="calibration-note">
-          默认门槛：20 条复核标签、5 条已复核正式告警。不足时不会生成校准版本，避免小样本误校准。
+          默认门槛：{MINIMUM_LABELS} 条复核标签、{MINIMUM_REVIEWED_ALERTS} 条已复核正式告警。
+          校准使用同一业务本体的历史累计复核标签；不足时不会生成校准版本，避免小样本误校准。
+          {reviews && missingLabels > 0 && `当前还缺 ${missingLabels} 条复核标签。`}
         </p>
       </div>
       <div className="panel wide">
@@ -210,4 +220,21 @@ export default function CalibrationWorkbench({ runId }: Props) {
       </div>
     </section>
   );
+}
+
+function formatCalibrationError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  try {
+    const detail = JSON.parse(message);
+    if (detail?.code === "calibration_insufficient_labels") {
+      return (
+        `复核样本不足：当前 ${detail.actualLabels ?? 0} / ${detail.requiredLabels ?? MINIMUM_LABELS} 条标签，` +
+        `已复核正式告警 ${detail.actualReviewedTraces ?? 0} / ` +
+        `${detail.requiredReviewedAlerts ?? MINIMUM_REVIEWED_ALERTS} 条。`
+      );
+    }
+  } catch {
+    return message;
+  }
+  return message;
 }

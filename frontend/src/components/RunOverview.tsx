@@ -58,7 +58,9 @@ export default function RunOverview({ runId }: Props) {
     try {
       const result = await api.syncReviewQueue(runId);
       setReviewMessage(
-        `同步完成：导入 ${result.imported ?? 0} 条人工复核，${result.awaitingReview ?? 0} 条待复核。`
+        `同步完成：导入 ${result.imported ?? 0} 条人工复核` +
+        `${result.crossRunImported ? `（含跨 Run 复用 ${result.crossRunImported} 条）` : ""}` +
+        `，${result.awaitingReview ?? 0} 条待复核。`
       );
     } catch (submitError) {
       setError(String(submitError));

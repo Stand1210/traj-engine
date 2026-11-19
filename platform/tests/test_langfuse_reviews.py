@@ -159,6 +159,77 @@ class LangfuseReviewTest(unittest.TestCase):
             self.assertEqual("latency", review["label"])
             self.assertEqual("confirmed", review["comment"])
 
+    def test_review_sync_imports_project_annotations_into_current_run(self):
+        class FakeClient:
+            def ensure_review_assets(self, queue_name):
+                return {"queue": {"id": "queue-1", "name": queue_name}, "scoreConfigs": []}
+
+            def push_items(self, queue_id, trace_ids):
+                return [{"id": f"item-{trace_id}", "status": "PENDING"} for trace_id in trace_ids]
+
+            def list_items(self, queue_id):
+                return [{
+                    "id": "item-trace-1", "queueId": queue_id, "objectId": "trace-1",
+                    "objectType": "TRACE", "status": "COMPLETED",
+                    "completedAt": "2026-01-02T00:00:00Z",
+                }]
+
+            def list_annotation_scores(self, trace_ids, queue_id):
+                return [{
+                    "name": "traj-engine-human-verdict", "value": "disagree",
+                    "traceId": "trace-1", "authorUserId": "reviewer-1",
+                    "updatedAt": "2026-01-02T00:01:00Z",
+                }]
+
+        with tempfile.TemporaryDirectory() as directory:
+            connection = store.connect(Path(directory) / "test.db", initialize=True)
+            try:
+                tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
+                ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+                ontology_version_id = connection.execute(
+                    "SELECT id FROM ontology_versions WHERE ontology_id = ?", (ontology_id,)
+                ).fetchone()["id"]
+                source_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke", "R1",
+                    "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 1.0, "test", None,
+                )
+                target_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke", "R1",
+                    "2026-01-02T00:00:00Z", "2026-01-03T00:00:00Z", 1.0, "test", None,
+                )
+                for run_id, score_id in ((source_run_id, "score-source"), (target_run_id, "score-target")):
+                    connection.execute(
+                        """INSERT INTO trace_scores
+                           (id, run_id, tenant_id, trace_id, total_score, result_score,
+                            process_score, latency_score, cost_score, robustness_score,
+                            deduction_total, evidence_sum, is_alert, is_abstain,
+                            ontology_version_id, structure_version_id, code_hash, created_at)
+                           VALUES (?, ?, ?, 'trace-1', 50, 1, 1, 0.5, 1, 1,
+                                   50, 50, 1, 0, ?, NULL,
+                                   'hash', '2026-01-01T00:00:00Z')""",
+                        (score_id, run_id, tenant_id, ontology_version_id),
+                    )
+                connection.commit()
+                with patch("platform.app.service._annotation_client", return_value=FakeClient()):
+                    create_review_queue(
+                        source_run_id, ReviewQueueInput(scope="alerts", limit=10), connection,
+                    )
+                    synced = sync_review_queue(target_run_id, connection)
+
+                source_reviews = connection.execute(
+                    "SELECT COUNT(*) AS n FROM human_reviews WHERE trace_score_id = 'score-source'"
+                ).fetchone()["n"]
+                target_review = connection.execute(
+                    "SELECT * FROM human_reviews WHERE trace_score_id = 'score-target'"
+                ).fetchone()
+            finally:
+                connection.close()
+
+            self.assertEqual(1, synced["imported"])
+            self.assertEqual(1, synced["crossRunImported"])
+            self.assertEqual(0, source_reviews)
+            self.assertEqual("disagree", target_review["verdict"])
+
 
 if __name__ == "__main__":
     unittest.main()

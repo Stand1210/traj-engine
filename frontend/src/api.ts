@@ -305,6 +305,9 @@ export interface LifecycleEvaluation {
   };
   createdRunId: string | null;
   createdAt: string;
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+  repeatCount?: number;
   run: Run | null;
   windowStart: string;
   windowEnd: string;
@@ -356,6 +359,7 @@ export interface ReviewQueueResult {
   imported?: number;
   statusUpdates?: number;
   awaitingReview?: number;
+  crossRunImported?: number;
 }
 
 export interface Review {
@@ -435,7 +439,8 @@ export const api = {
   alertSummary: (id: string) => request<AlertSummary>(`/api/v1/runs/${id}/alerts/summary`),
   alertConfig: () => request<Record<string, unknown>>("/api/v1/config/alerts"),
   calibration: (id: string) => request<Calibration>(`/api/v1/runs/${id}/calibration`),
-  reviews: (runId: string) => request<Page<Review>>(`/api/v1/reviews?runId=${runId}&limit=100`),
+  reviews: (runId: string, scope: "run" | "ontology" = "run") =>
+    request<Page<Review>>(`/api/v1/reviews?runId=${runId}&scope=${scope}&limit=100`),
   reviewCalibrations: (runId: string) =>
     request<Page<ReviewCalibration>>(`/api/v1/calibrations?runId=${runId}&limit=100`),
   triggerCalibration: (runId: string, createdBy: string) =>

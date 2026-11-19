@@ -683,16 +683,44 @@ def list_lifecycle_evaluations(
     connection=Depends(get_connection),
 ) -> dict:
     offset = decode_cursor(cursor)
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
     rows = connection.execute(
         """SELECT * FROM lifecycle_evaluations WHERE ontology_id = ?
-           ORDER BY created_at DESC, id LIMIT ? OFFSET ?""",
-        (ontology_id, limit, offset),
+           AND created_at >= ? ORDER BY created_at DESC, id""",
+        (ontology_id, cutoff),
     ).fetchall()
-    total = connection.execute(
-        "SELECT COUNT(*) AS n FROM lifecycle_evaluations WHERE ontology_id = ?",
-        (ontology_id,),
-    ).fetchone()["n"]
-    return page([serialize_evaluation(row) for row in rows], limit, offset, total)
+    summarized = _summarize_lifecycle_evaluations(rows)
+    return page(summarized[offset : offset + limit], limit, offset, len(summarized))
+
+
+def _summarize_lifecycle_evaluations(rows: list) -> list[dict]:
+    summarized: list[dict] = []
+    current_group: list = []
+
+    def flush_group() -> None:
+        if not current_group:
+            return
+        latest = current_group[0]
+        item = serialize_evaluation(latest)
+        item["repeatCount"] = len(current_group)
+        item["firstSeenAt"] = current_group[-1]["created_at"]
+        item["lastSeenAt"] = latest["created_at"]
+        summarized.append(item)
+
+    for row in rows:
+        is_not_due = row["decision"] == "skipped" and row["reason"] == "not_due"
+        same_group = bool(
+            current_group
+            and current_group[0]["decision"] == row["decision"]
+            and current_group[0]["reason"] == row["reason"]
+        )
+        if is_not_due and same_group:
+            current_group.append(row)
+            continue
+        flush_group()
+        current_group = [row]
+    flush_group()
+    return summarized
 
 
 @app.get("/api/v1/scheduler/status")
@@ -1186,11 +1214,48 @@ def import_review_pack_csv(
 def list_reviews(
     tenantId: str | None = None,
     runId: str | None = None,
+    scope: str = Query(default="run", pattern="^(run|ontology)$"),
     limit: int = Query(default=50, ge=1, le=100),
     cursor: str | None = None,
     connection=Depends(get_connection),
 ) -> dict:
     clauses, values = [], []
+    if runId and scope == "ontology":
+        run = connection.execute(
+            "SELECT ontology_id FROM cohort_runs WHERE id = ?", (runId,)
+        ).fetchone()
+        if run is None:
+            raise HTTPException(status_code=404, detail={"code": "run_not_found"})
+        offset = decode_cursor(cursor)
+        rows = connection.execute(
+            """SELECT r.*, s.trace_id, s.run_id FROM human_reviews r
+               JOIN trace_scores s ON s.id = r.trace_score_id
+               JOIN cohort_runs c ON c.id = s.run_id
+               WHERE c.ontology_id = ?
+               ORDER BY c.created_at DESC, r.created_at DESC, r.id""",
+            (run["ontology_id"],),
+        ).fetchall()
+        reviewed_runs = {}
+        for row in rows:
+            reviewed_runs.setdefault(row["trace_id"], row["run_id"])
+        preferred_runs = {
+            row["trace_id"]: runId
+            for row in connection.execute(
+                "SELECT trace_id FROM trace_scores WHERE run_id = ?", (runId,)
+            ).fetchall()
+        }
+        for trace_id, run_id in reviewed_runs.items():
+            preferred_runs.setdefault(trace_id, run_id)
+        rows = [
+            row for row in rows
+            if row["run_id"] == preferred_runs.get(row["trace_id"])
+        ]
+        return page(
+            [_serialize_review(row) for row in rows[offset : offset + limit]],
+            limit,
+            offset,
+            len(rows),
+        )
     if tenantId:
         clauses.append("s.tenant_id = ?")
         values.append(tenantId)
@@ -1202,15 +1267,29 @@ def list_reviews(
     rows = connection.execute(
         f"""SELECT r.* FROM human_reviews r
             JOIN trace_scores s ON s.id = r.trace_score_id
+            JOIN cohort_runs c ON c.id = s.run_id
             {where} ORDER BY r.created_at DESC, r.id LIMIT ? OFFSET ?""",
         values + [limit, offset],
     ).fetchall()
     total = connection.execute(
         f"""SELECT COUNT(*) AS n FROM human_reviews r
-            JOIN trace_scores s ON s.id = r.trace_score_id {where}""",
+            JOIN trace_scores s ON s.id = r.trace_score_id
+            JOIN cohort_runs c ON c.id = s.run_id {where}""",
         values,
     ).fetchone()["n"]
-    return page([dict(row) for row in rows], limit, offset, total)
+    return page([_serialize_review(row) for row in rows], limit, offset, total)
+
+
+def _serialize_review(row: dict) -> dict:
+    return {
+        "id": row["id"],
+        "traceScoreId": row["trace_score_id"],
+        "reviewer": row["reviewer"],
+        "verdict": row["verdict"],
+        "label": row["label"],
+        "comment": row["comment"],
+        "createdAt": row["created_at"],
+    }
 
 
 @app.post("/api/v1/runs/{run_id}/review-queue", status_code=201)
@@ -1280,8 +1359,8 @@ def sync_review_queue(run_id: str, connection=Depends(get_connection)) -> dict:
     client = _annotation_client(tenant)
     remote_items = {item["id"]: item for item in client.list_items(tenant["queue_id"])}
     local_items = connection.execute(
-        "SELECT * FROM review_queue_items WHERE run_id = ? AND queue_id = ?",
-        (run_id, tenant["queue_id"]),
+        "SELECT * FROM review_queue_items WHERE queue_id = ?",
+        (tenant["queue_id"],),
     ).fetchall()
     completed = 0
     for item in local_items:
@@ -1298,13 +1377,19 @@ def sync_review_queue(run_id: str, connection=Depends(get_connection)) -> dict:
 
     pending_sync = connection.execute(
         """SELECT * FROM review_queue_items
-           WHERE run_id = ? AND queue_id = ? AND status = 'COMPLETED'
+           WHERE queue_id = ? AND status = 'COMPLETED'
              AND human_review_id IS NULL""",
-        (run_id, tenant["queue_id"]),
+        (tenant["queue_id"],),
     ).fetchall()
-    scores = client.list_annotation_scores(
-        [item["trace_id"] for item in pending_sync], tenant["queue_id"]
-    )
+    trace_ids = list(dict.fromkeys(
+        row["trace_id"]
+        for row in connection.execute(
+            """SELECT trace_id FROM review_queue_items
+               WHERE queue_id = ? AND status = 'COMPLETED'""",
+            (tenant["queue_id"],),
+        ).fetchall()
+    ))
+    scores = client.list_annotation_scores(trace_ids, tenant["queue_id"]) if trace_ids else []
     scores_by_trace: dict[str, dict] = {}
     for score in scores:
         trace_id = score.get("traceId")
@@ -1317,6 +1402,8 @@ def sync_review_queue(run_id: str, connection=Depends(get_connection)) -> dict:
 
     imported = 0
     for item in pending_sync:
+        if item["run_id"] != run_id:
+            continue
         annotations = scores_by_trace.get(item["trace_id"], {})
         verdict_score = annotations.get(VERDICT_SCORE_NAME)
         if not verdict_score:
@@ -1345,6 +1432,50 @@ def sync_review_queue(run_id: str, connection=Depends(get_connection)) -> dict:
             (review_id, store.utcnow(), item["id"]),
         )
         imported += 1
+
+    cross_run_imported = 0
+    target_scores = connection.execute(
+        "SELECT id, trace_id FROM trace_scores WHERE run_id = ?",
+        (run_id,),
+    ).fetchall()
+    reviewed_pairs = {
+        (row["trace_id"], row["reviewer"])
+        for row in connection.execute(
+            """SELECT s.trace_id, h.reviewer
+               FROM human_reviews h
+               JOIN trace_scores s ON s.id = h.trace_score_id
+               WHERE s.run_id = ?""",
+            (run_id,),
+        ).fetchall()
+    }
+    score_ids_by_trace = {row["trace_id"]: row["id"] for row in target_scores}
+    for trace_id, annotations in scores_by_trace.items():
+        verdict_score = annotations.get(VERDICT_SCORE_NAME)
+        verdict_value = verdict_score.get("value") if verdict_score else None
+        numeric_verdicts = {1: "agree", 2: "disagree", 3: "uncertain"}
+        if isinstance(verdict_value, (int, float)):
+            verdict = numeric_verdicts.get(int(verdict_value), "")
+        else:
+            verdict = str(verdict_value or "").lower()
+        reviewer = (verdict_score or {}).get("authorUserId") or "langfuse-annotation"
+        trace_score_id = score_ids_by_trace.get(trace_id)
+        if not verdict_score or verdict not in {"agree", "disagree", "uncertain"}:
+            continue
+        if trace_score_id is None or (trace_id, reviewer) in reviewed_pairs:
+            continue
+        review_id = store.new_id("review")
+        connection.execute(
+            """INSERT INTO human_reviews
+               (id, trace_score_id, reviewer, verdict, label, comment, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (review_id, trace_score_id, reviewer, verdict,
+             annotations.get(LABEL_SCORE_NAME, {}).get("value"),
+             annotations.get(COMMENT_SCORE_NAME, {}).get("value"),
+             store.utcnow()),
+        )
+        reviewed_pairs.add((trace_id, reviewer))
+        cross_run_imported += 1
+        imported += 1
     connection.commit()
     store.upsert_run_step(
         connection, run_id, "review_sync", "succeeded",
@@ -1355,8 +1486,9 @@ def sync_review_queue(run_id: str, connection=Depends(get_connection)) -> dict:
         "runId": run_id,
         "queueId": tenant["queue_id"],
         "statusUpdates": completed,
-        "awaitingReview": len(pending_sync),
+        "awaitingReview": len([item for item in pending_sync if item["run_id"] == run_id]),
         "imported": imported,
+        "crossRunImported": cross_run_imported,
     }
 
 

@@ -397,7 +397,7 @@ paths:
     get:
       tags: [ontologies]
       operationId: listLifecycleEvaluations
-      summary: List lifecycle evaluation history
+      summary: List the last 48 hours of lifecycle evaluation history
       parameters:
         - $ref: '#/components/parameters/ontologyId'
         - $ref: '#/components/parameters/pageLimit'
@@ -748,6 +748,10 @@ paths:
         - name: runId
           in: query
           schema: {type: string}
+        - name: scope
+          in: query
+          description: Filter by the run itself or its ontology's accumulated reviews
+          schema: {type: string, enum: [run, ontology], default: run}
         - $ref: '#/components/parameters/pageLimit'
         - $ref: '#/components/parameters/pageCursor'
       responses:
@@ -1417,6 +1421,9 @@ components:
         statusUpdates: {type: integer}
         awaitingReview: {type: integer}
         imported: {type: integer}
+        crossRunImported:
+          type: integer
+          description: Annotations completed in another run but imported into this run by trace ID.
     Precheck:
       type: object
       required: [id, ontologyId, status, createdAt]
@@ -1506,6 +1513,18 @@ components:
         metrics: {type: object, additionalProperties: true}
         createdRunId: {type: string, nullable: true}
         createdAt: {type: string, format: date-time}
+        firstSeenAt:
+          type: string
+          format: date-time
+          description: Earliest time in a collapsed run of consecutive not-due evaluations.
+        lastSeenAt:
+          type: string
+          format: date-time
+          description: Latest time in a collapsed run of consecutive not-due evaluations.
+        repeatCount:
+          type: integer
+          minimum: 1
+          description: Number of consecutive evaluations represented by this row.
         run:
           allOf:
             - $ref: '#/components/schemas/Run'
