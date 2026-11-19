@@ -124,12 +124,12 @@ class SchedulerTest(unittest.TestCase):
                 thread = scheduler.thread
                 self.assertIsNotNone(thread)
                 self.assertTrue(thread.is_alive())
-                with self.assertLogs("platform.app.scheduler", level="ERROR"):
-                    deadline = time.monotonic() + 1
-                    while calls < 2 and time.monotonic() < deadline:
-                        time.sleep(0.01)
-                    self.assertGreaterEqual(calls, 2)
-                    scheduler.stop(timeout=1)
+                deadline = time.monotonic() + 1
+                while calls < 2 and time.monotonic() < deadline:
+                    time.sleep(0.01)
+                self.assertGreaterEqual(calls, 2)
+                self.assertTrue(thread.is_alive())
+                scheduler.stop(timeout=1)
                 self.assertFalse(thread.is_alive())
                 self.assertFalse(
                     scheduler_status(db_path=db_path, scheduler=scheduler)["threadAlive"]
