@@ -209,6 +209,15 @@ export interface Calibration {
   metrics: Record<string, unknown>;
 }
 
+export interface CalibrationSummary {
+  runId: string;
+  calibration: Calibration | null;
+  reviewCalibration: ReviewCalibration | null;
+  activeCalibration: ReviewCalibration | null;
+  ontologyLabelCount: number;
+  ontologyReviewedTraceCount: number;
+}
+
 export interface ReviewCalibration {
   id: string;
   tenantId: string;
@@ -439,6 +448,8 @@ export const api = {
   alertSummary: (id: string) => request<AlertSummary>(`/api/v1/runs/${id}/alerts/summary`),
   alertConfig: () => request<Record<string, unknown>>("/api/v1/config/alerts"),
   calibration: (id: string) => request<Calibration>(`/api/v1/runs/${id}/calibration`),
+  calibrationSummary: (id: string) =>
+    request<CalibrationSummary>(`/api/v1/runs/${id}/calibration/summary`),
   reviews: (runId: string, scope: "run" | "ontology" = "run") =>
     request<Page<Review>>(`/api/v1/reviews?runId=${runId}&scope=${scope}&limit=100`),
   reviewCalibrations: (runId: string) =>

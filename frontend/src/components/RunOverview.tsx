@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type Calibration, type Run, type RunStep } from "../api";
+import { api, type CalibrationSummary, type Run, type RunStep } from "../api";
 
 interface Props {
   runId: string;
@@ -8,7 +8,7 @@ interface Props {
 export default function RunOverview({ runId }: Props) {
   const [run, setRun] = useState<Run | null>(null);
   const [steps, setSteps] = useState<RunStep[]>([]);
-  const [calibration, setCalibration] = useState<Calibration | null>(null);
+  const [calibration, setCalibration] = useState<CalibrationSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reviewMessage, setReviewMessage] = useState<string | null>(null);
   const [reviewBusy, setReviewBusy] = useState<"push" | "sync" | null>(null);
@@ -23,7 +23,7 @@ export default function RunOverview({ runId }: Props) {
         setRun(runResult);
         setSteps(stepResult);
         if (runResult.status === "succeeded") {
-          setCalibration(await api.calibration(runId));
+          setCalibration(await api.calibrationSummary(runId));
         }
       } catch (loadError) {
         if (active) setError(String(loadError));
@@ -134,9 +134,22 @@ export default function RunOverview({ runId }: Props) {
         <h2>校准</h2>
         {calibration ? (
           <div className="metric-grid">
-            <div><span>方法</span><strong>{calibration.kind}</strong></div>
-            <div><span>标签数</span><strong>{calibration.labelCount ?? "-"}</strong></div>
-            <div><span>ECE</span><strong>{calibration.ece?.toFixed(4) ?? "-"}</strong></div>
+            <div>
+              <span>本体累计复核（去重后）</span>
+              <strong>
+                {calibration.ontologyLabelCount} 条 / {calibration.ontologyReviewedTraceCount} 轨迹
+              </strong>
+            </div>
+            <div>
+              <span>当前激活版本</span>
+              <strong>{calibration.activeCalibration?.id ?? "未激活"}</strong>
+            </div>
+            <div>
+              <span>激活版本 ECE</span>
+              <strong>
+                {calibration.activeCalibration?.ece?.toFixed(4) ?? "-"}
+              </strong>
+            </div>
           </div>
         ) : <p>Run 成功后显示校准信息。</p>}
       </div>

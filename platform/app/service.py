@@ -630,15 +630,27 @@ def evaluate_lifecycle(
             raise HTTPException(status_code=404, detail={"code": "ontology_not_found"})
         run_type = "R2" if state["decision"] == "created_r2" else "R1"
         idempotency_key = (
-            f"lifecycle:{ontology_id}:{state['evaluationBucket']}:{schedule['updated_at']}"
+            f"lifecycle:{ontology_id}:{state['evaluationBucket']}:{schedule['updated_at']}:{run_type}"
         )
         existing_run = connection.execute(
             """SELECT * FROM cohort_runs
-               WHERE tenant_id = ? AND idempotency_key = ?""",
-            (ontology["tenant_id"], idempotency_key),
+               WHERE tenant_id = ? AND idempotency_key = ? AND run_type = ?""",
+            (ontology["tenant_id"], idempotency_key, run_type),
         ).fetchone()
         if existing_run is not None:
             created_run = serialize_run(existing_run)
+            existing_evaluation = connection.execute(
+                """SELECT * FROM lifecycle_evaluations
+                   WHERE ontology_id = ? AND created_run_id = ? AND decision = ?
+                   ORDER BY created_at DESC, id LIMIT 1""",
+                (ontology_id, existing_run["id"], state["decision"]),
+            ).fetchone()
+            if existing_evaluation is not None:
+                result = serialize_evaluation(existing_evaluation)
+                result["run"] = created_run
+                result["windowStart"] = state["windowStart"]
+                result["windowEnd"] = state["windowEnd"]
+                return result
         else:
             run_input = RunInput(
                 tenantId=ontology["tenant_id"],
@@ -708,13 +720,13 @@ def _summarize_lifecycle_evaluations(rows: list) -> list[dict]:
         summarized.append(item)
 
     for row in rows:
-        is_not_due = row["decision"] == "skipped" and row["reason"] == "not_due"
         same_group = bool(
             current_group
             and current_group[0]["decision"] == row["decision"]
             and current_group[0]["reason"] == row["reason"]
+            and current_group[0]["created_run_id"] == row["created_run_id"]
         )
-        if is_not_due and same_group:
+        if same_group:
             current_group.append(row)
             continue
         flush_group()
@@ -1084,6 +1096,58 @@ def get_calibration(run_id: str, connection=Depends(get_connection)) -> dict:
     if row is None:
         raise HTTPException(status_code=404, detail={"code": "calibration_not_found"})
     return serialize_calibration(row)
+
+
+@app.get("/api/v1/runs/{run_id}/calibration/summary")
+def get_calibration_summary(run_id: str, connection=Depends(get_connection)) -> dict:
+    run = store.get_run(connection, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail={"code": "run_not_found"})
+    run_calibration = connection.execute(
+        """SELECT * FROM calibration_runs WHERE run_id = ?
+           ORDER BY created_at DESC LIMIT 1""",
+        (run_id,),
+    ).fetchone()
+    review_calibration = connection.execute(
+        """SELECT * FROM review_calibrations WHERE source_run_id = ?
+           ORDER BY created_at DESC, id LIMIT 1""",
+        (run_id,),
+    ).fetchone()
+    review_rows = connection.execute(
+        """SELECT r.*, s.trace_id, s.run_id FROM human_reviews r
+           JOIN trace_scores s ON s.id = r.trace_score_id
+           JOIN cohort_runs c ON c.id = s.run_id
+           WHERE c.ontology_id = ?
+           ORDER BY c.created_at DESC, r.created_at DESC, r.id""",
+        (run["ontology_id"],),
+    ).fetchall()
+    reviewed_runs = {}
+    for row in review_rows:
+        reviewed_runs.setdefault(row["trace_id"], row["run_id"])
+    preferred_runs = {
+        row["trace_id"]: run_id
+        for row in connection.execute(
+            "SELECT trace_id FROM trace_scores WHERE run_id = ?", (run_id,)
+        ).fetchall()
+    }
+    for trace_id, preferred_run_id in reviewed_runs.items():
+        preferred_runs.setdefault(trace_id, preferred_run_id)
+    normalized_reviews = [
+        row for row in review_rows
+        if row["run_id"] == preferred_runs.get(row["trace_id"])
+    ]
+    active = active_review_calibration(connection, run["tenant_id"])
+    return {
+        "runId": run_id,
+        "calibration": serialize_calibration(run_calibration) if run_calibration is not None else None,
+        "reviewCalibration": (
+            serialize_review_calibration(review_calibration)
+            if review_calibration is not None else None
+        ),
+        "activeCalibration": serialize_review_calibration(active) if active is not None else None,
+        "ontologyLabelCount": len(normalized_reviews),
+        "ontologyReviewedTraceCount": len({row["trace_id"] for row in normalized_reviews}),
+    }
 
 
 @app.post("/api/v1/runs/{run_id}/calibration/trigger", status_code=201)

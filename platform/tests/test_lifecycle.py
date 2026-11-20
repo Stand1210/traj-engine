@@ -250,6 +250,12 @@ class LifecycleTest(unittest.TestCase):
                 self.assertEqual("created_r2", first["decision"])
                 self.assertEqual(first["run"]["id"], second["run"]["id"])
                 self.assertEqual(1, len(calls))
+                self.assertEqual(first["id"], second["id"])
+                evaluation_count = connection.execute(
+                    "SELECT COUNT(*) AS n FROM lifecycle_evaluations WHERE ontology_id = ?",
+                    (ontology_id,),
+                ).fetchone()["n"]
+                self.assertEqual(1, evaluation_count)
             finally:
                 connection.close()
 
@@ -272,13 +278,15 @@ class LifecycleTest(unittest.TestCase):
                 base_time = datetime.now(timezone.utc).replace(microsecond=0)
                 timestamps = [
                     (base_time + timedelta(minutes=minute)).isoformat()
-                    for minute in range(5)
+                    for minute in range(7)
                 ]
                 insert_evaluation("skipped", "not_due", timestamps[0])
                 insert_evaluation("skipped", "not_due", timestamps[1])
                 insert_evaluation("skipped", "not_due", timestamps[2])
-                insert_evaluation("created_r1", "interval_due", timestamps[3])
-                insert_evaluation("skipped", "not_due", timestamps[4])
+                insert_evaluation("created_r2", "alert_rate_threshold", timestamps[3])
+                insert_evaluation("created_r2", "alert_rate_threshold", timestamps[4])
+                insert_evaluation("created_r1", "interval_due", timestamps[5])
+                insert_evaluation("skipped", "not_due", timestamps[6])
                 connection.commit()
 
                 result = list_lifecycle_evaluations(
@@ -289,6 +297,7 @@ class LifecycleTest(unittest.TestCase):
                     [
                         ("skipped", "not_due", 1),
                         ("created_r1", "interval_due", 1),
+                        ("created_r2", "alert_rate_threshold", 2),
                         ("skipped", "not_due", 3),
                     ],
                     [
@@ -297,13 +306,15 @@ class LifecycleTest(unittest.TestCase):
                     ],
                 )
                 self.assertEqual(
-                    timestamps[2],
+                    timestamps[4],
                     result["data"][2]["lastSeenAt"],
                 )
                 self.assertEqual(
-                    timestamps[0],
+                    timestamps[3],
                     result["data"][2]["firstSeenAt"],
                 )
+                self.assertEqual(timestamps[2], result["data"][3]["lastSeenAt"])
+                self.assertEqual(timestamps[0], result["data"][3]["firstSeenAt"])
             finally:
                 connection.close()
 

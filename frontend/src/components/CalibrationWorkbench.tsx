@@ -121,8 +121,8 @@ export default function CalibrationWorkbench({ runId }: Props) {
         {error && <div className="error-banner">{error}</div>}
         {message && <div className="success-banner">{message}</div>}
         <div className="metric-grid">
-          <div><span>复核记录</span><strong>{reviewCount} / {MINIMUM_LABELS}</strong></div>
-          <div><span>复核轨迹</span><strong>{reviewedTraces}</strong></div>
+          <div><span>有效复核记录</span><strong>{reviewCount} / {MINIMUM_LABELS}</strong></div>
+          <div><span>有效复核轨迹</span><strong>{reviewedTraces}</strong></div>
           <div><span>校准版本</span><strong>{versions?.data.length ?? 0}</strong></div>
           <div><span>激活版本</span><strong>{versions?.data.filter(item => item.activatedAt).length ?? 0}</strong></div>
         </div>

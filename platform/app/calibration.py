@@ -1,4 +1,5 @@
 import json
+import hashlib
 from collections import defaultdict
 
 from platform.app import store
@@ -182,6 +183,11 @@ def create_review_calibration(
             "created_at": row["created_at"],
         })
     review_rows = normalized_reviews
+    reviewed_score_ids = {row["trace_score_id"] for row in review_rows}
+    reviewed_score_rows = [row for row in score_rows if row["id"] in reviewed_score_ids]
+    review_fingerprint = _review_fingerprint(
+        reviewed_score_rows, review_rows, config, run["code_hash"]
+    )
     placeholders = ",".join("?" for _ in selected_score_ids)
     alert_rows = [dict(row) for row in connection.execute(
         f"""SELECT * FROM alert_decisions
@@ -191,6 +197,19 @@ def create_review_calibration(
     result = compute_review_calibration(score_rows, review_rows, alert_rows, config)
     if not result["metrics"]["eligible"]:
         raise ValueError("insufficient review labels")
+    result["parameters"]["reviewFingerprint"] = review_fingerprint
+    metrics_json = json.dumps(result["metrics"], ensure_ascii=False, sort_keys=True)
+    parameters_json = json.dumps(result["parameters"], ensure_ascii=False, sort_keys=True)
+
+    existing = connection.execute(
+        """SELECT * FROM review_calibrations
+           WHERE tenant_id = ? AND code_hash = ? AND parameters_json = ?
+           ORDER BY activated_at IS NULL, activated_at DESC, created_at DESC, id
+           LIMIT 1""",
+        (run["tenant_id"], run["code_hash"], parameters_json),
+    ).fetchone()
+    if existing is not None:
+        return dict(existing)
 
     calibration_id = store.new_id("calibration")
     connection.execute(
@@ -206,8 +225,8 @@ def create_review_calibration(
             result["uncertain_count"], result["alert_reviewed"], result["alert_agree"],
             result["alert_disagree"], result["alert_precision"], result["ece"],
             result["brier"],
-            json.dumps(result["metrics"], ensure_ascii=False, sort_keys=True),
-            json.dumps(result["parameters"], ensure_ascii=False, sort_keys=True),
+            metrics_json,
+            parameters_json,
             run["code_hash"], created_by, store.utcnow(),
         ),
     )
@@ -216,6 +235,40 @@ def create_review_calibration(
         "SELECT * FROM review_calibrations WHERE id = ?", (calibration_id,)
     ).fetchone()
     return dict(row)
+
+
+def _review_fingerprint(
+    score_rows: list[dict],
+    review_rows: list[dict],
+    config: dict,
+    code_hash: str,
+) -> str:
+    selected_scores = sorted(
+        ({key: row.get(key) for key in (
+            "id", "trace_id", "run_id", "total_score", "is_alert", "is_abstain"
+        )} for row in score_rows),
+        key=lambda row: (str(row["run_id"]), str(row["trace_id"]), str(row["id"])),
+    )
+    selected_reviews = sorted(
+        ({key: row.get(key) for key in (
+            "trace_score_id", "reviewer", "verdict", "label", "comment", "created_at"
+        )} for row in review_rows),
+        key=lambda row: (
+            str(row["trace_score_id"]), str(row["created_at"]), str(row["reviewer"])
+        ),
+    )
+    payload = json.dumps(
+        {
+            "codeHash": code_hash,
+            "config": config,
+            "reviews": selected_reviews,
+            "scores": selected_scores,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def activate_review_calibration(connection, calibration_id: str) -> dict:

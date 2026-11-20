@@ -12,6 +12,7 @@ from platform.app import store
 from platform.app.service import (
     CalibrationTriggerInput,
     activate_calibration,
+    get_calibration_summary,
     list_reviews,
     trigger_review_calibration,
 )
@@ -50,8 +51,16 @@ class ReviewCalibrationTest(unittest.TestCase):
                         run_id, CalibrationTriggerInput(createdBy="reviewer-a"), connection,
                     )
                 activated = activate_calibration(calibration["id"], connection)
+                with patch(
+                    "platform.app.service.load_calibration_config", return_value=config
+                ):
+                    repeated = trigger_review_calibration(
+                        run_id, CalibrationTriggerInput(createdBy="reviewer-b"), connection,
+                    )
+                summary = get_calibration_summary(run_id, connection)
 
                 self.assertEqual(run_id, calibration["sourceRunId"])
+                self.assertEqual(calibration["id"], repeated["id"])
                 self.assertEqual(6, calibration["labelCount"])
                 self.assertEqual(3, calibration["traceCount"])
                 self.assertEqual(2, calibration["verdictCounts"]["agree"])
@@ -59,6 +68,12 @@ class ReviewCalibrationTest(unittest.TestCase):
                 self.assertAlmostEqual(2 / 3, calibration["alertPrecision"], delta=1e-6)
                 self.assertIsNotNone(calibration["ece"])
                 self.assertIsNotNone(activated["activatedAt"])
+                self.assertEqual(1, connection.execute(
+                    "SELECT COUNT(*) AS n FROM review_calibrations"
+                ).fetchone()["n"])
+                self.assertEqual(activated["id"], summary["activeCalibration"]["id"])
+                self.assertEqual(6, summary["ontologyLabelCount"])
+                self.assertEqual(3, summary["ontologyReviewedTraceCount"])
             finally:
                 connection.close()
 
@@ -141,16 +156,53 @@ class ReviewCalibrationTest(unittest.TestCase):
                     "platform.app.service.load_calibration_config",
                     return_value={"minimumLabels": 3, "minimumReviewedAlerts": 3},
                 ):
+                    source_calibration = trigger_review_calibration(
+                        source_run_id,
+                        CalibrationTriggerInput(createdBy="reviewer-a"),
+                        connection,
+                    )
                     calibration = trigger_review_calibration(
                         target_run_id,
                         CalibrationTriggerInput(createdBy="reviewer-a"),
                         connection,
                     )
 
-                self.assertEqual(target_run_id, calibration["sourceRunId"])
+                self.assertEqual(source_calibration["id"], calibration["id"])
+                self.assertEqual(source_run_id, calibration["sourceRunId"])
                 self.assertEqual(3, calibration["labelCount"])
                 self.assertEqual(3, calibration["traceCount"])
                 self.assertEqual(3, calibration["alertReviewed"])
+
+                duplicate_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "smoke", "R1",
+                    "2026-01-03T00:00:00Z", "2026-01-04T00:00:00Z", 1.0, "test", None,
+                )
+                connection.execute(
+                    "UPDATE cohort_runs SET created_at = ? WHERE id = ?",
+                    ("2026-01-03T00:00:00Z", duplicate_run_id),
+                )
+                connection.execute(
+                    """INSERT INTO trace_scores
+                       (id, run_id, tenant_id, trace_id, total_score, result_score,
+                        process_score, latency_score, cost_score, robustness_score,
+                        deduction_total, evidence_sum, is_alert, is_abstain,
+                        ontology_version_id, structure_version_id, code_hash, created_at)
+                       VALUES ('score-duplicate', ?, ?, 'trace-1', 90.0, 90.0,
+                               90.0, 90.0, 90.0, 90.0, 10.0, 10.0, 1, 0, ?, NULL,
+                               'hash', '2026-01-03T00:00:00Z')""",
+                    (duplicate_run_id, tenant_id, ontology_version),
+                )
+                connection.execute(
+                    """INSERT INTO human_reviews
+                       (id, trace_score_id, reviewer, verdict, label, comment, created_at)
+                       VALUES ('review-duplicate', 'score-duplicate', 'reviewer-a',
+                               'agree', NULL, NULL, '2026-01-03T00:00:00Z')""",
+                )
+                connection.commit()
+
+                summary = get_calibration_summary(target_run_id, connection)
+                self.assertEqual(3, summary["ontologyLabelCount"])
+                self.assertEqual(3, summary["ontologyReviewedTraceCount"])
             finally:
                 connection.close()
 
