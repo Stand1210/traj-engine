@@ -80,6 +80,16 @@ export default function RunOverview({ runId }: Props) {
             <div><span>数据集</span><strong>{run.sourceRef ?? "-"}</strong></div>
             <div><span>结构版本</span><strong>{run.structureVersion ?? "-"}</strong></div>
             <div><span>Kernel Hash</span><strong>{run.codeHash}</strong></div>
+            <div>
+              <span>覆盖轨迹</span>
+              <strong>{run.traceCount ?? 0} 条</strong>
+            </div>
+            <div>
+              <span>轨迹时间范围</span>
+              <strong>
+                {formatLocalDateTime(run.earliestTraceAt)} ~ {formatLocalDateTime(run.latestTraceAt)}
+              </strong>
+            </div>
             <div><span>开始</span><strong>{formatLocalDateTime(run.startedAt)}</strong></div>
             <div><span>结束</span><strong>{formatLocalDateTime(run.endedAt)}</strong></div>
           </div>

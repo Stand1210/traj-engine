@@ -160,6 +160,8 @@ CREATE TABLE IF NOT EXISTS trace_scores (
     deduction_total REAL NOT NULL,
     evidence_sum REAL NOT NULL,
     gates_json TEXT,
+    trace_started_at TEXT,
+    trace_ended_at TEXT,
     is_alert INTEGER NOT NULL CHECK (is_alert IN (0, 1)),
     is_abstain INTEGER NOT NULL CHECK (is_abstain IN (0, 1)),
     ontology_version_id TEXT NOT NULL,

@@ -882,7 +882,18 @@ def get_run(run_id: str, connection=Depends(get_connection)) -> dict:
     row = connection.execute("SELECT * FROM cohort_runs WHERE id = ?", (run_id,)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail={"code": "run_not_found"})
-    return serialize_run(row)
+    result = serialize_run(row)
+    coverage = connection.execute(
+        """SELECT COUNT(*) AS trace_count,
+                  MIN(trace_started_at) AS earliest_trace_at,
+                  MAX(trace_ended_at) AS latest_trace_at
+           FROM trace_scores WHERE run_id = ?""",
+        (run_id,),
+    ).fetchone()
+    result["traceCount"] = int(coverage["trace_count"] or 0)
+    result["earliestTraceAt"] = coverage["earliest_trace_at"]
+    result["latestTraceAt"] = coverage["latest_trace_at"]
+    return result
 
 
 @app.post("/api/v1/runs/{run_id}/cancel")

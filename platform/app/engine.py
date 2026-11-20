@@ -5,6 +5,7 @@ import shutil
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from typing import Iterable
@@ -469,15 +470,17 @@ class RunEngine:
                (id, run_id, tenant_id, trace_id, cell_id, total_score,
                 result_score, process_score, latency_score, cost_score,
                 robustness_score, deduction_total, evidence_sum, gates_json,
-                is_alert, is_abstain, ontology_version_id, structure_version_id,
+                trace_started_at, trace_ended_at, is_alert, is_abstain,
+                ontology_version_id, structure_version_id,
                 code_hash, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (trace_score_id, run_id, run["tenant_id"], trace_id,
              cell_ids.get(row.get("cell")), float(row["S"]),
              float(row["dims"]["O"]), float(row["dims"]["P"]),
              float(row["dims"]["L"]), float(row["dims"]["C"]),
              float(row["dims"]["R"]), evidence_sum, evidence_sum,
              json.dumps(row.get("gates") or {}, ensure_ascii=False, sort_keys=True),
+             _iso_trace_time(row.get("ts_start")), _iso_trace_time(row.get("ts_end")),
              int(bool(row.get("alert"))), int(bool(row.get("novelty"))),
              run["ontology_version_id"], structure_id, result["code_hash"],
              store.utcnow()),
@@ -500,7 +503,6 @@ class RunEngine:
                  json.dumps({"kernel_evidence": evidence_payload}, ensure_ascii=False,
                             sort_keys=True), store.utcnow()),
             )
-
     def _record_cell_lineage(
         self,
         connection: Any,
@@ -546,3 +548,9 @@ class RunEngine:
 
 
 ENGINE = RunEngine()
+
+
+def _iso_trace_time(value) -> str | None:
+    if value is None:
+        return None
+    return datetime.fromtimestamp(float(value), tz=timezone.utc).isoformat()

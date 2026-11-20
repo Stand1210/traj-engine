@@ -9,7 +9,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "platform" / "contracts" / "schema.sql"
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 
 def resolve_db_path() -> Path:
@@ -62,6 +62,10 @@ def _ensure_schema_migrations(connection: sqlite3.Connection) -> None:
     }
     if "gates_json" not in trace_score_columns:
         connection.execute("ALTER TABLE trace_scores ADD COLUMN gates_json TEXT")
+    if "trace_started_at" not in trace_score_columns:
+        connection.execute("ALTER TABLE trace_scores ADD COLUMN trace_started_at TEXT")
+    if "trace_ended_at" not in trace_score_columns:
+        connection.execute("ALTER TABLE trace_scores ADD COLUMN trace_ended_at TEXT")
     connection.execute(
         """CREATE INDEX IF NOT EXISTS idx_score_evidence_score
            ON score_evidence (trace_score_id, dimension)"""

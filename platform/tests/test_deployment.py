@@ -143,6 +143,18 @@ class DeploymentTest(unittest.TestCase):
                        WHERE id = 'score-alerted'""",
                     (json.dumps({"loop_runaway": 0.35}),),
                 )
+                connection.execute(
+                    """UPDATE trace_scores
+                       SET trace_started_at = ?, trace_ended_at = ?
+                       WHERE id = 'score-normal'""",
+                    ("2026-01-01T08:00:00+00:00", "2026-01-01T08:10:00+00:00"),
+                )
+                connection.execute(
+                    """UPDATE trace_scores
+                       SET trace_started_at = ?, trace_ended_at = ?
+                       WHERE id = 'score-alerted'""",
+                    ("2026-01-01T01:00:00+00:00", "2026-01-01T01:05:00+00:00"),
+                )
                 connection.executemany(
                     """INSERT INTO alert_decisions
                        (id, run_id, trace_score_id, group_key, cause, cause_kind, priority,
@@ -158,6 +170,7 @@ class DeploymentTest(unittest.TestCase):
 
                 result = service.list_trace_scores("run-test", limit=100, connection=connection)
                 detail = service.get_trace_score("run-test", "trace-alerted", connection=connection)
+                run_detail = service.get_run("run-test", connection=connection)
                 alert_only = service.list_trace_scores(
                     "run-test", alertOnly=True, limit=100, connection=connection
                 )
@@ -177,6 +190,9 @@ class DeploymentTest(unittest.TestCase):
             )
             self.assertEqual({"loop_runaway": 0.35}, detail["gates"])
             self.assertEqual(65.0, detail["gateDeduction"])
+            self.assertEqual(3, run_detail["traceCount"])
+            self.assertEqual("2026-01-01T01:00:00+00:00", run_detail["earliestTraceAt"])
+            self.assertEqual("2026-01-01T08:10:00+00:00", run_detail["latestTraceAt"])
 
     def test_service_lifespan_initializes_database_and_records_startup(self):
         with tempfile.TemporaryDirectory() as directory:

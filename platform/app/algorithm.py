@@ -194,8 +194,10 @@ def run_production(
             anchor_version=anchor_version,
             model_version=PIPELINE_VERSION,
         )
+        feature_by_trace = {feature["trace_id"]: feature for feature in feature_rows}
         for row in score_rows:
             row["a_cal"] = None
+            _attach_trace_time(row, feature_by_trace.get(row["trace_id"]))
         scoring_summary = _scoring_summary(score_rows)
     else:
         score_rows = []
@@ -263,6 +265,8 @@ def write_production_scores(report_dir: Path, score_rows: Iterable[dict]) -> Pat
 def _slim_score_row(row: dict) -> dict:
     return {
         "trace_id": row["trace_id"],
+        "ts_start": row.get("ts_start"),
+        "ts_end": row.get("ts_end"),
         "cell": row["cell"],
         "S": round(row["S"], 4),
         "G": round(row["G"], 6),
@@ -287,6 +291,15 @@ def _slim_score_row(row: dict) -> dict:
     }
 
 
+def _attach_trace_time(row: dict, feature: dict | None) -> None:
+    if feature is None:
+        return
+    started = feature.get("ts_start")
+    if started is not None:
+        row["ts_start"] = started
+        row["ts_end"] = started + float(feature.get("latency_total") or 0.0)
+
+
 def _stream_score_rows(
     feature_rows: list[dict],
     assigns: list[dict],
@@ -301,6 +314,7 @@ def _stream_score_rows(
 ) -> dict:
     if batch_size < 1:
         raise ValueError("score batch size must be positive")
+    feature_by_trace = {feature["trace_id"]: feature for feature in feature_rows}
     ranking: dict[str | None, list[tuple[float, str, str]]] = {}
     summary = {
         "n": 0,
@@ -329,6 +343,7 @@ def _stream_score_rows(
                 )
                 for row in rows:
                     row["a_cal"] = None
+                    _attach_trace_time(row, feature_by_trace.get(row["trace_id"]))
                     _update_scoring_summary(summary, row)
                     ranking.setdefault(row["cell"], []).append(
                         (float(row["S"]), row["trace_id"], row["grade_abs"])

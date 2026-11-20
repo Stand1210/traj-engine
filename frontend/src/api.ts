@@ -98,6 +98,9 @@ export interface Run {
   createdAt: string;
   startedAt: string | null;
   endedAt: string | null;
+  traceCount?: number;
+  earliestTraceAt?: string | null;
+  latestTraceAt?: string | null;
 }
 
 export interface RunStep {
