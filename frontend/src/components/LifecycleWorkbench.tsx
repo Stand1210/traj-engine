@@ -329,7 +329,7 @@ export default function LifecycleWorkbench({ onSelect }: Props) {
         </p>
         <table>
           <thead>
-            <tr><th>时间</th><th>决策</th><th>触发原因</th><th>窗口内轨迹</th><th>novelty</th><th>累计 novelty</th><th>告警率</th><th>Run</th></tr>
+            <tr><th>时间</th><th>决策</th><th>触发原因</th><th>决策时轨迹</th><th>决策时 novelty</th><th>累计 novelty</th><th>决策时告警率</th><th>Run</th></tr>
           </thead>
           <tbody>
             {evaluations.map(item => (

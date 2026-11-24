@@ -1041,6 +1041,13 @@ def get_alert_summary(
     ensure_run(connection, run_id)
     decisions = _alert_decisions(connection, run_id, budget)
     summary = summarize_decisions(decisions, _effective_budget(budget))
+    trace_count = connection.execute(
+        "SELECT COUNT(*) AS n FROM trace_scores WHERE run_id = ?", (run_id,)
+    ).fetchone()["n"]
+    summary["traceCount"] = int(trace_count or 0)
+    summary["alertRate"] = (
+        summary["totalAlerts"] / trace_count if int(trace_count) > 0 else None
+    )
     top_groups: dict[str, dict] = {}
     for decision in decisions:
         group = top_groups.setdefault(decision["group_key"], {

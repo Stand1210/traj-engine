@@ -72,6 +72,15 @@ export default function AlertWorkbench({ runId, onSelect }: Props) {
             <div><span>预算</span><strong>{summary.budget}</strong></div>
             <div><span>正式告警</span><strong>{summary.emitted}</strong></div>
             <div><span>原始告警</span><strong>{summary.totalAlerts}</strong></div>
+            <div>
+              <span>告警率</span>
+              <strong>
+                {summary.alertRate == null
+                  ? "-"
+                  : `${(summary.alertRate * 100).toFixed(2)}%`}
+                {summary.traceCount ? `（${summary.traceCount} 条轨迹）` : ""}
+              </strong>
+            </div>
             <div><span>告警组</span><strong>{summary.groups}</strong></div>
             <div><span>预算外</span><strong>{summary.statusCounts.candidate ?? 0}</strong></div>
             <div><span>同组去重</span><strong>{summary.statusCounts.suppressed_duplicate ?? 0}</strong></div>

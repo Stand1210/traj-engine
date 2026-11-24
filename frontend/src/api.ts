@@ -190,6 +190,8 @@ export interface AlertTraceScore extends TraceScore {
 export interface AlertSummary {
   budget: number;
   totalAlerts: number;
+  traceCount?: number;
+  alertRate?: number | null;
   groups: number;
   emitted: number;
   candidates: number;

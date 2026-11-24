@@ -22,6 +22,7 @@ def evaluate_lifecycle_state(connection, ontology_id: str, force_r2: bool = Fals
         return _result("skipped", "run_in_progress", schedule, latest_run, {})
 
     metrics = _latest_metrics(connection, latest_run, active_structure)
+    metrics["r2MinNoveltyTraces"] = int(schedule["r2_min_novelty_traces"])
     now = datetime.now(timezone.utc)
     elapsed_hours = None
     if latest_run is not None:
@@ -120,20 +121,11 @@ def _accumulated_novelty_traces(connection, ontology_id: str, active_structure) 
         return 0
     anchor = connection.execute(
         """SELECT id, created_at FROM cohort_runs
-           WHERE ontology_id = ? AND status = 'succeeded'
-             AND structure_version_id = ?
+           WHERE ontology_id = ? AND status = 'succeeded' AND run_type = 'R2'
            ORDER BY COALESCE(ended_at, created_at) DESC, id DESC
            LIMIT 1""",
-        (ontology_id, active_structure["id"]),
+        (ontology_id,),
     ).fetchone()
-    if anchor is None:
-        anchor = connection.execute(
-            """SELECT id, created_at FROM cohort_runs
-               WHERE ontology_id = ? AND status = 'succeeded' AND run_type = 'R2'
-               ORDER BY COALESCE(ended_at, created_at) DESC, id DESC
-               LIMIT 1""",
-            (ontology_id,),
-        ).fetchone()
     if anchor is None:
         return 0
     row = connection.execute(

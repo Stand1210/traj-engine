@@ -409,6 +409,72 @@ class LifecycleTest(unittest.TestCase):
             finally:
                 connection.close()
 
+    def test_accumulated_novelty_uses_latest_r2_anchor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            connection = store.connect(Path(directory) / "test.db", initialize=True)
+            try:
+                tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
+                ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+                configure_lifecycle(
+                    ontology_id,
+                    LifecycleInput(
+                        enabled=True,
+                        source="langfuse",
+                        sourceRef="lifecycle",
+                        r2NoveltyThreshold=0.15,
+                        r2MinNoveltyTraces=2,
+                    ),
+                    connection,
+                )
+                ontology_version = connection.execute(
+                    """SELECT id FROM ontology_versions WHERE ontology_id = ?
+                       ORDER BY version LIMIT 1""",
+                    (ontology_id,),
+                ).fetchone()["id"]
+                r2_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "lifecycle", "R2",
+                    "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 1.0,
+                    "cold_start", None,
+                )
+                structure_id = store.new_id("structure")
+                connection.execute(
+                    """INSERT INTO structure_versions
+                       (id, ontology_id, version, code_hash, state_json, created_at, active)
+                       VALUES (?, ?, 1, 'hash', '{}', '2026-01-01T00:00:00Z', 1)""",
+                    (structure_id, ontology_id),
+                )
+                connection.execute(
+                    "UPDATE cohort_runs SET structure_version_id = ? WHERE id = ?",
+                    (structure_id, r2_run_id),
+                )
+                store.set_run_status(connection, r2_run_id, "succeeded", ended=True)
+
+                r1_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "langfuse", "lifecycle", "R1",
+                    "2026-01-02T00:00:00Z", "2026-01-03T00:00:00Z", 1.0,
+                    "interval_due", None,
+                )
+                connection.execute(
+                    "UPDATE cohort_runs SET structure_version_id = ? WHERE id = ?",
+                    (structure_id, r1_run_id),
+                )
+                self._insert_score(
+                    connection, r1_run_id, tenant_id, "novel-trace-1",
+                    ontology_version, structure_id, True,
+                )
+                store.set_run_status(connection, r1_run_id, "succeeded", ended=True)
+
+                result = evaluate_lifecycle_state(connection, ontology_id)
+
+                self.assertEqual(
+                    1, result["metrics"]["accumulatedNoveltyTraces"]
+                )
+                self.assertEqual(
+                    2, result["metrics"]["r2MinNoveltyTraces"]
+                )
+            finally:
+                connection.close()
+
     def _insert_score(
         self,
         connection,
