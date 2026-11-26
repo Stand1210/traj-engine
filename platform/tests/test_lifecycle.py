@@ -265,14 +265,21 @@ class LifecycleTest(unittest.TestCase):
             try:
                 tenant_id = store.create_tenant(connection, "Owner", "org", "project", "pk", "sk")
                 ontology_id = store.create_ontology(connection, tenant_id, "Agent", "tier0")
+                created_run_id = store.create_run(
+                    connection, tenant_id, ontology_id, "jsonl", "lifecycle", "R1",
+                    "2026-01-01T00:00:00Z", "2026-01-02T00:00:00Z", 1.0, "test", None,
+                )
 
-                def insert_evaluation(decision: str, reason: str, created_at: str) -> None:
+                def insert_evaluation(
+                    decision: str, reason: str, created_at: str, run_id: str | None = None
+                ) -> None:
                     connection.execute(
                         """INSERT INTO lifecycle_evaluations
                            (id, ontology_id, decision, reason, metrics_json,
                             created_run_id, created_at)
-                           VALUES (?, ?, ?, ?, '{}', NULL, ?)""",
-                        (store.new_id("evaluation"), ontology_id, decision, reason, created_at),
+                           VALUES (?, ?, ?, ?, '{}', ?, ?)""",
+                        (store.new_id("evaluation"), ontology_id, decision, reason,
+                         run_id, created_at),
                     )
 
                 base_time = datetime.now(timezone.utc).replace(microsecond=0)
@@ -283,8 +290,8 @@ class LifecycleTest(unittest.TestCase):
                 insert_evaluation("skipped", "not_due", timestamps[0])
                 insert_evaluation("skipped", "not_due", timestamps[1])
                 insert_evaluation("skipped", "not_due", timestamps[2])
-                insert_evaluation("created_r2", "alert_rate_threshold", timestamps[3])
-                insert_evaluation("created_r2", "alert_rate_threshold", timestamps[4])
+                insert_evaluation("created_r2", "alert_rate_threshold", timestamps[3], created_run_id)
+                insert_evaluation("created_r2", "alert_rate_threshold", timestamps[4], created_run_id)
                 insert_evaluation("created_r1", "interval_due", timestamps[5])
                 insert_evaluation("skipped", "not_due", timestamps[6])
                 connection.commit()
@@ -315,6 +322,8 @@ class LifecycleTest(unittest.TestCase):
                 )
                 self.assertEqual(timestamps[2], result["data"][3]["lastSeenAt"])
                 self.assertEqual(timestamps[0], result["data"][3]["firstSeenAt"])
+                self.assertEqual(created_run_id, result["data"][2]["run"]["id"])
+                self.assertIsNone(result["data"][0]["run"])
             finally:
                 connection.close()
 

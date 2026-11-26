@@ -702,6 +702,21 @@ def list_lifecycle_evaluations(
         (ontology_id, cutoff),
     ).fetchall()
     summarized = _summarize_lifecycle_evaluations(rows)
+    run_ids = sorted(
+        {item["createdRunId"] for item in summarized if item["createdRunId"] is not None}
+    )
+    runs = {}
+    if run_ids:
+        placeholders = ", ".join("?" for _ in run_ids)
+        runs = {
+            row["id"]: row
+            for row in connection.execute(
+                f"SELECT * FROM cohort_runs WHERE id IN ({placeholders})", tuple(run_ids)
+            ).fetchall()
+        }
+    for item in summarized:
+        run = runs.get(item["createdRunId"])
+        item["run"] = serialize_run(run) if run is not None else None
     return page(summarized[offset : offset + limit], limit, offset, len(summarized))
 
 
