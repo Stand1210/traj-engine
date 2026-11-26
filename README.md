@@ -10,6 +10,9 @@
 
 当前版本：数据集生成器 `bench-gen-v3.1.0`｜流水线 `slice6-v0.6.0`｜数据契约 v1.3.2。
 
+内网迁移与新 AI 编码工具接管入口：[`AGENTS.md`](AGENTS.md)｜
+[`platform/INTRANET_HANDOFF.md`](platform/INTRANET_HANDOFF.md)。
+
 ## 目录
 
 - `contracts/schemas.md` — 数据契约 v1.3.2：输入（含 token 口径两条约定）/ 特征（v1 冻结 21 项

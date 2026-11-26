@@ -3,6 +3,7 @@
 > 状态：**M0 已批准，可开工（2026-11-12）**。
 > 模块职责见 `MODULES.md`；租户与 Langfuse 映射见 `DESIGN.md`；接入与重聚类见 `LIFECYCLE.md`；
 > 内网部署事项持续记录在 `DEPLOYMENT.md`；业务方使用说明持续记录在 `USAGE_GUIDE.md`。
+> 当前生产算法缺口修复计划见 [`EMBEDDING_REMEDIATION_PLAN.md`](EMBEDDING_REMEDIATION_PLAN.md)。
 
 ## 0. 已批准决策
 
