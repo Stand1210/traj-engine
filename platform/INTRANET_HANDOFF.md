@@ -7,8 +7,9 @@
 
 - **运行时不依赖外部大模型**：当前算法内核、平台后端和前端均没有调用 OpenAI、Langfuse SDK 模型、
   embedding 服务或生成式判官。
-- **没有已部署 embedding 模型**：`DEPLOYMENT.md` 中的 embedding 选型仍是待定项。当前聚类使用
-  工程内确定性特征，不使用在线向量模型。
+- **embedding 为离线可选组件（E2 起）**：意图视图可选用本地 `BAAI/bge-m3` 编码器
+  （纯本地推理、不触网、权重独立分发，见 §9.1 与 `DEPLOYMENT.md` §3.12）；
+  不启用时保持"轨迹自带 embedding 字段"行为。除此之外不使用任何在线向量模型。
 - **切换 vibe coding 工具/模型不影响业务结果**：切换的是“开发助手”，不是系统内的业务模型。
   只要代码提交一致，平台行为和分数应一致。
 - **内网首版运行形态**：一套平台对接一个 Langfuse v4 实例；推荐 `selfhosted-v4` profile。
@@ -40,11 +41,11 @@ platform/DESIGN.md、platform/DEPLOYMENT.md 和 platform/USAGE_GUIDE.md。
 | 项 | 当前状态 |
 |---|---|
 | Git 基线 | `main`，`341e5c0` |
-| 后端 | FastAPI `0.115.6`，Uvicorn `0.34.0`，PyYAML `6.0.3` |
+| 后端 | FastAPI `0.115.6`，Uvicorn `0.34.0`，PyYAML `6.0.3`；E2 起另钉推理包：torch `2.14.0`、sentence-transformers `6.3.0`、transformers `5.24.1` 等（`requirements.txt`，仅平台层，kernel 纯标准库） |
 | 前端 | Node `>=24 <25`，Vite `6.0.7`，React `18.3.1`，TypeScript `5.7.2`，ECharts `5.6.0` |
-| 存储 | SQLite，`platform/contracts/schema.sql`；当前契约：23 张表，schema v10 |
+| 存储 | SQLite，`platform/contracts/schema.sql`；当前契约：23 张表，schema v10；另有可弃置 embedding 缓存 `platform/var/embedding-cache.db` |
 | Langfuse | 首版只支持 Cloud v4 与自托管 v4；自托管 v3 延后 |
-| 外部模型 | 无 LLM、无 embedding 依赖 |
+| 外部模型 | 无 LLM；**E2 起可选离线 embedding**：`BAAI/bge-m3`（revision `5617a9f6…`，2.27GB 权重在 `platform/var/models/bge-m3/`，不入库，资产清单 `platform/config/model_assets.json`） |
 | 生产入口 | 后端单进程托管 `frontend/dist`，`/api/` 与 SPA 路由同端口 |
 | 基准 | `bench/` 全链路可复现；完整矩阵约 15 分钟量级 |
 
@@ -195,9 +196,13 @@ npm --prefix frontend run build
 
 ### 9.1 当前状态
 
-- **业务模型**：不存在外部模型调用。聚类、异常识别、打分、扣分归因全部由仓库内确定性代码完成。
+- **业务模型**：聚类、异常识别、打分、扣分归因全部由仓库内确定性代码完成；无 LLM、无在线服务调用。
 - **开发模型**：Codex 或后续内网 vibe coding 工具只是开发助手，不进入生产运行链路。
-- **embedding**：未接入。不要把“迁移后换模型”理解为必须选择一个内网 embedding。
+- **embedding**：**已接入（E2，2026-11-27）**——离线 `BAAI/bge-m3`（dense，1024 维），
+  权重为独立离线模型包（`platform/var/models/bge-m3/`，2.27GB，不入库），
+  资产清单与部署验收见 `platform/config/model_assets.json` 与 `DEPLOYMENT.md` §3.12；
+  由 `TRAJ_INTENT_ENCODER=bge-m3` 启用，不启用时保持"轨迹自带 embedding 字段"行为。
+  它是**可选增强**而非新增外部服务：纯本地推理，不触网。
 
 ### 9.2 切换验证
 
@@ -210,12 +215,17 @@ npm --prefix frontend run build
 如果总结出现以下错误，说明上下文未接管成功：
 
 - 认为系统需要外部 LLM 判官；
-- 认为已接入 embedding；
+- 认为 embedding 来自在线服务或需要触网（E2 起为离线 bge-m3 本地推理，可选启用）；
 - 想恢复 mixed-agent project 检测或 `foreign_ratio`；
 - 想绕过测试直接改内核；
 - 把 Langfuse Cloud key 写入仓库或本体 YAML。
 
 ### 9.3 未来引入模型时
+
+> 本节清单的首个完整实例：**bge-m3（E2，2026-11-27）**——全部记录项落实在
+> `platform/config/model_assets.json`（版本/哈希/维度/截断/归一化/后端）、
+> `DEPLOYMENT.md` §3.12（获取与校验、缓存、资源实测、回滚）与
+> `DESIGN.md` §7.9（对 `code_hash` / 历史 Run 可比性的影响论证）。
 
 任何新增模型资产必须补齐以下记录，缺一项不得合入：
 

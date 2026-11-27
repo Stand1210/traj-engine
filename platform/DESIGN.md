@@ -1355,6 +1355,39 @@ cap 5 是一个**先验**。若某租户真实工作流数 > 5，就会被欠切
 
 ---
 
+### 7.9 ★决策：意图编码器 bge-m3 离线集成（2026-11-27，E2）
+
+**首个运行时模型资产**。此前意图视图的 `embedding` 只是数据字段（bench 合成 /
+Langfuse metadata 透传），E2 把平台侧编码器落地为可生产的离线组件
+（`platform/app/intent_encoder.py`；`kernel/` 保持纯标准库，重依赖全部隔离在平台层）。
+
+- **后端选型（证据驱动）**：huggingface.co 直连不可达、hf-mirror/pypi 可达、
+  `torch 2.14.0+cpu` 预装 → **sentence-transformers 6.3.0** dense-only
+  （bge-m3 model card 文档化路径）。否决 FlagEmbedding：同出一源但稀疏/ColBERT
+  首版非目标，引入更大 API 面；否决 ONNX：官方导出未经我方验收，torch 已在役。
+- **资产治理按 INTRANET_HANDOFF §9.3 全项落地**：注册表
+  `platform/config/model_assets.json`（入库）钉 revision + 10 文件 SHA-256；
+  权重 2.27GB 在 `platform/var/models/bge-m3/`（不入库）；加载前逐文件 hash 校验，
+  **不符即拒绝加载并中止服务启动**——"看似成功的降级"在编码器上同样禁止。
+- **缓存设计**：独立 SQLite/WAL 文件（可弃置），key 绑定
+  `模型指纹 | 输入构造版本(intent-text:v1) | 编码配置版本(st-dense-l2:v1) | 文本`——
+  跨模型/跨预处理误命中**构造上不可能**，替代"缓存版本号靠人记得 bump"的脆弱约定。
+  provenance 新增 `cache_fingerprint`。
+- **输入构造的显式推迟**（防止静默缺口）：方法论 §5.2.1 的 `[CTX]`（session 前轮
+  摘要）所需数据不在 trace 契约 / Langfuse 列表接口中，捏造违反缺失置空铁律 →
+  E2 保持 `intent-text:v1`（原始 intent_text）；结构化输入待 E4 预检查验证
+  session 数据可得性后引入，且必须 bump `INTENT_INPUT_VERSION` + 触发新 R2。
+- **bench 隔离**：`is_benchmark` 路径永不经过 encoder（bench 轨迹自带合成
+  embedding 是契约）；`code_hash` 语义不变——编码器在平台层，不进 kernel。
+- **验收实测**：离线加载 9.5s、同输入同配置逐位一致（diff=0）、CPU 4 线程
+  9.1 texts/s（batch 32）、缓存命中 32 条 0.053s；E2 测试 20/20（真实权重集成
+  在无权重环境自动跳过）。
+- **被拒方案**：运行时在线调用 embedding 服务（违反内网离线非目标）；
+  权重入库或进发布包（2.27GB，且 §9.3 要求独立模型包治理）；
+  缓存放进主库 schema（可弃置数据不该触发 DDL 迁移评审）。
+
+---
+
 ## 8. 待决清单
 
 | # | 议题 | 状态 | 备注 |

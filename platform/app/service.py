@@ -34,6 +34,7 @@ from platform.app.calibration import (
     serialize_review_calibration,
 )
 from platform.app.engine import ENGINE
+from platform.app.intent_encoder import configure_engine_from_env
 from platform.app.frontend import router as frontend_router
 from platform.app.langfuse_source import LangfuseHttpError, LangfuseTraceSource
 from platform.app.langfuse_admin import LangfuseAdminClient, LangfuseAdminError
@@ -64,6 +65,9 @@ async def lifespan(app: FastAPI):
     with closing(store.connect(initialize=True)) as connection:
         store.ensure_internal_benchmark(connection)
         store.record_startup(connection, profile, langfuse_version, startup_note)
+    # E2: attach the offline intent encoder when TRAJ_INTENT_ENCODER names a
+    # registry entry; load/hash failures abort startup with an actionable error.
+    configure_engine_from_env(ENGINE)
     if os.environ.get("TRAJ_SCHEDULER") == "1":
         SCHEDULER.start()
     yield

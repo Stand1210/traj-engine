@@ -214,6 +214,22 @@ M3.4 calibration usage: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   - 若 R1 周期已到期，会先创建 R1 继续积累样本。
 - 当累计数量达标且 novelty 率仍超过阈值时，才会自动创建 R2。
 
+### 3.4.4 意图编码器（E2，离线 bge-m3）
+
+- 生产 Run 的意图 embedding 有两种来源：
+  1. **平台编码器**（推荐）：启动后端时设置 `TRAJ_INTENT_ENCODER=bge-m3`，
+     服务启动即离线加载本地权重（约 9.5s），对每个意图文本生成 1024 维
+     embedding；可选 `TRAJ_MODEL_ROOT` / `TRAJ_EMBEDDING_CACHE` /
+     `TRAJ_ENCODER_BATCH_SIZE` 覆盖默认路径与批量。
+  2. **轨迹自带**：trace metadata 中的 `embedding` 字段。
+- 两者都不可用时 Run **直接失败**（不会"看似成功"地跑完全程）；
+  编码器权重缺失或 hash 不符时**服务启动即失败**，错误信息含修复指引。
+- 编码结果写入每次 Run 的模型资产溯源（模型名、revision、指纹、缓存指纹），
+  前端 Run 详情可见。
+- embedding 缓存可安全删除（`platform/var/embedding-cache.db`），
+  代价仅是重算；换模型或改输入构造不会误命中旧缓存（key 绑定指纹）。
+- bench 基准 Run 不经过编码器（基准轨迹自带合成 embedding，属契约行为）。
+
 ## 4. 结果解读
 
 | 页面内容 | 业务含义 | 判断动作 |

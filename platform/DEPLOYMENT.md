@@ -410,6 +410,34 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 前端轨迹详情页新增「硬门禁命中明细」，逐项展示门禁、触发条件、
   乘数与累计 G。
 
+### 3.12 E2 意图编码器（bge-m3）部署记录
+
+- **首个运行时模型资产**（2026-11-27）：离线 `BAAI/bge-m3`，revision
+  `5617a9f61b028005a4858fdac845db406aefb181`，仅 dense embedding。
+- **新增三方件**（`requirements.txt` 钉版，仅平台层；`kernel/` 保持纯标准库）：
+  `torch==2.14.0`、`sentence-transformers==6.3.0`、`transformers==5.24.1`、
+  `tokenizers==0.23.3`、`safetensors==0.8.0`、`huggingface-hub==2.5.0`、
+  `numpy==2.4.6`、`scipy==1.17.1`、`scikit-learn==1.9.1`。
+  Windows PyPI 的 torch wheel 即 CPU 版；内网主机从离线 wheelhouse 安装。
+- **模型权重**：10 文件约 2.27GB，部署到 `platform/var/models/bge-m3/`
+  （`platform/var/` 不入库、不进发布包）；SHA-256 清单入库于
+  `platform/config/model_assets.json`，加载前逐文件校验，
+  **缺失或不符拒绝加载并中止服务启动**（错误信息含修复指引）。
+- **运行时配置**（env，随 `cli.py serve` 传入）：
+  - `TRAJ_INTENT_ENCODER`：注册表条目名（如 `bge-m3`）；不设置则保持
+    E1 行为（轨迹自带 `embedding` 字段，缺失即 Run 失败）。
+  - `TRAJ_MODEL_ROOT` / `TRAJ_EMBEDDING_CACHE` / `TRAJ_ENCODER_BATCH_SIZE`
+    （默认 32）：可选覆盖。
+- **embedding 缓存**：`platform/var/embedding-cache.db`（独立 SQLite/WAL，
+  可随时删除，代价仅为重算）；缓存 key 绑定模型指纹 + 输入构造版本 +
+  编码配置版本，跨模型/跨预处理不可能误命中。
+- **资源实测**（开发机，CPU 4 线程）：离线加载 9.5s；短文本批推理
+  9.1 texts/s（batch 32）；缓存命中 32 条 0.053s；常驻内存约 2.5GB
+  （**不要在同一进程加载第二个实例**）。
+- **对既有库的影响**：无 DDL 变更；`cohort_runs.model_assets_json`
+  provenance 新增 `cache_fingerprint` 字段（JSON 内嵌，无需迁移）。
+  旧空 embedding 冻结结构仍按 E1 门禁拒绝 R1 复用，需触发新 R2。
+
 ## 4. M6.0 生产交付与验收闭环
 
 ### 4.1 一键初始化、升级与启动
@@ -507,7 +535,8 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 ### 4.5 待补充清单
 
 - [ ] PostgreSQL 迁移脚本（首版明确不做）
-- [ ] Embedding 模型清单与版本记录（当前无 embedding）
+- [x] Embedding 模型清单与版本记录 → §3.12（E2 已落地：bge-m3 离线包 +
+  `platform/config/model_assets.json`）
 - [ ] 认证与租户凭据加密（首版明确不做）
 
 ### 4.6 M6.1 发布包构建与完整性校验

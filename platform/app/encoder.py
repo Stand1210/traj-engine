@@ -169,12 +169,20 @@ def trace_intent_texts(traces: Sequence[dict]) -> list[str]:
 
 def build_model_assets(encoder: IntentEncoder | None, embedding_dimension: int) -> dict:
     """Run provenance payload for model assets (persisted per cohort run)."""
+    cache_fingerprint = None
+    if encoder is not None:
+        provider = getattr(encoder, "cache_fingerprint", None)
+        cache_fingerprint = provider() if callable(provider) else None
     return {
         "encoder_contract_version": ENCODER_CONTRACT_VERSION,
         "embedding_source": "encoder" if encoder is not None else "trace_field",
         "embedding_dimension": embedding_dimension,
         "intent_encoder": (
-            {**encoder.asset.provenance(), "fingerprint": encoder.asset.fingerprint()}
+            {
+                **encoder.asset.provenance(),
+                "fingerprint": encoder.asset.fingerprint(),
+                "cache_fingerprint": cache_fingerprint,
+            }
             if encoder is not None
             else None
         ),

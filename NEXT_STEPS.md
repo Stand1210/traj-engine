@@ -60,32 +60,23 @@
       数量错、权重 hash、生产门禁、R1 拒绝、engine provenance 落库）全部通过；
       平台全套 103 个测试通过无回归
 
-### 阶段 E3：执行视图补齐 + structural fingerprint（先于 E2）
+### 阶段 E3：执行视图补齐 + structural fingerprint（先于 E2）—— ✅ 已完成（2026-11-26）
 
-- [ ] span key 构造：`span_key = f"{agent}::{operation}::{tool}"`（需扩展
-      `langfuse_source.py` 的 span 字段映射；命名稳定性依赖预检查，见 E4）
-- [ ] 1/2/3-gram + sublinear TF-IDF（`tf' = 1 + log tf`）+ L2 归一化 + cosine 距离 +
-      平均连接层次聚类（替换/补齐 `kernel/cluster.py:159-201` profile 路线）
-- [ ] 簇级 top n-gram 解释输出（如 `plan→sql_query→summarize`），写入 `cluster_info`
-- [ ] structural vectorizer fingerprint（span key 构造 + n-gram range + TF-IDF 参数 +
-      距离/聚类配置）写入 `structure_versions.state_json`
-- [ ] 与现有 1/2-gram saliency 方案做 A/B 对比：ARI、novelty、告警质量、耗时；
-      saliency 加权仅作可选增强保留
-- [ ] 验收：结构解释能回答"该簇代表什么流程"；fingerprint 变化触发结构不兼容
-- [ ] **约束**：kernel 保持纯标准库（CI 不装第三方依赖），TF-IDF/AHC 须自实现；
-      改动 kernel 会改变 `code_hash`，必须重跑 bench 全矩阵 + `scorecard` + `matrixcheck`
+> A/B 裁决与全矩阵重跑记录见修复计划「阶段 E3 A/B 裁决」「阶段 E3 实施与全矩阵
+> 重跑记录」两节；决策归档 `DESIGN.md` §7.8。要点：默认 token 配方 `action:v1`、
+> saliency 经全因子 A/B 实证保留、`cluster_info` 增 top n-gram 解释、
+> `_tfidf_ctx` 进冻结结构 + R1 结构指纹门、`code_hash d229ab802e5a01bf` +
+> `reports/` 重发布（scorecard IN SYNC）。
 
-### 阶段 E2：`bge-m3` 平台集成
+### 阶段 E2：`bge-m3` 平台集成 —— ✅ 已完成（2026-11-27）
 
-- [ ] 离线模型加载器 + 模型资产注册表（权重清单 + SHA-256，hash 不匹配拒绝加载）
-- [ ] embedding 缓存：缓存 key 绑定模型 hash + 输入构造 + 预处理版本
-- [ ] 推理批处理与异常处理；断网环境本地权重可加载推理；同输入同配置可复现
-- [ ] 意图文本构造按方法论 §5.2.1：`[TASK] user_input + [CTX] session 前 2 轮摘要
-      （≤256 token）+ [META] tags/feature/tools(≤8)`，禁止混入完整执行序列
-- [ ] 部署文档记录模型版本/权重/尺寸/资源需求；评估内网资源风险（备选轻量多语言模型，
-      但降级必须改变 fingerprint）
-- [ ] **注意**：这是运行时首个外部模型资产，须按 `INTRANET_HANDOFF.md §9.3` 补齐全部
-      模型治理记录；放在平台侧实现，kernel `code_hash` 语义不变
+> 实施与验收记录见修复计划「阶段 E2 实施记录」；决策归档 `DESIGN.md` §7.9；
+> 部署记录 `DEPLOYMENT.md` §3.12。要点：sentence-transformers 6.3.0 离线后端、
+> 固定 revision + 10 文件 SHA-256 注册表、加载前逐文件 hash 校验（不符拒绝启动）、
+> 指纹绑定 SQLite 缓存、provenance 增 `cache_fingerprint`、E2 测试 20/20。
+> **一项显式推迟**：方法论 §5.2.1 的 `[CTX]` session 上下文所需数据不在 trace
+> 契约中，保持 `intent-text:v1`，待 E4 预检查验证可得性后引入（须 bump
+> `INTENT_INPUT_VERSION` + 新 R2）。
 
 ### 阶段 E4：生产链路修复
 

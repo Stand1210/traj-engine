@@ -1,6 +1,6 @@
 # Embedding 与执行视图修复计划
 
-> 状态：E1 已完成（2026-11-26），E2–E6 待实施。
+> 状态：E1、E3 已完成（2026-11-26），E2 已完成（2026-11-27），E4–E6 待实施。
 > 背景：当前工程尚未达到生产算法验收标准。Cloud/Lifecycle 轨迹没有经过平台 encoder，intent embedding 为空时算法会静默降级；执行视图也尚未严格实现方法论 §5.3 的默认路线。本计划用于指导后续修复和内网工具接管。
 
 ## 1. 问题结论
@@ -95,6 +95,40 @@ fingerprint 变化时：
 
 - fake encoder 单元测试覆盖正常、空值、维度错误、数量错误。
 - 生产链路缺少模型资产时显式失败并给出修复指引。
+
+### 阶段 E2 实施记录（2026-11-27）
+
+- **环境侦察与后端选型**（证据驱动）：huggingface.co 直连不可达、hf-mirror.com 与
+  pypi.org 可达；`torch 2.14.0+cpu` 预装可用 → 选 **sentence-transformers 6.3.0**
+  （bge-m3 model card 文档化支持，CPU 友好），钉版 9 个推理包入 `requirements.txt`
+  （仅平台层，`kernel/` 保持纯标准库）。权重经 hf-mirror `snapshot_download`
+  固定 revision `5617a9f61b028005a4858fdac845db406aefb181`（2024-07-03，上游最后更新），
+  仅取 dense 推理 10 文件（2.27GB；sparse/colbert/onnx 明确排除），落
+  `platform/var/models/bge-m3/`（`var/` 不入库）。
+- **资产注册表** `platform/config/model_assets.json`（入库）：provider、精确 revision、
+  1024 维、8192 max token、`tokenizer-right:8192` 截断、L2 归一化、后端版本串、
+  **10 文件 SHA-256 清单**（下载后经 hub 客户端完整性校验 + 本地逐文件重算）。
+- **离线加载器** `platform/app/intent_encoder.py`：`load_intent_encoder` 先
+  `verify_weights` 逐文件校验 SHA-256，缺失或不符**拒绝加载**并给出可操作修复指引；
+  加载期强制 `HF_HUB_OFFLINE=1`（作用域内设置并还原），零网络访问；加载后校验
+  维度与注册表一致。服务启动经 `TRAJ_INTENT_ENCODER=bge-m3` env 装配
+  （`service.py` lifespan），**加载失败即启动失败**，不允许降级运行。
+- **缓存**：`EmbeddingCache`（`platform/var/embedding-cache.db`，独立 SQLite/WAL，
+  可弃置），缓存 key = `sha256(cache_fingerprint | text)`，`cache_fingerprint` 绑定
+  模型资产指纹 + 输入构造版本（`intent-text:v1`）+ 编码配置版本（`st-dense-l2:v1`）——
+  跨模型/跨预处理复用**构造上不可能**。provenance（`cohort_runs.model_assets_json`）
+  新增 `cache_fingerprint`。
+- **验收实测**：离线加载 9.5s；相同输入同配置 embedding **逐位一致**（diff=0）；
+  hash 不匹配/文件缺失拒绝加载（单测覆盖）；CPU 4 线程短文本批推理 **9.1 texts/s**
+  （batch 32），缓存命中 32 条 0.053s。E2 测试 20/20 通过（含 3 项真实权重集成，
+  无权重环境自动跳过）。
+- **输入构造的显式推迟**：方法论 §5.2.1 的 `[TASK]+[CTX]+[META]` 结构化输入中，
+  `[CTX]`（session 前 2 轮摘要）依赖 trace 契约与 Langfuse 列表接口均不携带的
+  session 历史数据，**捏造它违反缺失置空铁律**。决定：E2 保持
+  `intent-text:v1`（原始 intent_text，E1 既有构造），待 E4 预检查在真实数据上验证
+  session 上下文可得性后再引入结构化输入；引入时必须 bump `INTENT_INPUT_VERSION`
+  （缓存指纹随之变化）并触发新 R2。bench 不受影响的说明：bench 轨迹自带合成
+  embedding，`is_benchmark` 路径永不经过 encoder（`engine.py` 分支保证）。
 
 ### 阶段 E2：`bge-m3` 平台集成
 

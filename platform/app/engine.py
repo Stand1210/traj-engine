@@ -109,8 +109,12 @@ class RunEngine:
         max_workers: int = 1,
         var_root: str | Path | None = None,
         r2_training_limit: int | None = None,
+        intent_encoder=None,
     ):
         self.db_path = Path(db_path or store.resolve_db_path())
+        # Platform intent encoder (E2). Benchmark runs never use it: bench
+        # traces carry their own synthetic embeddings by contract.
+        self.intent_encoder = intent_encoder
         self.var_root = Path(var_root or VAR_ROOT)
         performance = load_performance_config()
         if r2_training_limit is None:
@@ -232,6 +236,7 @@ class RunEngine:
                     training_result, _ = run_production(
                         training,
                         ontology_id or source_ref,
+                        intent_encoder=self.intent_encoder,
                     )
                     frozen_state = training_result["frozen_state"]
                 report_dir = out_root / source_ref
@@ -242,6 +247,7 @@ class RunEngine:
                         traces,
                         ontology_id or source_ref,
                         frozen_state=frozen_state,
+                        intent_encoder=self.intent_encoder,
                         run_mode="R2" if training is not None else None,
                         score_sink=lambda row: handle.write(
                             json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"

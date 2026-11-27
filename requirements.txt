@@ -1,3 +1,14 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 PyYAML==6.0.3
+# E2 intent encoder (offline BAAI/bge-m3, platform layer only; kernel stays stdlib-only).
+# Windows PyPI torch wheel is CPU-only; intranet hosts install from the offline wheelhouse.
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.9.1
+torch==2.14.0
+transformers==5.24.1
+tokenizers==0.23.3
+safetensors==0.8.0
+huggingface-hub==2.5.0
+sentence-transformers==6.3.0
