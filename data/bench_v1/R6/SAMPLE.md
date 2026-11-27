@@ -122,17 +122,17 @@ TRACE R6-00000   [intent1: NE-BD34-17 为什么劣化，请给出劣化根因及
     cache_read_true=136  cache_write_true=299  system_prompt_ratio_true=0.1009  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=52.3039  G=1.00  grade_abs=D  grade_rel=D  tier=0  novelty=False
+    S=52.1239  G=1.00  grade_abs=D  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i0xp0
-    dims    : O=1.000  P=1.000  L=0.000  C=0.665  R=1.000
-    contrib : O=+0.000  P=+0.000  L=-43.185  C=-4.511  R=+0.000   sum=-47.6961
-    zero-residual: S-100G=-47.6961  |diff|=3.00e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=1.000  L=0.000  C=0.649  R=1.000
+    contrib : O=+0.000  P=+0.000  L=-43.119  C=-4.757  R=+0.000   sum=-47.8761
+    zero-residual: S-100G=-47.8761  |diff|=3.40e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.3224  a_cal=n/a  conf=0.9291  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.3232  a_cal=n/a  conf=0.9302  anchor=anchor-R6-6df7cb38491a91dd
     evidence (3 items, drill-down order):
-      - [trace] latency_total            span=R6-00000-s00   value=175.7704    cell_median=44.6727     z=  +4.85 dev=0.4340
-      - [trace] cost_total               span=R6-00000-s01   value=0.0194      cell_median=0.0131      z=  +0.92 dev=0.1999
-      - [span ] dur                      span=R6-00000-s00   value=175.7704    peer_median=45.4946     z=  +4.95 dev=0.4674 (L3/L3span action=agent_run)
+      - [trace] latency_total            span=R6-00000-s00   value=175.7704    cell_median=43.7687     z=  +5.10 dev=0.4332
+      - [trace] branch_factor            span=-              value=5.0000      cell_median=4.0000      z=  +0.67 dev=0.1994
+      - [span ] dur                      span=R6-00000-s00   value=175.7704    peer_median=44.2757     z=  +5.17 dev=0.4747 (L3/L3span action=agent_run)
 ```
 
 ### 样本 B：latency_spike —— R6-00006
@@ -203,17 +203,17 @@ TRACE R6-00006   [intent0: I need the current alarm list for NE-0800-08; if any 
     cache_read_true=559  cache_write_true=0  system_prompt_ratio_true=0.2443  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=96.2246  G=1.00  grade_abs=A  grade_rel=A  tier=0  novelty=False
+    S=96.1528  G=1.00  grade_abs=A  grade_rel=A  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i1xp0
-    dims    : O=1.000  P=1.000  L=0.869  C=0.890  R=1.000
-    contrib : O=+0.000  P=+0.000  L=-2.068  C=-1.707  R=+0.000   sum=-3.7754
-    zero-residual: S-100G=-3.7754  |diff|=4.70e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=1.000  L=0.869  C=0.886  R=1.000
+    contrib : O=+0.000  P=+0.000  L=-2.066  C=-1.781  R=+0.000   sum=-3.8472
+    zero-residual: S-100G=-3.8472  |diff|=3.50e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.2098  a_cal=n/a  conf=0.9217  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.2093  a_cal=n/a  conf=0.9224  anchor=anchor-R6-6df7cb38491a91dd
     evidence (3 items, drill-down order):
-      - [trace] branch_factor            span=-              value=5.0000      cell_median=4.0000      z=  +0.67 dev=0.2010
-      - [trace] n_spans                  span=-              value=6.0000      cell_median=5.0000      z=  +0.67 dev=0.1667
-      - [span ] dur                      span=R6-00006-s02   value=0.9769      peer_median=0.2579      z=  +3.71 dev=0.3019 (L3/L3span action=retrieve_kb)
+      - [trace] branch_factor            span=-              value=5.0000      cell_median=4.0000      z=  +0.67 dev=0.2019
+      - [trace] n_spans                  span=-              value=6.0000      cell_median=5.0000      z=  +0.67 dev=0.1684
+      - [span ] dur                      span=R6-00006-s02   value=0.9769      peer_median=0.2586      z=  +3.70 dev=0.3024 (L3/L3span action=retrieve_kb)
 ```
 
 ### 样本 C：loop —— R6-00026
@@ -304,18 +304,18 @@ TRACE R6-00026   [intent0: return the current alarm list of NE-3708-08 within 24
     cache_read_true=233  cache_write_true=377  system_prompt_ratio_true=0.1987  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=29.8163  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
+    S=29.8212  G=0.35  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i1xp2
-    dims    : O=1.000  P=0.850  L=0.794  C=0.681  R=0.700
-    contrib : O=+0.000  P=-1.051  L=-1.117  C=-1.862  R=-1.153   sum=-5.1837
-    zero-residual: S-100G=-5.1837  |diff|=2.60e-05  OK  (rounded JSONL rows;
+    dims    : O=1.000  P=0.850  L=0.794  C=0.682  R=0.700
+    contrib : O=+0.000  P=-1.051  L=-1.120  C=-1.854  R=-1.154   sum=-5.1788
+    zero-residual: S-100G=-5.1788  |diff|=1.10e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9455  a_cal=n/a  conf=0.9362  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.9450  a_cal=n/a  conf=0.9366  anchor=anchor-R6-6df7cb38491a91dd
     gates: {"loop_runaway": 0.35}
     evidence (3 items, drill-down order):
       - {"kind": "rule", "loop_count": 4, "rule": "runaway_loop", "span_id": null}
-      - [trace] branch_factor            span=-              value=10.0000     cell_median=4.0000      z=  +4.05 dev=0.4455
-      - [trace] loop_count               span=-              value=4.0000      cell_median=0.0000      z= +50.00 dev=0.4455
+      - [trace] branch_factor            span=-              value=10.0000     cell_median=4.0000      z=  +4.05 dev=0.4452
+      - [trace] loop_count               span=-              value=4.0000      cell_median=0.0000      z= +50.00 dev=0.4452
 ```
 
 ### 样本 D：token_bloat —— R6-00008
@@ -390,7 +390,7 @@ TRACE R6-00008   [intent1: 关联 NE-6712-13 的告警与指标序列，然后�
     a_raw=0.1585  a_cal=n/a  conf=0.8941  anchor=anchor-R6-6df7cb38491a91dd
     evidence (3 items, drill-down order):
       - [trace] cost_total               span=R6-00008-s04   value=0.0118      cell_median=0.0121      z=  -0.06 dev=0.1023
-      - [trace] branch_factor            span=-              value=4.0000      cell_median=4.0000      z=  +0.00 dev=0.0996
+      - [trace] branch_factor            span=-              value=4.0000      cell_median=4.0000      z=  +0.00 dev=0.1002
       - [span ] tok                      span=R6-00008-s04   value=2193.0000   peer_median=1195.0000   z=  +1.09 dev=0.2400 (L3/L3span action=summarize)
 ```
 
@@ -464,7 +464,7 @@ TRACE R6-00055   [intent0: 先取 NE-8368-45 在 5m 内的当前告警清单，�
     contrib : O=+0.000  P=-1.685  L=+0.000  C=-6.932  R=+0.000   sum=-8.6172
     zero-residual: S-100G=-8.6172  |diff|=4.50e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.2495  a_cal=n/a  conf=0.3464  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.2860  a_cal=n/a  conf=0.3464  anchor=anchor-R6-6df7cb38491a91dd
     gates: {"forbidden_action": 0.3, "novelty": 0.8}
     evidence (3 items, drill-down order):
       - {"actions": ["skip_approval_execute"], "kind": "rule", "rule": "forbidden_action", "span_id": null}
@@ -533,18 +533,18 @@ TRACE R6-00233   [intent1: trace the degradation root cause for NE-40A2-54 over 
     cache_read_true=152  cache_write_true=311  system_prompt_ratio_true=0.1063  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=16.7404  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
+    S=16.6348  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i0xp0
-    dims    : O=0.464  P=1.000  L=0.887  C=0.602  R=1.000
-    contrib : O=-6.321  P=+0.000  L=-0.370  C=-1.569  R=+0.000   sum=-8.2596
-    zero-residual: S-100G=-8.2596  |diff|=5.00e-06  OK  (rounded JSONL rows;
+    dims    : O=0.464  P=1.000  L=0.883  C=0.579  R=1.000
+    contrib : O=-6.302  P=+0.000  L=-0.382  C=-1.681  R=+0.000   sum=-8.3652
+    zero-residual: S-100G=-8.3652  |diff|=3.30e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9273  a_cal=n/a  conf=0.9291  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.9270  a_cal=n/a  conf=0.9302  anchor=anchor-R6-6df7cb38491a91dd
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
       - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
       - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.5, "untraceable": 1}
-      - [trace] traceable_number_ratio   span=-              value=0.5000      cell_median=1.0000      z= -50.00 dev=0.4206
+      - [trace] traceable_number_ratio   span=-              value=0.5000      cell_median=1.0000      z= -50.00 dev=0.4198
 ```
 
 ### 样本 G：missing_step —— R6-00010
@@ -601,18 +601,17 @@ TRACE R6-00010   [intent1: 我需要 NE-0C21-15 的劣化根因，并附上可�
     cache_read_true=156  cache_write_true=202  system_prompt_ratio_true=0.2240  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=54.7620  G=0.80  grade_abs=D  grade_rel=B  tier=0  novelty=True
-    alert=False (rule=False stat=False)  cold_start=True  cell=None
-    dims    : O=1.000  P=0.917  L=0.000  C=1.000  R=1.000
-    contrib : O=+0.000  P=-1.413  L=-23.825  C=+0.000  R=+0.000   sum=-25.2380
-    zero-residual: S-100G=-25.2380  |diff|=4.60e-05  OK  (rounded JSONL rows;
+    S=95.9111  G=1.00  grade_abs=A  grade_rel=A  tier=2  novelty=False
+    alert=False (rule=False stat=False)  cold_start=True  cell=i0xp0
+    dims    : O=1.000  P=0.938  L=0.870  C=0.948  R=1.000
+    contrib : O=+0.000  P=-1.264  L=-2.047  C=-0.778  R=+0.000   sum=-4.0889
+    zero-residual: S-100G=-4.0889  |diff|=4.80e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.2855  a_cal=n/a  conf=0.3500  anchor=anchor-R6-6df7cb38491a91dd
-    gates: {"novelty": 0.8}
+    a_raw=0.8599  a_cal=n/a  conf=0.9302  anchor=anchor-R6-6df7cb38491a91dd
     evidence (3 items, drill-down order):
-      - {"frac": 0.333, "kind": "rule", "missing": ["plan"], "rule": "missing_step", "span_id": null}
-      - [trace] latency_total            span=R6-00010-s00   value=33.8314     cell_median=2.0103      z= +21.43 dev=0.7339
-      - [trace] cost_total               span=R6-00010-s02   value=0.0078      cell_median=0.0114      z=  -0.62 dev=0.0298
+      - {"kind": "rule", "missing": ["plan"], "rule": "missing_declared_step", "span_id": null}
+      - [trace] latency_total            span=R6-00010-s00   value=33.8314     cell_median=43.7687     z=  -0.38 dev=0.0613
+      - [trace] cost_total               span=R6-00010-s02   value=0.0078      cell_median=0.0131      z=  -0.78 dev=0.0353
 ```
 
 ## 六、v3 共生缺陷样本（附录 A 新增特征的原始证据）
@@ -696,17 +695,17 @@ TRACE R6-00009   [intent0: 按严重级别排序输出 NE-565A-56 的当前告�
     cache_read_true=669  cache_write_true=0  system_prompt_ratio_true=0.1782  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=83.4689  G=1.00  grade_abs=B  grade_rel=D  tier=0  novelty=False
+    S=83.4706  G=1.00  grade_abs=B  grade_rel=D  tier=0  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i1xp2
     dims    : O=1.000  P=1.000  L=0.498  C=0.602  R=1.000
-    contrib : O=+0.000  P=+0.000  L=-9.564  C=-6.967  R=+0.000   sum=-16.5311
-    zero-residual: S-100G=-16.5311  |diff|=2.70e-05  OK  (rounded JSONL rows;
+    contrib : O=+0.000  P=+0.000  L=-9.565  C=-6.965  R=+0.000   sum=-16.5294
+    zero-residual: S-100G=-16.5294  |diff|=2.10e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.2209  a_cal=n/a  conf=0.9362  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.2211  a_cal=n/a  conf=0.9366  anchor=anchor-R6-6df7cb38491a91dd
     evidence (3 items, drill-down order):
-      - [trace] latency_total            span=R6-00009-s00   value=2.8883      cell_median=1.7260      z=  +1.53 dev=0.2820
-      - [trace] branch_factor            span=-              value=6.0000      cell_median=4.0000      z=  +1.35 dev=0.2452
-      - [span ] dur                      span=R6-00009-s00   value=2.8883      peer_median=1.7565      z=  +1.58 dev=0.2996 (L3/L3span action=agent_run)
+      - [trace] latency_total            span=R6-00009-s00   value=2.8883      cell_median=1.7246      z=  +1.54 dev=0.2818
+      - [trace] branch_factor            span=-              value=6.0000      cell_median=4.0000      z=  +1.35 dev=0.2467
+      - [span ] dur                      span=R6-00009-s00   value=2.8883      peer_median=1.7509      z=  +1.59 dev=0.3000 (L3/L3span action=agent_run)
 ```
 
 ### v3 样本 B：goal_drift —— R6-00099
@@ -773,18 +772,18 @@ TRACE R6-00099   [intent0: list every entry in the current alarm list of network
     cache_read_true=360  cache_write_true=0  system_prompt_ratio_true=0.0958  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=19.6390  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
+    S=19.6429  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i1xp2
-    dims    : O=0.800  P=0.650  L=0.984  C=0.655  R=1.000
-    contrib : O=-1.983  P=-1.914  L=-0.055  C=-1.410  R=+0.000   sum=-5.3610
-    zero-residual: S-100G=-5.3610  |diff|=4.60e-05  OK  (rounded JSONL rows;
+    dims    : O=0.800  P=0.650  L=0.984  C=0.656  R=1.000
+    contrib : O=-1.983  P=-1.914  L=-0.055  C=-1.406  R=+0.000   sum=-5.3571
+    zero-residual: S-100G=-5.3571  |diff|=4.50e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9142  a_cal=n/a  conf=0.9362  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.9144  a_cal=n/a  conf=0.9366  anchor=anchor-R6-6df7cb38491a91dd
     gates: {"t1_unfinished": 0.25}
     evidence (3 items, drill-down order):
       - {"kind": "rule", "missing": ["summarize"], "rule": "missing_declared_step", "span_id": null}
       - {"expected_terminal": "summarize", "kind": "rule", "rule": "unfinished", "span_id": null}
-      - [trace] tokens_total             span=R6-00099-s01   value=4399.0000   cell_median=2991.0000   z=  +0.88 dev=0.1930
+      - [trace] tokens_total             span=R6-00099-s01   value=4399.0000   cell_median=2996.0000   z=  +0.88 dev=0.1939
 ```
 
 ### v3 样本 C：invalid_tool_arg —— R6-00005
@@ -846,11 +845,11 @@ TRACE R6-00005   [intent0: I need the current alarm list for NE-411C-27; if any 
     cache_read_true=574  cache_write_true=0  system_prompt_ratio_true=0.1744  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=82.2102  G=1.00  grade_abs=B  grade_rel=D  tier=2  novelty=False
+    S=82.2107  G=1.00  grade_abs=B  grade_rel=D  tier=2  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i1xp1
     dims    : O=0.800  P=1.000  L=0.978  C=0.719  R=0.583
-    contrib : O=-8.106  P=+0.000  L=-0.297  C=-4.492  R=-4.895   sum=-17.7898
-    zero-residual: S-100G=-17.7898  |diff|=0.00e+00  OK  (rounded JSONL rows;
+    contrib : O=-8.106  P=+0.000  L=-0.296  C=-4.492  R=-4.895   sum=-17.7893
+    zero-residual: S-100G=-17.7893  |diff|=1.50e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
     a_raw=0.9111  a_cal=n/a  conf=0.9625  anchor=anchor-R6-6df7cb38491a91dd
     evidence (3 items, drill-down order):
@@ -918,18 +917,18 @@ TRACE R6-00035   [intent1: correlate alarms and KPI series on NE-AE11-06, then r
     cache_read_true=344  cache_write_true=143  system_prompt_ratio_true=0.3509  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=19.7772  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
+    S=19.7631  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i0xp0
-    dims    : O=0.627  P=1.000  L=0.757  C=0.963  R=1.000
-    contrib : O=-4.166  P=+0.000  L=-0.931  C=-0.126  R=+0.000   sum=-5.2228
-    zero-residual: S-100G=-5.2228  |diff|=2.20e-05  OK  (rounded JSONL rows;
+    dims    : O=0.627  P=1.000  L=0.751  C=0.966  R=1.000
+    contrib : O=-4.165  P=+0.000  L=-0.955  C=-0.117  R=+0.000   sum=-5.2369
+    zero-residual: S-100G=-5.2369  |diff|=3.40e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9056  a_cal=n/a  conf=0.9291  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.9052  a_cal=n/a  conf=0.9302  anchor=anchor-R6-6df7cb38491a91dd
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
       - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
       - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.6666666666666666, "untraceable": 1}
-      - [trace] traceable_number_ratio   span=-              value=0.6667      cell_median=1.0000      z= -50.00 dev=0.3770
+      - [trace] traceable_number_ratio   span=-              value=0.6667      cell_median=1.0000      z= -50.00 dev=0.3763
 ```
 
 ### v3 样本 E：fabricated_citation —— R6-00081
@@ -1078,16 +1077,16 @@ TRACE R6-00076   [intent1: 定位网元 NE-9573-04 的劣化根因]
     cache_read_true=545  cache_write_true=0  system_prompt_ratio_true=0.3782  cost_details_reconciled_true=True
 
   PIPELINE OUTPUT (slice6-v0.6.0)
-    S=21.0498  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
+    S=21.0368  G=0.25  grade_abs=D  grade_rel=D  tier=2  novelty=False
     alert=False (rule=False stat=False)  cold_start=True  cell=i0xp0
-    dims    : O=0.720  P=1.000  L=0.771  C=0.989  R=1.000
-    contrib : O=-3.018  P=+0.000  L=-0.895  C=-0.037  R=+0.000   sum=-3.9502
-    zero-residual: S-100G=-3.9502  |diff|=3.20e-05  OK  (rounded JSONL rows;
+    dims    : O=0.720  P=1.000  L=0.766  C=0.992  R=1.000
+    contrib : O=-3.017  P=+0.000  L=-0.920  C=-0.026  R=+0.000   sum=-3.9632
+    zero-residual: S-100G=-3.9632  |diff|=2.30e-05  OK  (rounded JSONL rows;
                    exact identity asserted in bench/runner.py)
-    a_raw=0.9167  a_cal=n/a  conf=0.9291  anchor=anchor-R6-6df7cb38491a91dd
+    a_raw=0.9151  a_cal=n/a  conf=0.9302  anchor=anchor-R6-6df7cb38491a91dd
     gates: {"t0_result_broken": 0.25}
     evidence (3 items, drill-down order):
       - {"kind": "rule", "rule": "truncated_generation", "span_id": null}
       - {"kind": "rule", "min_ratio": 1.0, "rule": "untraceable_answer_number", "span_id": null, "traceable_ratio": 0.75, "untraceable": 1}
-      - [trace] traceable_number_ratio   span=-              value=0.7500      cell_median=1.0000      z= -50.00 dev=0.3593
+      - [trace] traceable_number_ratio   span=-              value=0.7500      cell_median=1.0000      z= -50.00 dev=0.3586
 ```
