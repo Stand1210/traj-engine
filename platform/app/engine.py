@@ -264,7 +264,8 @@ class RunEngine:
                     connection, run_id, "algorithm", "succeeded",
                     {"code_hash": result["code_hash"], "spec_hash": result["spec_hash"],
                      "n": result["n"], "cold_start": result.get("cold_start"),
-                     "training": result.get("training")},
+                     "training": result.get("training"),
+                     "model_assets": result.get("model_assets")},
                     ended=True,
                 )
 
@@ -389,6 +390,12 @@ class RunEngine:
             "UPDATE cohort_runs SET structure_version_id = ? WHERE id = ?",
             (structure_id, run_id),
         )
+        model_assets = result.get("model_assets")
+        if model_assets is not None:
+            connection.execute(
+                "UPDATE cohort_runs SET model_assets_json = ? WHERE id = ?",
+                (json.dumps(model_assets, ensure_ascii=False, sort_keys=True), run_id),
+            )
 
         cell_sizes: dict[str, int] = {}
         new_assignments: dict[str, str | None] = {}

@@ -21,6 +21,11 @@ SPAN_KEYS = {
     "tokens_prompt", "tokens_system_prompt", "tool_name", "tool_params",
     "ts_end", "ts_start", "ttft", "verifier",
 }
+# Optional span keys (E3): structural identity for the execution view's span_key
+# recipe. The Langfuse adapter always emits them (None when the source metadata
+# lacks them — never fabricated); bench traces simply omit them. Validation
+# tolerates their presence but never requires it.
+SPAN_OPTIONAL_KEYS = {"agent", "operation"}
 
 
 class TraceSource(Protocol):
@@ -102,7 +107,7 @@ def validate_trace(trace: dict, path: Path, line_number: int) -> None:
         raise ValueError(f"spans must be a list: {path}:{line_number} trace={trace_id}")
     for span in spans:
         missing = SPAN_KEYS - set(span)
-        extra = set(span) - SPAN_KEYS
+        extra = set(span) - SPAN_KEYS - SPAN_OPTIONAL_KEYS
         if missing or extra:
             raise ValueError(
                 f"invalid span contract at {path}:{line_number} trace={trace_id} "

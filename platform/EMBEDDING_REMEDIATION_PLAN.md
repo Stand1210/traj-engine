@@ -1,6 +1,6 @@
 # Embedding 与执行视图修复计划
 
-> 状态：待实施（2026-11-26）。
+> 状态：E1 已完成（2026-11-26），E2–E6 待实施。
 > 背景：当前工程尚未达到生产算法验收标准。Cloud/Lifecycle 轨迹没有经过平台 encoder，intent embedding 为空时算法会静默降级；执行视图也尚未严格实现方法论 §5.3 的默认路线。本计划用于指导后续修复和内网工具接管。
 
 ## 1. 问题结论
@@ -79,6 +79,11 @@ fingerprint 变化时：
 
 ### 阶段 E1：Encoder 合同与失败门禁
 
+> 已完成（2026-11-26）：新增 `platform/app/encoder.py`；`run_production` 前置
+> `validate_trace_embeddings` 门禁与 R1 维度/旧结构兼容校验；`cohort_runs.model_assets_json`
+> （schema v11）持久化 provenance；`platform/tests/test_encoder.py` 17 个用例与平台全套
+> 103 个测试通过。kernel 未改动。
+
 交付：
 
 - `IntentEncoder` 接口与配置模型。
@@ -106,6 +111,51 @@ fingerprint 变化时：
 - 断网环境下能从本地权重完成加载与推理。
 - hash 不匹配时拒绝加载。
 - 相同输入与配置得到可复现 embedding。
+
+### 阶段 E3 A/B 裁决（2026-11-26，先于 kernel 改动）
+
+`platform/tfidfexp.py` 全因子 A/B（8 regime × token 配方 {action, kind::action,
+kind::action::tool} × saliency {off, on} + 现方案基线，结果 `platform/tfidfexp-results.json`）：
+
+- **saliency 收益被决定性证明**：纯 TF-IDF（无 saliency）ari_p 全部 ≤0.88（多数 ≤0.70）；
+  `action + TF-IDF + saliency` 在 R1/R2/R3/R6 与现方案持平（≥0.986），R4/R5/R7 略低
+  （0.954–0.980），R8 回归 0.861 vs 0.972（门禁 0.55，余量充足）；满足 §2.2 "A/B 证明收益
+  才保留 saliency" 的要求 → **保留 saliency 作为默认开启的工程增强**。
+- **富 token 配方在 bench 上不可行**：`kind::action::tool` 全部 ≤0.47（`min_df=2` 亦无法
+  修复），根因是 bench 生成器对同一 action 独立采样 tool_name（`tool_catalog` 一对多），
+  完整 span_key n-gram 在轨迹间几乎不共享，cosine 距离饱和至切分网格上限 0.85 之上触发
+  fallback 碎簇。**决定**：kernel 默认 token 配方保持 `action:v1`；`span_key:v1` 与
+  `span_key:v1-no-tool` 实现为指纹化可选配方，待 E4 预检查在真实 Langfuse 数据上验证
+  tool/agent 字段质量后再启用。
+- **耗时**：pattern 距离现方案 1.2–2.6s vs TF-IDF 2.4–9.7s/regime，同量级，O(N·L) 成立。
+- **解释输出**：top n-gram 解释在 tfidf 臂验证可行，随 kernel 实现写入 `cluster_info`。
+
+### 阶段 E3 实施与全矩阵重跑记录（2026-11-26）
+
+- **kernel 实施**（`kernel/cluster.py`，stdlib-only）：`span_key`（显式降级、缺失字段不捏造）、
+  token 配方注册表（默认 `action:v1`；`span_key:v1` / `span_key:v1-no-tool` 为指纹化可选配方）、
+  1/2/3-gram sublinear TF-IDF（`tf'=1+ln tf`，`idf=ln((1+N)/(1+df))+1`）、L2 归一化、cosine 距离、
+  平均连接；saliency 乘子默认开启（`SIG_WEIGHT=3.0`，A/B 已证）。`cluster_info` 新增
+  `pattern_top_ngrams`（簇级 top-5 解释）、`pattern_token_recipe`、`structural_fingerprint`
+  （构造配置 SHA-256[:16]，不含数据导出的 idf）。
+- **冻结结构与 R1 门**：`_tfidf_ctx` 纳入 `FROZEN_STATE_KEYS` 持久化；R1 复用前
+  `_assert_frozen_structural_compatible` 比对 frozen 指纹与当前代码指纹，缺失或不符即抛
+  `EncoderContractError`（旧结构可加载、门禁拒绝，不静默复用）。`run_production` 新增
+  `pattern_recipe` 参数。Langfuse 适配层把 metadata 中的 `agent` / `operation` 映射为可选
+  span 字段（缺失保持缺失）。
+- **code_hash 变更与基线重发布**：`2064664e6aa5fb46` → `d229ab802e5a01bf`。全矩阵重跑
+  **8/8 ALL-PASS**：ari_p = R1 0.998 / R2 0.994 / R3 0.987 / R4 0.978 / R5 0.955 / R6 0.995 /
+  R7 0.954 / R8 0.862（全部高于门禁地板 0.50–0.60）。`matrixcheck` 逐叶子枚举差异
+  （表头 code_hash、模式簇数、calibration、scores sha，均为内核变更的预期后果）后，
+  `reports/` 重发布、`bench.scorecard` 重写 README 五区块，`--check` 报 **IN SYNC** 且
+  8/8 溯源 PASS（report == live）。活引用同步更新：`r2_lineage_validation.py`
+  `EXPECTED_CODE_HASH`、`DEPLOYMENT.md` §4.6 发布校验命令、前端 `App.tsx` 内核 hash 显示；
+  带日期的历史对账记录（README 对账日志、`ROADMAP.md`、`freezeexp.py`、`DESIGN.md` §7.7）
+  按惯例保持原值不改写。
+- **观察到的矩阵级权衡**（备案，非回归）：TF-IDF cosine 的弃权尾部与编辑距离不同，
+  R1 novelty 率 0.0138 → 0.0902（缓冲区更干净：多数真实类占比 0.8545 → 0.9723，缓冲区异常率
+  0.5636 → 0.1080），R1 全量 recall 0.709 → 0.692、F1 0.828 → 0.816，均在门禁内；R8 ari_p
+  0.861 vs 旧 0.972 的有界回归与 A/B 记录一致（`min_df=2` 修复假设已检验并拒绝）。
 
 ### 阶段 E3：执行视图补齐
 

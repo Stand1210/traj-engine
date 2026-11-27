@@ -1052,6 +1052,7 @@ slimcap 的 `n_cells` 8 → 4 会每天发生一次，lineage 每天报一堆「
 |---|---|---|
 | 意图视图降维 | §5.2.3：**UMAP 降到 5-15 维**（原文第 726 行：「直接在 1024 维余弦空间上跑 HDBSCAN 效果差（维度灾难 + 密度定义失真）」） | **无降维**，直接在原始句向量上算欧氏距离 |
 | 意图视图聚类 | §5.2.4：**HDBSCAN**，并给了「选 HDBSCAN 而非 K-Means / GMM 的理由」对照表（第 742-748 行：需预设簇数 是/是/**否**） | **k-means++ 播种的 Lloyd 算法**（`cluster.py:217`），k 在 `range(2, kmax+1)` 上扫描（`:762`），由 k-neutral silhouette 选 |
+| 执行视图向量化 | §5.3 路线 A：span_key + 1/2/3-gram **sublinear TF-IDF** + L2 + cosine | **2026-11-26 起与文档一致**（E3，§7.8）：`pattern_tokens` + `fit_pattern_vectorizer`；此前为 1/2-gram 集合编辑距离——一条当时**没被记录**的分歧，现已对齐 |
 | 执行视图聚类 | §5.2.5 路线 A：n-gram TF-IDF + **层次聚类** | **average-linkage UPGMA**（`cluster.py:511`）—— **与文档一致** |
 | 融合 | §5.4：**共识聚类**（co-association 矩阵 → 再聚类） | **一致**（`cluster.py:772 _consensus`），8 次 bagged run |
 | 噪声 / 弃权 | HDBSCAN 原生 `label=-1` | novelty 缓冲区（`cluster.py:862`），判据是**共识边际**，不是密度 |
@@ -1318,6 +1319,39 @@ cap 5 是一个**先验**。若某租户真实工作流数 > 5，就会被欠切
 **⟹ 结论：改内核注释/代码的代价比我此前写的小得多**——是"重跑 8 份报告"（十几分钟、可脚本化），
 **不是**"重生成 240 MB 数据集 + 8 份样本手册"。后者只有改**生成器**才需要。
 下面 8 处已按此更正；被更正的原句一律保留删除线，不要再引用。
+
+---
+
+### 7.8 ★决策：执行视图向量化对齐方法论路线 A（2026-11-26，E3）
+
+**此前状态**：§7.1 的分歧表只记了意图视图（UMAP/HDBSCAN → 无降维 k-means），
+执行视图的**向量化**分歧一直没被记录——方法论文档 §5.3 路线 A 写的是
+「span_key 1/2/3-gram sublinear TF-IDF + L2 + cosine」，而已交付内核用的是
+1/2-gram 集合上的编辑距离。E3（`platform/EMBEDDING_REMEDIATION_PLAN.md`）把这一层对齐了。
+
+**落地形态**（`kernel/cluster.py`，stdlib-only，`code_hash 2064664e6aa5fb46 → d229ab802e5a01bf`）：
+
+- `span_key = agent::operation::tool`，缺失字段**显式降级**（`kind`/`action` 顶替、tool 为 `-`），
+  永不捏造；token 配方注册表 `PATTERN_TOKEN_RECIPES`：默认 **`action:v1`**（等价旧行为域），
+  `span_key:v1` / `span_key:v1-no-tool` 实现为**指纹化可选配方**，待 E4 在真实 Langfuse
+  数据上预检查 agent/operation/tool 字段质量后再启用。
+- 1/2/3-gram sublinear TF-IDF（`tf'=1+ln tf`、`idf=ln((1+N)/(1+df))+1`）、L2、cosine、
+  UPGMA 不变；**saliency 乘子保留**（`SIG_WEIGHT=3.0`）——这是相对方法论的工程增强，
+  按 §2.2 的要求做了全因子 A/B（`platform/tfidfexp.py`，8 regime × 配方 × saliency 开关）：
+  纯 TF-IDF ari_p ≤0.88，`action+sal` 与旧方案持平（R8 有界回归 0.861 vs 0.972，门禁 0.55）。
+  **富 token 配方在 bench 上被实测否决**（≤0.47，根因是生成器 tool 采样使 span_key n-gram
+  跨轨迹不共享、cosine 饱和），不是实现错误。
+- `cluster_info` 新增 `pattern_top_ngrams`（簇级 top-5 n-gram 解释）、`pattern_token_recipe`、
+  `structural_fingerprint`（构造配置 SHA-256[:16]，**不含**数据导出的 idf）。
+- **结构指纹进冻结状态 + R1 门**：`_tfidf_ctx` 纳入 `FROZEN_STATE_KEYS`；R1 复用前
+  `_assert_frozen_structural_compatible` 比对 frozen 指纹与当前代码指纹，缺失或不符抛
+  `EncoderContractError`——向量化构造的任何改动强制走新 R2，不静默复用不兼容结构。
+  旧版冻结状态**可加载**（向后兼容），但门禁拒绝复用。
+- **代价执行完毕**：全矩阵重跑 8/8 ALL-PASS（ari_p 0.862–0.998），`matrixcheck` 逐叶子
+  枚举差异后 `reports/` 重发布，`scorecard --check` IN SYNC、8/8 溯源 PASS；活引用
+  （`r2_lineage_validation.py`、§4.6 发布校验命令、前端 hash 显示）已同步。
+- **备案的矩阵级权衡**：cosine 的弃权尾部与编辑距离不同，R1 novelty 率 0.0138 → 0.0902
+  （缓冲区反而更干净：多数真实类占比 0.85 → 0.97），R1 全量 F1 0.828 → 0.816，均在门禁内。
 
 ---
 

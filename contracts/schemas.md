@@ -1,6 +1,6 @@
 # 数据契约 v1（bench 生成器 与 kernel 算法 的共同规格）
 
-状态：**v1.3.2（生成器 `bench-gen-v3.1.0` / 流水线 `slice5b-v0.5.1` 实测冻结）**。
+状态：**v1.4（生成器 `bench-gen-v3.1.0` / 流水线 `slice6-v0.6.0` 实测冻结）**。
 生成器输出与内核接口同时受其约束；变更需升版本号。
 
 - v1 → v1.1：`ClusterAssign` 增补 `near_intent/near_pattern/post_margin`；检测器输出增补
@@ -37,6 +37,13 @@
   「广告面 == 消费面」。bench_v1 上两套本体的 `slo_anchors` 都是 `{}`，这条分支不可达，
   **没有任何已公布数字移动**（8/8 regime 的每个 metrics 叶子与每条 `scores.jsonl` 字段
   仅 `code_hash` 与 `pipeline_version` 两处变化，见 README 的 slice5b 一节）。
+- v1.3.2 → v1.4：**Span 增补 2 个可选字段 `agent` / `operation`（§1），生成器不发射、
+  已公布数字不因本条目移动**。它们是执行视图 `span_key` token 配方（`agent::operation::tool`）
+  的结构身份：生产侧 Langfuse 适配层在 metadata 携带时透传（缺失保持 `null`，**不捏造**），
+  kernel 在缺失时显式降级（`kind` / `action` 顶替，tool 缺省为 `-`）。因为是可选字段，
+  平台 span 校验（`SPAN_OPTIONAL_KEYS`）容忍其存在但不要求其出现，且**不计入**
+  `EXPECTED_FIELDS` 缺失率分母——条件不可得是生产侧的常态而非数据损伤。bench 生成器
+  不发射这两个字段（bench 上 kernel 恒走降级路径，默认 token 配方 `action:v1` 不读取它们）。
 
 ## 1. 输入：Trace / Span
 ```jsonc
@@ -92,6 +99,11 @@ Span {
   arg_valid: bool|null,             // 工具入参是否通过本体的 param_schema 校验（tool/retrieval）
   output_citations: [str],          // 该步检索到的知识条目 id，答案引用的证据池（retrieval）
   verifier: {passed: bool, detail: str} | null   // 护栏裁决（guard 类）；verifier_pass_rate 的来源
+  // ---- v1.4 增补（可选，平台注入，生成器不发射）----
+  agent: str|null,                  // 执行该步的 agent 身份；span_key 配方的第一段
+  operation: str|null               // 该步的操作名；span_key 配方的第二段
+                                    // 两者缺失时 kernel 显式降级（kind/action 顶替），不捏造；
+                                    // 不计入 EXPECTED_FIELDS 缺失率分母
 }
 ```
 

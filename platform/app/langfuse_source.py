@@ -266,6 +266,11 @@ def _map_span(item: dict) -> dict:
 
     return {
         "action": item.get("name"),
+        # Optional structural identity for the execution view's span_key recipe (E3): when
+        # the source carries them, `agent`/`operation` upgrade pattern tokens from plain
+        # action names to `agent::operation::tool`; absent they degrade explicitly in the
+        # kernel (kind/action stand in) and are never fabricated here.
+        "agent": _metadata_value(metadata, "agent"),
         "arg_valid": _metadata_value(metadata, "arg_valid"),
         "cost": item.get("totalCost"),
         "cost_details": cost_details,
@@ -274,6 +279,7 @@ def _map_span(item: dict) -> dict:
         "kind": _kind(item),
         "level": item.get("level") or "DEFAULT",
         "model": item.get("model"),
+        "operation": _metadata_value(metadata, "operation"),
         "output_citations": _metadata_value(metadata, "output_citations"),
         "output_facts": _metadata_value(metadata, "output_facts"),
         "output_text": _text(item.get("output")),

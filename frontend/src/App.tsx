@@ -113,7 +113,7 @@ export default function App() {
           <span title={startup?.note ?? undefined}>
             Langfuse：{startup?.langfuseVersion ?? "版本未获取"}
           </span>
-          <span>Kernel：2064664e6aa5fb46</span>
+          <span>Kernel：d229ab802e5a01bf</span>
         </div>
       </header>
       <div className="nav-shell">

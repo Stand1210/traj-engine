@@ -7,6 +7,13 @@ from typing import Iterable
 from typing import Callable
 
 from bench.runner import code_hash
+from platform.app.encoder import (
+    EncoderContractError,
+    build_model_assets,
+    encode_intents,
+    trace_intent_texts,
+    validate_trace_embeddings,
+)
 from kernel import baseline as BL
 from kernel import binding as BD
 from kernel import calib
@@ -42,6 +49,7 @@ FROZEN_STATE_KEYS = (
     "flag_rate",
     "m",
     "_sig_ctx",
+    "_tfidf_ctx",
 )
 
 
@@ -105,6 +113,8 @@ def run_production(
     run_mode: str | None = None,
     score_sink: Callable[[dict], None] | None = None,
     score_batch_size: int = 1000,
+    intent_encoder=None,
+    pattern_recipe: str | None = None,
 ) -> tuple[dict, list[dict]]:
     traces = list(traces)
     if not traces:
@@ -112,10 +122,20 @@ def run_production(
     trace_count = len(traces)
 
     spec_hash = _spec_hash(traces)
+    if intent_encoder is not None:
+        encoded = encode_intents(intent_encoder, trace_intent_texts(traces))
+        traces = [
+            {**trace, "embedding": vector} for trace, vector in zip(traces, encoded)
+        ]
+    embedding_dim = validate_trace_embeddings(
+        traces, context=f"production run ontology={ontology_id}"
+    )
     if frozen_state is not None:
         ontology = frozen_state["ontology"]
         if ontology.get("id") != ontology_id:
             raise ValueError("frozen structure belongs to a different ontology")
+        _assert_frozen_embedding_compatible(frozen_state, embedding_dim)
+        _assert_frozen_structural_compatible(frozen_state)
         anchor_version = frozen_state["anchor_version"]
         cold_start = False
     else:
@@ -134,6 +154,7 @@ def run_production(
             feature_rows,
             ontology,
             anchor_version,
+            pattern_recipe=pattern_recipe,
         )
     else:
         assigns = _assign_frozen(feature_rows, frozen_state)
@@ -240,6 +261,7 @@ def run_production(
         "drift": drift_result,
         "scoring": scoring_summary,
         "calibration": {"kind": "none", "n_labels": 0, "ece_oof": None},
+        "model_assets": build_model_assets(intent_encoder, embedding_dim),
         "frozen_state": frozen_state,
     }
     return result, score_rows
@@ -436,7 +458,8 @@ def load_frozen_state(text: str) -> dict:
     )
     for key in ("cents_i", "med_p", "memcons_i", "memcons_p"):
         state[key] = {int(cluster): value for cluster, value in state[key].items()}
-    missing = [key for key in FROZEN_STATE_KEYS if key not in state]
+    missing = [key for key in FROZEN_STATE_KEYS if key not in state
+               and key != "_tfidf_ctx"]
     if missing:
         raise ValueError(f"frozen structure state is missing keys: {missing}")
     for key in ("ontology", "cluster_info", "anchor_version", "training_size"):
@@ -449,6 +472,7 @@ def _cluster_views_with_frozen_state(
     feature_rows: list[dict],
     ontology: dict,
     anchor_version: str,
+    pattern_recipe: str | None = None,
 ) -> tuple[list[dict], dict, dict]:
     captured = {}
 
@@ -474,6 +498,7 @@ def _cluster_views_with_frozen_state(
             threshold=cluster.CONSENSUS_THRESHOLD,
             seed=42,
             n_declared_patterns=PATTERN_CAP_NDEC_DEFAULT,
+            pattern_recipe=pattern_recipe or cluster.PATTERN_TOKEN_RECIPE,
         )
     finally:
         sys.settrace(None)
@@ -496,6 +521,7 @@ def _cluster_views_with_frozen_state(
             "cluster_info": cluster_info,
             "anchor_version": anchor_version,
             "training_size": len(feature_rows),
+            "embedding_dim": len(feature_rows[0]["embedding"]),
         }
     )
     return assigns, cluster_info, state
@@ -515,17 +541,30 @@ def _assign_frozen(feature_rows: list[dict], state: dict) -> list[dict]:
     geo_cut = state["geo_cut"]
     threshold = state["threshold"]
     sig, sig_tokens = state["_sig_ctx"]
+    tfidf_ctx = state.get("_tfidf_ctx")
+    recipe = (tfidf_ctx or {}).get("config", {}).get(
+        "span_key_recipe", cluster.PATTERN_TOKEN_RECIPE)
+    vec_cache: dict = {}
 
     assigns = []
     for feature in feature_rows:
         embedding = feature["embedding"]
         intent = min(cl, key=lambda cluster_id: cluster.euclid(embedding, cents_i[cluster_id])) if cl else -1
-        skeleton = cluster.collapse(feature["action_seq"])
-        pattern = (
-            min(pl, key=lambda cluster_id: cluster.seq_dist(skeleton, med_p[cluster_id], sig, sig_tokens))
-            if pl
-            else -1
-        )
+        if tfidf_ctx is not None:
+            skeleton = cluster.collapse(cluster.pattern_tokens(feature, recipe))
+            pattern = (
+                min(pl, key=lambda cluster_id: cluster.pattern_dist(
+                    skeleton, med_p[cluster_id], tfidf_ctx, vec_cache))
+                if pl
+                else -1
+            )
+        else:
+            skeleton = cluster.collapse(feature["action_seq"])
+            pattern = (
+                min(pl, key=lambda cluster_id: cluster.seq_dist(skeleton, med_p[cluster_id], sig, sig_tokens))
+                if pl
+                else -1
+            )
         trace_id = feature["trace_id"]
         consensus_intent = (
             state["_cons_i_t"][trace_id]
@@ -560,6 +599,50 @@ def _assign_frozen(feature_rows: list[dict], state: dict) -> list[dict]:
             }
         )
     return assigns
+
+
+def _assert_frozen_embedding_compatible(state: dict, embedding_dim: int) -> None:
+    expected = state.get("embedding_dim")
+    if expected is None:
+        expected = _legacy_frozen_embedding_dim(state)
+    if not expected:
+        raise EncoderContractError(
+            "frozen structure predates intent embeddings and cannot label new "
+            "traces; trigger a new R2 run with a configured IntentEncoder "
+            "instead of reusing this structure"
+        )
+    if int(expected) != embedding_dim:
+        raise EncoderContractError(
+            f"embedding dimension mismatch with frozen structure "
+            f"expected={expected} actual={embedding_dim}; the intent encoder or "
+            "its input construction changed; trigger a new R2 run instead of "
+            "reusing this structure"
+        )
+
+
+def _legacy_frozen_embedding_dim(state: dict) -> int:
+    for vector in (state.get("cents_i") or {}).values():
+        return len(vector)
+    return 0
+
+
+def _assert_frozen_structural_compatible(state: dict) -> None:
+    ctx = state.get("_tfidf_ctx")
+    fingerprint = (ctx or {}).get("fingerprint")
+    if not fingerprint:
+        raise EncoderContractError(
+            "frozen structure predates the structural vectorizer fingerprint "
+            "(E3); trigger a new R2 run instead of reusing this structure"
+        )
+    recipe = ctx.get("config", {}).get("span_key_recipe", cluster.PATTERN_TOKEN_RECIPE)
+    expected = cluster.current_pattern_fingerprint(recipe)
+    if fingerprint != expected:
+        raise EncoderContractError(
+            f"structural vectorizer fingerprint mismatch with frozen structure "
+            f"expected={expected} actual={fingerprint} recipe={recipe}; the "
+            "execution-view construction changed; trigger a new R2 run instead "
+            "of reusing this structure"
+        )
 
 
 def _spec_hash(traces: list[dict]) -> str:

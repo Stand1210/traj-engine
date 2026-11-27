@@ -17,6 +17,8 @@ cons = (a - b) / max(a, b), the silhouette of the co-association matrix, below t
 Singletons and low-consensus members go to the novelty buffer (cell = null) and never feed
 baselines or alerts.
 """
+import hashlib
+import json
 import math
 import random
 
@@ -199,6 +201,156 @@ def seq_dist(a, b, sig=None, token=0):
         if len(_SEQ_MEMO) < _SEQ_MEMO_MAX:
             _SEQ_MEMO[key] = v
     return v
+
+
+# ---- execution view: n-gram TF-IDF vectorizer (methodology 5.3 route A) ------------------
+# Default structural vectorizer of the pattern view: 1/2/3-gram sublinear TF-IDF
+# (tf' = 1 + log tf, smoothed idf = ln((1+N)/(1+df)) + 1), L2 normalised, cosine distance,
+# UPGMA average linkage. The action-saliency multiplier on tf' is an engineering enhancement
+# whose value was proven in the platform/tfidfexp.py A/B (8 regimes x token recipes x
+# saliency on/off): plain TF-IDF collapses (ari_pattern <= 0.88) while TF-IDF+saliency ties
+# the legacy profile route on 5/8 regimes and stays well above every gate elsewhere.
+#
+# Token recipe is part of the structural fingerprint. The bench-proven default "action:v1"
+# uses ontology action tokens; "span_key:v1" upgrades tokens to `agent::operation::tool`
+# with explicit degradation (kind stands in for a missing agent, the action for a missing
+# operation, "-" for a missing tool) for deployments whose spans carry those fields - the
+# bench generator samples tool_name i.i.d. per span, which makes the full recipe shatter
+# workflows there, so enabling it requires the E4 source precheck on real data.
+NGRAM_MAX = 3
+PATTERN_TOKEN_RECIPE = "action:v1"
+PATTERN_TOKEN_RECIPES = ("action:v1", "span_key:v1-no-tool", "span_key:v1")
+TFIDF_SALIENCY = True
+PATTERN_TOP_NGRAMS = 5
+
+
+def span_key(span):
+    """`agent::operation::tool` with explicit degradation, never fabrication."""
+    agent = span.get("agent") or span.get("kind") or "?"
+    operation = span.get("operation") or span.get("action") or "?"
+    tool = span.get("tool_name") or "-"
+    return "%s::%s::%s" % (agent, operation, tool)
+
+
+def pattern_tokens(feat, recipe=PATTERN_TOKEN_RECIPE):
+    """Token sequence of one feature row under a structural recipe."""
+    if recipe == "action:v1":
+        return list(feat["action_seq"])
+    if recipe == "span_key:v1-no-tool":
+        return ["%s::%s" % (s.get("agent") or s.get("kind") or "?",
+                            s.get("operation") or s.get("action") or "?")
+                for s in feat["spans"] if s.get("action")]
+    if recipe == "span_key:v1":
+        return [span_key(s) for s in feat["spans"] if s.get("action")]
+    raise ValueError("unknown pattern token recipe: %r (known: %s)"
+                     % (recipe, ", ".join(PATTERN_TOKEN_RECIPES)))
+
+
+def _ngrams(seq, nmax=NGRAM_MAX):
+    length = len(seq)
+    for n in range(1, nmax + 1):
+        for i in range(length - n + 1):
+            yield ">".join(seq[i:i + n])
+
+
+def structural_fingerprint(config):
+    """Stable hash of the structural vectorizer config (data-derived idf excluded)."""
+    blob = json.dumps(config, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(blob).hexdigest()[:16]
+
+
+def fit_pattern_vectorizer(docs, salient=None, recipe=PATTERN_TOKEN_RECIPE):
+    """Fit the execution-view vectorizer on skeleton documents.
+
+    Returns a JSON-serialisable context dict: `config` + `fingerprint` describe the
+    construction (any change forces a new structure version), `idf` and `salient` are the
+    data-derived state needed to embed assignment-time skeletons under an R1 frozen
+    structure.
+    """
+    df = {}
+    for doc in docs:
+        for gram in set(_ngrams(doc)):
+            df[gram] = df.get(gram, 0) + 1
+    total = len(docs)
+    idf = {gram: math.log((1.0 + total) / (1.0 + count)) + 1.0
+           for gram, count in sorted(df.items())}
+    config = {
+        "span_key_recipe": recipe,
+        "ngram_max": NGRAM_MAX,
+        "tf": "sublinear:1+ln(tf)",
+        "idf": "smoothed:ln((1+N)/(1+df))+1",
+        "min_df": 1,
+        "norm": "l2",
+        "distance": "cosine",
+        "saliency_weight": SIG_WEIGHT if salient is not None else None,
+        "saliency_min_prev": SIG_MIN_PREV if salient is not None else None,
+        "clustering": "upgma",
+        "cut_selection": "silhouette_sweep",
+    }
+    return {
+        "config": config,
+        "fingerprint": structural_fingerprint(config),
+        "idf": idf,
+        "salient": sorted(salient) if salient is not None else None,
+    }
+
+
+def current_pattern_fingerprint(recipe=PATTERN_TOKEN_RECIPE):
+    """Fingerprint of the current-code vectorizer construction for a token recipe.
+
+    Used by the R1 compatibility gate: the frozen structure's stored fingerprint is compared
+    against what THIS code would produce for the same recipe, so any change to the
+    construction (n-gram range, tf/idf formulas, saliency switch/weight, distance) forces a
+    new R2 instead of silently reusing an incompatible structure.
+    """
+    return fit_pattern_vectorizer(
+        [], salient=set() if TFIDF_SALIENCY else None, recipe=recipe)["fingerprint"]
+
+
+def pattern_vec(seq, ctx):
+    """L2-normalised sublinear TF-IDF vector of one skeleton under a fitted context."""
+    tf = {}
+    for gram in _ngrams(seq):
+        tf[gram] = tf.get(gram, 0) + 1
+    idf = ctx["idf"]
+    salient = set(ctx["salient"]) if ctx.get("salient") else None
+    weight_boost = ctx["config"].get("saliency_weight")
+    vec = {}
+    for gram, count in tf.items():
+        weight = (1.0 + math.log(count)) * idf.get(gram, 0.0)
+        if salient is not None and weight_boost:
+            toks = gram.split(">")
+            boost = 1.0
+            for tok in toks:
+                boost *= weight_boost if tok in salient else 1.0
+            weight *= boost ** (1.0 / len(toks))
+        if weight:
+            vec[gram] = weight
+    norm = math.sqrt(sum(x * x for x in vec.values()))
+    if norm:
+        vec = {gram: x / norm for gram, x in vec.items()}
+    return vec
+
+
+def pattern_cos_dist(a, b):
+    """Cosine distance between two L2-normalised sparse vectors."""
+    if not a or not b:
+        return 1.0
+    if len(a) > len(b):
+        a, b = b, a
+    dot = sum(x * b.get(gram, 0.0) for gram, x in a.items())
+    return max(0.0, min(1.0, 1.0 - dot))
+
+
+def pattern_dist(sx, sy, ctx, _cache=None):
+    """TF-IDF cosine distance between two skeletons under a fitted context."""
+    if _cache is None:
+        return pattern_cos_dist(pattern_vec(sx, ctx), pattern_vec(sy, ctx))
+    for s in (sx, sy):
+        key = tuple(s)
+        if key not in _cache:
+            _cache[key] = pattern_vec(list(s), ctx)
+    return pattern_cos_dist(_cache[tuple(sx)], _cache[tuple(sy)])
 
 
 _PROF_MEMO = {}
@@ -727,13 +879,13 @@ def _jitter_emb(emb, sigma, rng):
 
 
 def cluster_views(features, threshold=CONSENSUS_THRESHOLD, seed=42, eval_m=EVAL_M, r_runs=R_RUNS,
-                  n_declared_patterns=None):
+                  n_declared_patterns=None, pattern_recipe=PATTERN_TOKEN_RECIPE):
     rng = random.Random(seed)
     n = len(features)
     m = min(eval_m, n)
     eval_idx = sorted(rng.sample(range(n), m)) if m < n else list(range(n))
     emb = [features[i]["embedding"] for i in eval_idx]
-    seqs = [features[i]["action_seq"] for i in eval_idx]
+    seqs = [pattern_tokens(features[i], pattern_recipe) for i in eval_idx]
     dim = len(emb[0]) if emb and emb[0] else 0
 
     sigma_e = JITTER_EMB_FRAC * _emb_scale(emb, rng) if dim else 0.0
@@ -781,11 +933,18 @@ def cluster_views(features, threshold=CONSENSUS_THRESHOLD, seed=42, eval_m=EVAL_
             urep[k] = len(uniq)
             uniq.append(k)
     u = len(uniq)
+    # Execution-view vectorizer (methodology 5.3 route A): fitted on the unique eval
+    # skeletons, persisted in the frozen structure as `_tfidf_ctx` so R1 assignment embeds
+    # new skeletons under the same idf, and fingerprinted so any construction change forces
+    # a new R2 instead of silently reusing an incompatible structure.
+    _tfidf_ctx = fit_pattern_vectorizer(
+        [list(s) for s in uniq], salient=sig if TFIDF_SALIENCY else None,
+        recipe=pattern_recipe)
+    _uvecs = [pattern_vec(list(s), _tfidf_ctx) for s in uniq]
     udm = [[0.0] * u for _ in range(u)]
     for a in range(u):
-        la = list(uniq[a])
         for b in range(a + 1, u):
-            udm[a][b] = udm[b][a] = seq_dist(la, list(uniq[b]), sig, sig_tok)
+            udm[a][b] = udm[b][a] = pattern_cos_dist(_uvecs[a], _uvecs[b])
     uw = [0] * u
     for sq in skels:
         uw[urep[tuple(sq)]] += 1
@@ -805,6 +964,7 @@ def cluster_views(features, threshold=CONSENSUS_THRESHOLD, seed=42, eval_m=EVAL_
         lab_u = avg_link_cut(jdm, u, h_pat)
         runs_p.append([lab_u.get(urep[tuple(sq)], 0) for sq in skels])
     cid_p, cons_p, groups_p = _consensus(runs_p, m, threshold)
+    _vec_cache = {}
 
     cents_i = {}
     for c, mem in groups_i.items():
@@ -814,7 +974,8 @@ def cluster_views(features, threshold=CONSENSUS_THRESHOLD, seed=42, eval_m=EVAL_
     for c, mem in groups_p.items():
         best, bx = None, None
         for x in mem:
-            tot = sum(seq_dist(skels[x], skels[y], sig, sig_tok) for y in mem) / float(len(mem))
+            tot = sum(pattern_dist(skels[x], skels[y], _tfidf_ctx, _vec_cache)
+                      for y in mem) / float(len(mem))
             if best is None or tot < best:
                 best, bx = tot, x
         med_p[c] = skels[bx]
@@ -853,8 +1014,8 @@ def cluster_views(features, threshold=CONSENSUS_THRESHOLD, seed=42, eval_m=EVAL_
     for i in range(n):
         e = features[i]["embedding"]
         ci = min(cl, key=lambda c: euclid(e, cents_i[c])) if cl else -1
-        sk = collapse(features[i]["action_seq"])
-        cp = min(pl, key=lambda c: seq_dist(sk, med_p[c], _sig_ctx[0], _sig_ctx[1])) if pl else -1
+        sk = collapse(pattern_tokens(features[i], pattern_recipe))
+        cp = min(pl, key=lambda c: pattern_dist(sk, med_p[c], _tfidf_ctx, _vec_cache)) if pl else -1
         p = pos_of.get(i)
         vi = cons_i[p] if p is not None else memcons_i.get(ci, 0.0)
         vp = cons_p[p] if p is not None else memcons_p.get(cp, 0.0)
@@ -873,6 +1034,20 @@ def cluster_views(features, threshold=CONSENSUS_THRESHOLD, seed=42, eval_m=EVAL_
             "near_pattern": cp,
             "post_margin": (None if geo == float("inf") else round(geo, 6)),
         })
+    # Per-cluster top n-gram explanations (methodology 5.3): the highest-mass n-grams of the
+    # summed member vectors, rendered as `a->b->c`, so a pattern cluster answers "which
+    # workflow does this cluster represent" without inspecting raw traces.
+    top_ngrams = {}
+    for c, mem in groups_p.items():
+        acc = {}
+        for x in mem:
+            key = tuple(skels[x])
+            if key not in _vec_cache:
+                _vec_cache[key] = pattern_vec(skels[x], _tfidf_ctx)
+            for gram, w in _vec_cache[key].items():
+                acc[gram] = acc.get(gram, 0.0) + w
+        ranked = sorted(acc.items(), key=lambda kv: (-kv[1], kv[0]))[:PATTERN_TOP_NGRAMS]
+        top_ngrams[c] = [gram.replace(">", "->") for gram, _w in ranked]
     info = {
         "n_intent_clusters": len(groups_i),
         "n_pattern_clusters": len(groups_p),
@@ -884,6 +1059,9 @@ def cluster_views(features, threshold=CONSENSUS_THRESHOLD, seed=42, eval_m=EVAL_
         "pattern_cut_height": h_pat,
         "pattern_silhouette": sil_pat,
         "pattern_height_curve": curve,
+        "pattern_top_ngrams": top_ngrams,
+        "pattern_token_recipe": pattern_recipe,
+        "structural_fingerprint": _tfidf_ctx["fingerprint"],
         "eval_m": m,
         "r_runs": r_runs,
         "threshold": threshold,

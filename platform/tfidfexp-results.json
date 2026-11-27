@@ -1,0 +1,4547 @@
+{
+  "_note": "E3 A/B: current saliency-profile pattern view vs route A TF-IDF. All arms share one intent view; see tfidfexp.py docstring.",
+  "_wall_secs": 273.3,
+  "arms": [
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9948821947859408,
+      "arm": "current",
+      "f1_pool": 0.76768,
+      "fpr_pool": 0.0,
+      "mean_G": 0.9607,
+      "n": 600,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 5,
+      "novelty_rate": 0.015,
+      "recall_pool": 0.62295,
+      "rid": "R6",
+      "secs_cluster": 372.3,
+      "secs_cluster_note": "includes ~10x settrace capture overhead; use secs_pattern_only for distance cost",
+      "secs_downstream": 0.4,
+      "secs_pattern_only": 2.6,
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.5637539991375498,
+      "arm": "tfidf-act",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.7111,
+        "dm_max": 0.9872,
+        "dm_p95": 0.963
+      },
+      "f1_pool": 0.7551,
+      "fingerprint": "50c2eccb6ac73f42",
+      "fpr_pool": 0.0,
+      "mean_G": 0.956,
+      "n": 600,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 8,
+      "n_salient": 3,
+      "n_unique_seq": 84,
+      "novelty_rate": 0.041666666666666664,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.60656,
+      "rid": "R6",
+      "secs_cluster": 2.8,
+      "secs_downstream": 0.3,
+      "top_ngrams": {
+        "0": [
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb",
+          "plan->retrieve_kb->summarize",
+          "retrieve_kb",
+          "retrieve_kb->summarize"
+        ],
+        "1": [
+          "agent_run->plan->verify",
+          "plan->verify",
+          "verify->sql_query->summarize",
+          "verify->sql_query",
+          "verify"
+        ],
+        "2": [
+          "agent_run->plan->sql_query",
+          "plan->sql_query",
+          "plan->sql_query->summarize",
+          "sql_query",
+          "sql_query->summarize"
+        ],
+        "3": [
+          "plan->schema_retrieval->sql_query",
+          "agent_run->plan->schema_retrieval",
+          "plan->schema_retrieval",
+          "schema_retrieval->sql_query->summarize",
+          "schema_retrieval->sql_query"
+        ],
+        "4": [
+          "agent_run->retrieve_kb",
+          "agent_run->retrieve_kb->summarize",
+          "retrieve_kb->summarize",
+          "retrieve_kb",
+          "summarize"
+        ],
+        "5": [
+          "agent_run->plan->approve",
+          "plan->approve",
+          "plan->approve->sql_query",
+          "approve",
+          "approve->sql_query"
+        ],
+        "6": [
+          "agent_run->plan->api_call",
+          "plan->api_call",
+          "plan->api_call->sql_query",
+          "api_call",
+          "api_call->sql_query"
+        ],
+        "7": [
+          "agent_run->plan->skip_approval_execute",
+          "plan->skip_approval_execute",
+          "plan->skip_approval_execute->verify",
+          "skip_approval_execute->verify->retrieve_kb",
+          "verify->retrieve_kb->verify"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9949331229800784,
+      "arm": "tfidf-act+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6601,
+        "dm_max": 0.996,
+        "dm_p95": 0.9859
+      },
+      "f1_pool": 0.79208,
+      "fingerprint": "656fa8d2cc02dac4",
+      "fpr_pool": 0.0,
+      "mean_G": 0.96203,
+      "n": 600,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 3,
+      "n_salient": 3,
+      "n_unique_seq": 84,
+      "novelty_rate": 0.008333333333333333,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.2941,
+      "recall_pool": 0.65574,
+      "rid": "R6",
+      "secs_cluster": 4.0,
+      "secs_downstream": 0.2,
+      "top_ngrams": {
+        "0": [
+          "retrieve_kb",
+          "plan->retrieve_kb",
+          "retrieve_kb->summarize",
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb->summarize"
+        ],
+        "1": [
+          "sql_query",
+          "plan->sql_query",
+          "agent_run->plan->sql_query",
+          "plan->sql_query->summarize",
+          "sql_query->summarize"
+        ],
+        "2": [
+          "schema_retrieval",
+          "schema_retrieval->sql_query",
+          "sql_query",
+          "sql_query->summarize",
+          "plan->schema_retrieval->sql_query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.5382486429993194,
+      "arm": "tfidf-kind",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.7111,
+        "dm_max": 0.9872,
+        "dm_p95": 0.963
+      },
+      "f1_pool": 0.72917,
+      "fingerprint": "bc6e057b57781724",
+      "fpr_pool": 0.0,
+      "mean_G": 0.94892,
+      "n": 600,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 9,
+      "n_salient": 3,
+      "n_unique_seq": 84,
+      "novelty_rate": 0.07666666666666666,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.57377,
+      "rid": "R6",
+      "secs_cluster": 2.4,
+      "secs_downstream": 0.3,
+      "top_ngrams": {
+        "0": [
+          "agent::agent_run->llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb",
+          "retrieval::retrieve_kb->llm::summarize"
+        ],
+        "1": [
+          "agent::agent_run->llm::plan->guard::verify",
+          "llm::plan->guard::verify",
+          "guard::verify->tool::sql_query->llm::summarize",
+          "guard::verify->tool::sql_query",
+          "guard::verify"
+        ],
+        "2": [
+          "llm::plan->tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query",
+          "tool::sql_query->llm::summarize",
+          "tool::sql_query"
+        ],
+        "3": [
+          "llm::plan->retrieval::schema_retrieval->tool::sql_query",
+          "agent::agent_run->llm::plan->retrieval::schema_retrieval",
+          "llm::plan->retrieval::schema_retrieval",
+          "retrieval::schema_retrieval->tool::sql_query",
+          "retrieval::schema_retrieval->tool::sql_query->llm::summarize"
+        ],
+        "4": [
+          "agent::agent_run->retrieval::retrieve_kb",
+          "agent::agent_run->retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb",
+          "llm::summarize"
+        ],
+        "5": [
+          "agent::agent_run->llm::plan->guard::approve",
+          "llm::plan->guard::approve",
+          "llm::plan->guard::approve->tool::sql_query",
+          "guard::approve",
+          "guard::approve->tool::sql_query"
+        ],
+        "6": [
+          "agent::agent_run->llm::plan->tool::api_call",
+          "llm::plan->tool::api_call",
+          "llm::plan->tool::api_call->tool::sql_query",
+          "tool::api_call",
+          "tool::api_call->tool::sql_query"
+        ],
+        "7": [
+          "guard::approve->retrieval::schema_retrieval->tool::api_call",
+          "agent::agent_run->llm::plan->tool::force_delete",
+          "llm::plan->tool::force_delete",
+          "llm::plan->tool::force_delete->retrieval::schema_retrieval",
+          "tool::force_delete->retrieval::schema_retrieval"
+        ],
+        "8": [
+          "tool::skip_approval_execute->guard::verify",
+          "tool::skip_approval_execute",
+          "llm::plan->tool::sql_query->tool::skip_approval_execute",
+          "tool::skip_approval_execute->guard::verify->guard::approve",
+          "tool::sql_query->tool::skip_approval_execute"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.3300797205273412,
+      "arm": "tfidf-kind+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.829,
+        "dm_max": 0.9979,
+        "dm_p95": 0.9938
+      },
+      "f1_pool": 0.77228,
+      "fingerprint": "f7ff53e44423133c",
+      "fpr_pool": 0.00186,
+      "mean_G": 0.95512,
+      "n": 600,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 12,
+      "n_salient": 7,
+      "n_unique_seq": 134,
+      "novelty_rate": 0.04666666666666667,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.63934,
+      "rid": "R6",
+      "secs_cluster": 4.7,
+      "secs_downstream": 0.4,
+      "top_ngrams": {
+        "0": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query"
+        ],
+        "10": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query"
+        ],
+        "11": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "2": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "3": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query"
+        ],
+        "4": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query"
+        ],
+        "5": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->guard::approve::-",
+          "retrieval::retrieve_kb::-->guard::approve::-"
+        ],
+        "7": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list"
+        ],
+        "8": [
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-->llm::summarize::-"
+        ],
+        "9": [
+          "tool::api_call::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::api_call::-->tool::sql_query::perf_db.query",
+          "tool::api_call::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::api_call::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.3698914513148902,
+      "arm": "tfidf-full",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8428,
+        "dm_max": 0.9903,
+        "dm_p95": 0.9758
+      },
+      "f1_pool": 0.79208,
+      "fingerprint": "307ec436b69e9e66",
+      "fpr_pool": 0.0,
+      "mean_G": 0.95135,
+      "n": 600,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 17,
+      "n_salient": 7,
+      "n_unique_seq": 134,
+      "novelty_rate": 0.06333333333333334,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.65574,
+      "rid": "R6",
+      "secs_cluster": 2.5,
+      "secs_downstream": 0.4,
+      "top_ngrams": {
+        "0": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "guard::verify::-->tool::sql_query::perf_db.query->tool::api_call::nbi.ne_status",
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.ne_status->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.ne_status",
+          "guard::verify::-->tool::sql_query::perf_db.query"
+        ],
+        "10": [
+          "agent::agent_run::-->llm::plan::-->guard::approve::-",
+          "llm::plan::-->guard::approve::-",
+          "guard::approve::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->guard::approve::-->tool::sql_query::perf_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query"
+        ],
+        "11": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::perf_db.query",
+          "guard::verify::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "guard::verify::-->tool::sql_query::perf_db.query"
+        ],
+        "12": [
+          "tool::sql_query::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-->llm::summarize::-"
+        ],
+        "13": [
+          "tool::skip_approval_execute::nbi.config_apply_nocheck->guard::verify::-",
+          "tool::skip_approval_execute::nbi.config_apply_nocheck",
+          "llm::plan::-->tool::sql_query::alarm_db.query->tool::skip_approval_execute::nbi.config_apply_nocheck",
+          "tool::skip_approval_execute::nbi.config_apply_nocheck->guard::verify::-->guard::approve::-",
+          "tool::sql_query::alarm_db.query->tool::skip_approval_execute::nbi.config_apply_nocheck"
+        ],
+        "14": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->retrieval::retrieve_kb::kb.history_search",
+          "tool::api_call::nbi.alarm_list->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "15": [
+          "guard::approve::-->retrieval::retrieve_kb::kb.runbook_search",
+          "guard::approve::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "llm::plan::-->guard::approve::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search"
+        ],
+        "16": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::-",
+          "llm::plan::-->tool::api_call::-",
+          "llm::plan::-->tool::api_call::-->tool::sql_query::perf_db.query",
+          "tool::api_call::-->tool::sql_query::perf_db.query",
+          "tool::api_call::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "2": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "3": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "4": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "6": [
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "guard::verify::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.history_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->guard::verify::-->retrieval::retrieve_kb::kb.history_search"
+        ],
+        "7": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "9": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->guard::approve::-",
+          "retrieval::retrieve_kb::-->guard::approve::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.32691379576076424,
+      "arm": "tfidf-full+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.829,
+        "dm_max": 0.9979,
+        "dm_p95": 0.9938
+      },
+      "f1_pool": 0.74747,
+      "fingerprint": "a64762a90e6b4465",
+      "fpr_pool": 0.00186,
+      "mean_G": 0.94983,
+      "n": 600,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 12,
+      "n_salient": 7,
+      "n_unique_seq": 134,
+      "novelty_rate": 0.075,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.60656,
+      "rid": "R6",
+      "secs_cluster": 3.5,
+      "secs_downstream": 0.3,
+      "top_ngrams": {
+        "0": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query"
+        ],
+        "10": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query"
+        ],
+        "11": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "2": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "3": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query"
+        ],
+        "4": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query"
+        ],
+        "5": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->guard::approve::-",
+          "retrieval::retrieve_kb::-->guard::approve::-"
+        ],
+        "7": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list"
+        ],
+        "8": [
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-->llm::summarize::-"
+        ],
+        "9": [
+          "tool::api_call::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::api_call::-->tool::sql_query::perf_db.query",
+          "tool::api_call::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::api_call::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9891391387010147,
+      "arm": "current",
+      "f1_pool": 0.84074,
+      "fpr_pool": 0.00054,
+      "mean_G": 0.94467,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 5,
+      "novelty_rate": 0.008,
+      "recall_pool": 0.7299,
+      "rid": "R7",
+      "secs_cluster": 315.8,
+      "secs_cluster_note": "includes ~10x settrace capture overhead; use secs_pattern_only for distance cost",
+      "secs_downstream": 2.4,
+      "secs_pattern_only": 2.2,
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.8841969648702791,
+      "arm": "tfidf-act",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.7014,
+        "dm_max": 0.9716,
+        "dm_p95": 0.9579
+      },
+      "f1_pool": 0.77014,
+      "fingerprint": "50c2eccb6ac73f42",
+      "fpr_pool": 0.00054,
+      "mean_G": 0.91645,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 6,
+      "n_salient": 3,
+      "n_unique_seq": 70,
+      "novelty_rate": 0.127,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.63023,
+      "rid": "R7",
+      "secs_cluster": 4.6,
+      "secs_downstream": 1.9,
+      "top_ngrams": {
+        "0": [
+          "plan->sql_query->summarize",
+          "agent_run->plan->sql_query",
+          "plan->sql_query",
+          "sql_query->summarize",
+          "sql_query"
+        ],
+        "1": [
+          "sql_query->summarize",
+          "schema_retrieval->sql_query",
+          "schema_retrieval",
+          "schema_retrieval->sql_query->summarize",
+          "agent_run->plan->schema_retrieval"
+        ],
+        "2": [
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb",
+          "plan->retrieve_kb->summarize",
+          "retrieve_kb",
+          "retrieve_kb->summarize"
+        ],
+        "3": [
+          "retrieve_kb->summarize",
+          "retrieve_kb",
+          "agent_run->plan->api_call",
+          "plan->api_call",
+          "verify->retrieve_kb"
+        ],
+        "4": [
+          "api_call->verify->sql_query",
+          "plan->api_call->verify",
+          "api_call->verify",
+          "verify->sql_query->summarize",
+          "verify->sql_query"
+        ],
+        "5": [
+          "agent_run->plan->summarize",
+          "plan->summarize",
+          "summarize",
+          "agent_run",
+          "agent_run->plan"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9536664771330515,
+      "arm": "tfidf-act+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6853,
+        "dm_max": 0.9888,
+        "dm_p95": 0.9844
+      },
+      "f1_pool": 0.82397,
+      "fingerprint": "656fa8d2cc02dac4",
+      "fpr_pool": 0.00081,
+      "mean_G": 0.94137,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 5,
+      "n_salient": 3,
+      "n_unique_seq": 70,
+      "novelty_rate": 0.00925,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.326,
+      "recall_pool": 0.7074,
+      "rid": "R7",
+      "secs_cluster": 5.6,
+      "secs_downstream": 2.8,
+      "top_ngrams": {
+        "0": [
+          "sql_query",
+          "plan->sql_query",
+          "plan->sql_query->summarize",
+          "agent_run->plan->sql_query",
+          "sql_query->summarize"
+        ],
+        "1": [
+          "schema_retrieval",
+          "schema_retrieval->sql_query",
+          "schema_retrieval->sql_query->summarize",
+          "plan->schema_retrieval->sql_query",
+          "sql_query"
+        ],
+        "2": [
+          "retrieve_kb",
+          "plan->retrieve_kb",
+          "agent_run->plan->retrieve_kb",
+          "retrieve_kb->summarize",
+          "plan->retrieve_kb->summarize"
+        ],
+        "3": [
+          "plan->verify->summarize",
+          "agent_run->plan->verify",
+          "plan->verify",
+          "skip_approval_execute->sql_query",
+          "verify->summarize"
+        ],
+        "4": [
+          "agent_run->plan->summarize",
+          "plan->summarize",
+          "summarize",
+          "agent_run",
+          "agent_run->plan"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.7714441711084132,
+      "arm": "tfidf-kind",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.7014,
+        "dm_max": 0.9716,
+        "dm_p95": 0.9579
+      },
+      "f1_pool": 0.82552,
+      "fingerprint": "bc6e057b57781724",
+      "fpr_pool": 0.00054,
+      "mean_G": 0.92778,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 6,
+      "n_salient": 3,
+      "n_unique_seq": 70,
+      "novelty_rate": 0.07225,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.7074,
+      "rid": "R7",
+      "secs_cluster": 5.3,
+      "secs_downstream": 2.0,
+      "top_ngrams": {
+        "0": [
+          "llm::plan->tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query",
+          "tool::sql_query->llm::summarize",
+          "tool::sql_query"
+        ],
+        "1": [
+          "tool::sql_query->llm::summarize",
+          "retrieval::schema_retrieval->tool::sql_query",
+          "retrieval::schema_retrieval",
+          "retrieval::schema_retrieval->tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->retrieval::schema_retrieval"
+        ],
+        "2": [
+          "agent::agent_run->llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb",
+          "retrieval::retrieve_kb->llm::summarize"
+        ],
+        "3": [
+          "retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb",
+          "agent::agent_run->llm::plan->tool::api_call",
+          "llm::plan->tool::api_call",
+          "llm::plan->guard::verify->retrieval::retrieve_kb"
+        ],
+        "4": [
+          "tool::api_call->guard::verify->tool::sql_query",
+          "guard::approve->guard::verify->retrieval::retrieve_kb",
+          "llm::plan->tool::api_call->guard::verify",
+          "llm::plan->guard::approve->guard::verify",
+          "guard::verify->retrieval::retrieve_kb"
+        ],
+        "5": [
+          "agent::agent_run->llm::plan->llm::summarize",
+          "llm::plan->llm::summarize",
+          "llm::summarize",
+          "agent::agent_run",
+          "agent::agent_run->llm::plan"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.47469872192389695,
+      "arm": "tfidf-kind+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8262,
+        "dm_max": 0.9958,
+        "dm_p95": 0.9933
+      },
+      "f1_pool": 0.81579,
+      "fingerprint": "f7ff53e44423133c",
+      "fpr_pool": 0.00108,
+      "mean_G": 0.93329,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 13,
+      "n_salient": 7,
+      "n_unique_seq": 115,
+      "novelty_rate": 0.03875,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.69775,
+      "rid": "R7",
+      "secs_cluster": 4.0,
+      "secs_downstream": 2.2,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "1": [
+          "tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "10": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query->llm::summarize::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.alarm_list",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query"
+        ],
+        "11": [
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-"
+        ],
+        "12": [
+          "agent::agent_run::-->llm::plan::-->llm::summarize::-",
+          "llm::plan::-->llm::summarize::-",
+          "llm::summarize::-",
+          "agent::agent_run::-",
+          "agent::agent_run::-->llm::plan::-"
+        ],
+        "2": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query"
+        ],
+        "3": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "4": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "5": [
+          "tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "6": [
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query"
+        ],
+        "7": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.alarm_list"
+        ],
+        "8": [
+          "llm::plan::-->guard::verify::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "tool::skip_approval_execute::nbi.config_apply_nocheck->tool::sql_query::perf_db.query",
+          "guard::verify::-->llm::summarize::-"
+        ],
+        "9": [
+          "tool::api_call::nbi.alarm_list->guard::approve::-->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->guard::approve::-",
+          "tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->guard::approve::-",
+          "guard::approve::-->tool::sql_query::alarm_db.query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.35750569170839436,
+      "arm": "tfidf-full",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8308,
+        "dm_max": 0.981,
+        "dm_p95": 0.9733
+      },
+      "f1_pool": 0.8209,
+      "fingerprint": "307ec436b69e9e66",
+      "fpr_pool": 0.00136,
+      "mean_G": 0.932,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 16,
+      "n_salient": 7,
+      "n_unique_seq": 115,
+      "novelty_rate": 0.04825,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.7074,
+      "rid": "R7",
+      "secs_cluster": 4.9,
+      "secs_downstream": 2.6,
+      "top_ngrams": {
+        "0": [
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "1": [
+          "guard::verify::-->tool::sql_query::perf_db.query",
+          "guard::verify::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query"
+        ],
+        "10": [
+          "guard::verify::-->tool::skip_approval_execute::nbi.config_apply_nocheck",
+          "guard::verify::-->tool::skip_approval_execute::nbi.config_apply_nocheck->tool::sql_query::perf_db.query",
+          "llm::plan::-->guard::verify::-->tool::skip_approval_execute::nbi.config_apply_nocheck",
+          "tool::skip_approval_execute::nbi.config_apply_nocheck",
+          "tool::skip_approval_execute::nbi.config_apply_nocheck->tool::sql_query::perf_db.query"
+        ],
+        "11": [
+          "guard::approve::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "guard::approve::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->guard::approve::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "12": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema"
+        ],
+        "13": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::-->tool::sql_query::perf_db.query"
+        ],
+        "14": [
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-"
+        ],
+        "15": [
+          "agent::agent_run::-->llm::plan::-->llm::summarize::-",
+          "llm::plan::-->llm::summarize::-",
+          "llm::summarize::-",
+          "agent::agent_run::-",
+          "agent::agent_run::-->llm::plan::-"
+        ],
+        "2": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "3": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "4": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query"
+        ],
+        "7": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->tool::api_call::nbi.ne_status->retrieval::retrieve_kb::kb.history_search"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "guard::verify::-->retrieval::schema_retrieval::-",
+          "guard::verify::-->retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->guard::verify::-->retrieval::schema_retrieval::-"
+        ],
+        "9": [
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.runbook_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->retrieval::retrieve_kb::kb.runbook_search"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.47430777588629847,
+      "arm": "tfidf-full+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8262,
+        "dm_max": 0.9958,
+        "dm_p95": 0.9933
+      },
+      "f1_pool": 0.81579,
+      "fingerprint": "a64762a90e6b4465",
+      "fpr_pool": 0.00108,
+      "mean_G": 0.93369,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 13,
+      "n_salient": 7,
+      "n_unique_seq": 115,
+      "novelty_rate": 0.0365,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.69775,
+      "rid": "R7",
+      "secs_cluster": 4.1,
+      "secs_downstream": 2.2,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "1": [
+          "tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "10": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query->llm::summarize::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.alarm_list",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query"
+        ],
+        "11": [
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-"
+        ],
+        "12": [
+          "agent::agent_run::-->llm::plan::-->llm::summarize::-",
+          "llm::plan::-->llm::summarize::-",
+          "llm::summarize::-",
+          "agent::agent_run::-",
+          "agent::agent_run::-->llm::plan::-"
+        ],
+        "2": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query"
+        ],
+        "3": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "4": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "5": [
+          "tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "6": [
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query"
+        ],
+        "7": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->tool::api_call::nbi.alarm_list"
+        ],
+        "8": [
+          "llm::plan::-->guard::verify::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "tool::skip_approval_execute::nbi.config_apply_nocheck->tool::sql_query::perf_db.query",
+          "guard::verify::-->llm::summarize::-"
+        ],
+        "9": [
+          "tool::api_call::nbi.alarm_list->guard::approve::-->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->guard::approve::-",
+          "tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->guard::approve::-",
+          "guard::approve::-->tool::sql_query::alarm_db.query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9911947025251971,
+      "arm": "current",
+      "f1_pool": 0.86252,
+      "fpr_pool": 0.00108,
+      "mean_G": 0.97199,
+      "n": 4000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 3,
+      "novelty_rate": 0.00825,
+      "recall_pool": 0.76846,
+      "rid": "R2",
+      "secs_cluster": 279.9,
+      "secs_cluster_note": "includes ~10x settrace capture overhead; use secs_pattern_only for distance cost",
+      "secs_downstream": 2.6,
+      "secs_pattern_only": 1.7,
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.8023749437641083,
+      "arm": "tfidf-act",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6718,
+        "dm_max": 0.9723,
+        "dm_p95": 0.9568
+      },
+      "f1_pool": 0.80709,
+      "fingerprint": "50c2eccb6ac73f42",
+      "fpr_pool": 0.00135,
+      "mean_G": 0.95982,
+      "n": 4000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 4,
+      "n_salient": 3,
+      "n_unique_seq": 69,
+      "novelty_rate": 0.07175,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.2237,
+      "recall_pool": 0.68792,
+      "rid": "R2",
+      "secs_cluster": 5.0,
+      "secs_downstream": 1.8,
+      "top_ngrams": {
+        "0": [
+          "retrieve_kb",
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb",
+          "plan->retrieve_kb->summarize",
+          "retrieve_kb->summarize"
+        ],
+        "1": [
+          "agent_run->plan->sql_query",
+          "plan->sql_query",
+          "plan->sql_query->summarize",
+          "sql_query",
+          "sql_query->summarize"
+        ],
+        "2": [
+          "sql_query->summarize",
+          "agent_run->plan->schema_retrieval",
+          "plan->schema_retrieval",
+          "plan->schema_retrieval->sql_query",
+          "schema_retrieval"
+        ],
+        "3": [
+          "force_delete->sql_query",
+          "force_delete->sql_query->summarize",
+          "plan->verify->force_delete",
+          "verify->force_delete",
+          "verify->force_delete->sql_query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.994102500427419,
+      "arm": "tfidf-act+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.63,
+        "dm_max": 0.9885,
+        "dm_p95": 0.9843
+      },
+      "f1_pool": 0.82261,
+      "fingerprint": "656fa8d2cc02dac4",
+      "fpr_pool": 0.00108,
+      "mean_G": 0.96193,
+      "n": 4000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 4,
+      "n_salient": 3,
+      "n_unique_seq": 69,
+      "novelty_rate": 0.06075,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.3286,
+      "recall_pool": 0.70805,
+      "rid": "R2",
+      "secs_cluster": 7.9,
+      "secs_downstream": 1.8,
+      "top_ngrams": {
+        "0": [
+          "retrieve_kb",
+          "plan->retrieve_kb",
+          "retrieve_kb->summarize",
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb->summarize"
+        ],
+        "1": [
+          "plan->sql_query",
+          "agent_run->plan->sql_query",
+          "plan->sql_query->summarize",
+          "sql_query",
+          "sql_query->summarize"
+        ],
+        "2": [
+          "sql_query",
+          "schema_retrieval",
+          "schema_retrieval->sql_query",
+          "sql_query->summarize",
+          "plan->schema_retrieval->sql_query"
+        ],
+        "3": [
+          "force_delete->sql_query",
+          "force_delete->sql_query->summarize",
+          "verify->force_delete->sql_query",
+          "plan->verify->force_delete",
+          "verify->force_delete"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.8023749437641083,
+      "arm": "tfidf-kind",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6718,
+        "dm_max": 0.9723,
+        "dm_p95": 0.9568
+      },
+      "f1_pool": 0.80709,
+      "fingerprint": "bc6e057b57781724",
+      "fpr_pool": 0.00135,
+      "mean_G": 0.95982,
+      "n": 4000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 4,
+      "n_salient": 3,
+      "n_unique_seq": 69,
+      "novelty_rate": 0.07175,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.2237,
+      "recall_pool": 0.68792,
+      "rid": "R2",
+      "secs_cluster": 5.3,
+      "secs_downstream": 2.0,
+      "top_ngrams": {
+        "0": [
+          "retrieval::retrieve_kb",
+          "agent::agent_run->llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb->llm::summarize"
+        ],
+        "1": [
+          "agent::agent_run->llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query->llm::summarize",
+          "tool::sql_query",
+          "tool::sql_query->llm::summarize"
+        ],
+        "2": [
+          "tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->retrieval::schema_retrieval",
+          "llm::plan->retrieval::schema_retrieval",
+          "llm::plan->retrieval::schema_retrieval->tool::sql_query",
+          "retrieval::schema_retrieval"
+        ],
+        "3": [
+          "guard::verify->tool::force_delete",
+          "guard::verify->tool::force_delete->tool::sql_query",
+          "llm::plan->guard::verify->tool::force_delete",
+          "tool::force_delete->tool::sql_query",
+          "tool::force_delete->tool::sql_query->llm::summarize"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.39993622910650567,
+      "arm": "tfidf-kind+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8111,
+        "dm_max": 0.9957,
+        "dm_p95": 0.9934
+      },
+      "f1_pool": 0.78557,
+      "fingerprint": "f7ff53e44423133c",
+      "fpr_pool": 0.00135,
+      "mean_G": 0.96047,
+      "n": 4000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 10,
+      "n_salient": 7,
+      "n_unique_seq": 115,
+      "novelty_rate": 0.06775,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.65772,
+      "rid": "R2",
+      "secs_cluster": 7.1,
+      "secs_downstream": 2.0,
+      "top_ngrams": {
+        "0": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "2": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "3": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query"
+        ],
+        "4": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->retrieval::retrieve_kb::-->guard::verify::-"
+        ],
+        "6": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status",
+          "tool::sql_query::perf_db.query"
+        ],
+        "7": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status",
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "9": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-->guard::verify::-",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "tool::sql_query::-->guard::verify::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.46636409478025714,
+      "arm": "tfidf-full",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8188,
+        "dm_max": 0.9792,
+        "dm_p95": 0.973
+      },
+      "f1_pool": 0.76436,
+      "fingerprint": "307ec436b69e9e66",
+      "fpr_pool": 0.00378,
+      "mean_G": 0.95554,
+      "n": 4000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 14,
+      "n_salient": 7,
+      "n_unique_seq": 115,
+      "novelty_rate": 0.0945,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.64765,
+      "rid": "R2",
+      "secs_cluster": 4.2,
+      "secs_downstream": 2.3,
+      "top_ngrams": {
+        "0": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "10": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "11": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->guard::verify::-",
+          "retrieval::retrieve_kb::-->guard::verify::-"
+        ],
+        "12": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query"
+        ],
+        "13": [
+          "tool::sql_query::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-"
+        ],
+        "2": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema"
+        ],
+        "3": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "4": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "5": [
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query->llm::summarize::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query"
+        ],
+        "6": [
+          "guard::verify::-->tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->guard::verify::-->tool::api_call::nbi.alarm_list",
+          "guard::verify::-->tool::api_call::nbi.alarm_list",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query->guard::approve::-",
+          "tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query"
+        ],
+        "7": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list",
+          "guard::approve::-->tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.alarm_list",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.alarm_list"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query"
+        ],
+        "9": [
+          "guard::verify::-->tool::sql_query::alarm_db.query->tool::api_call::nbi.alarm_list",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "guard::verify::-->tool::force_delete::nbi.ne_force_delete",
+          "guard::verify::-->tool::force_delete::nbi.ne_force_delete->tool::sql_query::alarm_db.query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.3997058526548874,
+      "arm": "tfidf-full+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8111,
+        "dm_max": 0.9957,
+        "dm_p95": 0.9934
+      },
+      "f1_pool": 0.784,
+      "fingerprint": "a64762a90e6b4465",
+      "fpr_pool": 0.00162,
+      "mean_G": 0.96132,
+      "n": 4000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 10,
+      "n_salient": 7,
+      "n_unique_seq": 115,
+      "novelty_rate": 0.0635,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.65772,
+      "rid": "R2",
+      "secs_cluster": 6.6,
+      "secs_downstream": 2.5,
+      "top_ngrams": {
+        "0": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "2": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "3": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query"
+        ],
+        "4": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->retrieval::retrieve_kb::-->guard::verify::-"
+        ],
+        "6": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status",
+          "tool::sql_query::perf_db.query"
+        ],
+        "7": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status",
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "9": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-->guard::verify::-",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "tool::sql_query::-->guard::verify::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9723493311698869,
+      "arm": "current",
+      "f1_pool": 0.82809,
+      "fpr_pool": 0.00036,
+      "mean_G": 0.97063,
+      "n": 3000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 3,
+      "novelty_rate": 0.023333333333333334,
+      "recall_pool": 0.70954,
+      "rid": "R8",
+      "secs_cluster": 269.5,
+      "secs_cluster_note": "includes ~10x settrace capture overhead; use secs_pattern_only for distance cost",
+      "secs_downstream": 1.5,
+      "secs_pattern_only": 1.2,
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.8630068768388133,
+      "arm": "tfidf-act",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.508,
+        "dm_max": 0.9742,
+        "dm_p95": 0.9331
+      },
+      "f1_pool": 0.8059,
+      "fingerprint": "50c2eccb6ac73f42",
+      "fpr_pool": 0.00072,
+      "mean_G": 0.97003,
+      "n": 3000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 6,
+      "n_salient": 0,
+      "n_unique_seq": 34,
+      "novelty_rate": 0.026333333333333334,
+      "pattern_cut_height": 0.8,
+      "pattern_silhouette": 0.3336,
+      "recall_pool": 0.6805,
+      "rid": "R8",
+      "secs_cluster": 5.6,
+      "secs_downstream": 1.4,
+      "top_ngrams": {
+        "0": [
+          "intent_parse->query_metrics->draft_rca",
+          "agent_run->intent_parse->query_metrics",
+          "intent_parse->query_metrics",
+          "query_metrics->draft_rca",
+          "query_metrics"
+        ],
+        "1": [
+          "intent_parse->fetch_topology->correlate_events",
+          "agent_run->intent_parse->fetch_topology",
+          "intent_parse->fetch_topology",
+          "fetch_topology->correlate_events->draft_rca",
+          "correlate_events->draft_rca"
+        ],
+        "2": [
+          "intent_parse->correlate_events->peer_review",
+          "agent_run->intent_parse->correlate_events",
+          "intent_parse->correlate_events",
+          "correlate_events->peer_review->draft_rca",
+          "correlate_events->peer_review"
+        ],
+        "3": [
+          "agent_run->intent_parse->peer_review",
+          "intent_parse->peer_review",
+          "intent_parse->peer_review->query_metrics",
+          "peer_review->query_metrics->draft_rca",
+          "peer_review->query_metrics"
+        ],
+        "4": [
+          "agent_run->peer_review",
+          "agent_run->peer_review->query_metrics",
+          "peer_review->query_metrics->draft_rca",
+          "peer_review->query_metrics",
+          "query_metrics->draft_rca"
+        ],
+        "5": [
+          "agent_run->query_metrics",
+          "agent_run->query_metrics->draft_rca",
+          "query_metrics->draft_rca",
+          "query_metrics",
+          "draft_rca"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.8609586513185038,
+      "arm": "tfidf-act+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.508,
+        "dm_max": 0.9742,
+        "dm_p95": 0.9331
+      },
+      "f1_pool": 0.81951,
+      "fingerprint": "656fa8d2cc02dac4",
+      "fpr_pool": 0.00036,
+      "mean_G": 0.9701,
+      "n": 3000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 5,
+      "n_salient": 0,
+      "n_unique_seq": 34,
+      "novelty_rate": 0.026,
+      "pattern_cut_height": 0.8,
+      "pattern_silhouette": 0.3336,
+      "recall_pool": 0.6971,
+      "rid": "R8",
+      "secs_cluster": 3.8,
+      "secs_downstream": 1.5,
+      "top_ngrams": {
+        "0": [
+          "intent_parse->query_metrics->draft_rca",
+          "agent_run->intent_parse->query_metrics",
+          "intent_parse->query_metrics",
+          "query_metrics->draft_rca",
+          "query_metrics"
+        ],
+        "1": [
+          "intent_parse->fetch_topology->correlate_events",
+          "agent_run->intent_parse->fetch_topology",
+          "intent_parse->fetch_topology",
+          "fetch_topology->correlate_events->draft_rca",
+          "correlate_events->draft_rca"
+        ],
+        "2": [
+          "intent_parse->correlate_events->peer_review",
+          "agent_run->intent_parse->correlate_events",
+          "intent_parse->correlate_events",
+          "correlate_events->peer_review->draft_rca",
+          "correlate_events->peer_review"
+        ],
+        "3": [
+          "agent_run->intent_parse->peer_review",
+          "intent_parse->peer_review",
+          "intent_parse->peer_review->query_metrics",
+          "peer_review->query_metrics->draft_rca",
+          "peer_review->query_metrics"
+        ],
+        "4": [
+          "agent_run->query_metrics",
+          "agent_run->query_metrics->draft_rca",
+          "query_metrics->draft_rca",
+          "query_metrics",
+          "draft_rca"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.8628672766069334,
+      "arm": "tfidf-kind",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.508,
+        "dm_max": 0.9742,
+        "dm_p95": 0.9331
+      },
+      "f1_pool": 0.8059,
+      "fingerprint": "bc6e057b57781724",
+      "fpr_pool": 0.00072,
+      "mean_G": 0.9699,
+      "n": 3000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 6,
+      "n_salient": 0,
+      "n_unique_seq": 34,
+      "novelty_rate": 0.027,
+      "pattern_cut_height": 0.8,
+      "pattern_silhouette": 0.3336,
+      "recall_pool": 0.6805,
+      "rid": "R8",
+      "secs_cluster": 4.0,
+      "secs_downstream": 2.1,
+      "top_ngrams": {
+        "0": [
+          "llm::intent_parse->tool::query_metrics->llm::draft_rca",
+          "agent::agent_run->llm::intent_parse->tool::query_metrics",
+          "llm::intent_parse->tool::query_metrics",
+          "tool::query_metrics->llm::draft_rca",
+          "tool::query_metrics"
+        ],
+        "1": [
+          "llm::intent_parse->retrieval::fetch_topology->llm::correlate_events",
+          "agent::agent_run->llm::intent_parse->retrieval::fetch_topology",
+          "llm::intent_parse->retrieval::fetch_topology",
+          "retrieval::fetch_topology->llm::correlate_events->llm::draft_rca",
+          "llm::correlate_events->llm::draft_rca"
+        ],
+        "2": [
+          "llm::intent_parse->llm::correlate_events->guard::peer_review",
+          "agent::agent_run->llm::intent_parse->llm::correlate_events",
+          "llm::intent_parse->llm::correlate_events",
+          "llm::correlate_events->guard::peer_review->llm::draft_rca",
+          "llm::correlate_events->guard::peer_review"
+        ],
+        "3": [
+          "agent::agent_run->llm::intent_parse->guard::peer_review",
+          "llm::intent_parse->guard::peer_review",
+          "llm::intent_parse->guard::peer_review->tool::query_metrics",
+          "guard::peer_review->tool::query_metrics->llm::draft_rca",
+          "guard::peer_review->tool::query_metrics"
+        ],
+        "4": [
+          "agent::agent_run->guard::peer_review",
+          "agent::agent_run->guard::peer_review->tool::query_metrics",
+          "guard::peer_review->tool::query_metrics->llm::draft_rca",
+          "guard::peer_review->tool::query_metrics",
+          "tool::query_metrics->llm::draft_rca"
+        ],
+        "5": [
+          "agent::agent_run->tool::query_metrics",
+          "agent::agent_run->tool::query_metrics->llm::draft_rca",
+          "tool::query_metrics->llm::draft_rca",
+          "tool::query_metrics",
+          "llm::draft_rca"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.7484510002433128,
+      "arm": "tfidf-kind+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.5762,
+        "dm_max": 0.9751,
+        "dm_p95": 0.9476
+      },
+      "f1_pool": 0.68293,
+      "fingerprint": "f7ff53e44423133c",
+      "fpr_pool": 0.00072,
+      "mean_G": 0.9141,
+      "n": 3000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 5,
+      "n_salient": 0,
+      "n_unique_seq": 39,
+      "novelty_rate": 0.313,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.1178,
+      "recall_pool": 0.52282,
+      "rid": "R8",
+      "secs_cluster": 6.5,
+      "secs_downstream": 1.9,
+      "top_ngrams": {
+        "0": [
+          "llm::intent_parse::-->tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "agent::agent_run::-->llm::intent_parse::-->tool::query_metrics::tsdb.kpi_query",
+          "llm::intent_parse::-->tool::query_metrics::tsdb.kpi_query",
+          "llm::intent_parse::-->llm::correlate_events::-->guard::peer_review::-",
+          "agent::agent_run::-->llm::intent_parse::-->llm::correlate_events::-"
+        ],
+        "1": [
+          "retrieval::fetch_topology::gis.topology_query->llm::correlate_events::-->llm::draft_rca::-",
+          "llm::intent_parse::-->retrieval::fetch_topology::gis.topology_query->llm::correlate_events::-",
+          "retrieval::fetch_topology::gis.topology_query->llm::correlate_events::-",
+          "llm::correlate_events::-->llm::draft_rca::-",
+          "agent::agent_run::-->llm::intent_parse::-->retrieval::fetch_topology::gis.topology_query"
+        ],
+        "2": [
+          "agent::agent_run::-->tool::query_metrics::tsdb.kpi_query",
+          "agent::agent_run::-->tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "agent::agent_run::-->guard::peer_review::-",
+          "agent::agent_run::-->guard::peer_review::-->tool::query_metrics::tsdb.kpi_query"
+        ],
+        "3": [
+          "agent::agent_run::-->llm::intent_parse::-->tool::query_metrics::-",
+          "llm::intent_parse::-->tool::query_metrics::-",
+          "llm::intent_parse::-->tool::query_metrics::-->llm::draft_rca::-",
+          "tool::query_metrics::-->llm::draft_rca::-",
+          "tool::query_metrics::-"
+        ],
+        "4": [
+          "retrieval::fetch_topology::-",
+          "retrieval::fetch_topology::-->llm::correlate_events::-",
+          "retrieval::fetch_topology::-->llm::correlate_events::-->llm::draft_rca::-",
+          "llm::correlate_events::-->llm::draft_rca::-",
+          "agent::agent_run::-->llm::intent_parse::-->retrieval::fetch_topology::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.7893884942658494,
+      "arm": "tfidf-full",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.5762,
+        "dm_max": 0.9751,
+        "dm_p95": 0.9476
+      },
+      "f1_pool": 0.81174,
+      "fingerprint": "307ec436b69e9e66",
+      "fpr_pool": 0.00072,
+      "mean_G": 0.9703,
+      "n": 3000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 5,
+      "n_salient": 0,
+      "n_unique_seq": 39,
+      "novelty_rate": 0.025,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.1178,
+      "recall_pool": 0.6888,
+      "rid": "R8",
+      "secs_cluster": 6.9,
+      "secs_downstream": 2.0,
+      "top_ngrams": {
+        "0": [
+          "llm::intent_parse::-->tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "agent::agent_run::-->llm::intent_parse::-->tool::query_metrics::tsdb.kpi_query",
+          "llm::intent_parse::-->tool::query_metrics::tsdb.kpi_query",
+          "llm::draft_rca::-",
+          "agent::agent_run::-->llm::intent_parse::-"
+        ],
+        "1": [
+          "llm::intent_parse::-->llm::correlate_events::-->guard::peer_review::-",
+          "agent::agent_run::-->llm::intent_parse::-->llm::correlate_events::-",
+          "llm::intent_parse::-->llm::correlate_events::-",
+          "llm::correlate_events::-->guard::peer_review::-->llm::draft_rca::-",
+          "llm::correlate_events::-->guard::peer_review::-"
+        ],
+        "2": [
+          "agent::agent_run::-->llm::intent_parse::-->tool::query_metrics::-",
+          "llm::intent_parse::-->tool::query_metrics::-",
+          "llm::intent_parse::-->tool::query_metrics::-->llm::draft_rca::-",
+          "tool::query_metrics::-->llm::draft_rca::-",
+          "tool::query_metrics::-"
+        ],
+        "3": [
+          "retrieval::fetch_topology::-",
+          "retrieval::fetch_topology::-->llm::correlate_events::-",
+          "retrieval::fetch_topology::-->llm::correlate_events::-->llm::draft_rca::-",
+          "llm::correlate_events::-->llm::draft_rca::-",
+          "agent::agent_run::-->llm::intent_parse::-->retrieval::fetch_topology::-"
+        ],
+        "4": [
+          "agent::agent_run::-->tool::query_metrics::tsdb.kpi_query",
+          "agent::agent_run::-->tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "tool::query_metrics::tsdb.kpi_query",
+          "llm::draft_rca::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.5627910513435007,
+      "arm": "tfidf-full+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.5762,
+        "dm_max": 0.9751,
+        "dm_p95": 0.9476
+      },
+      "f1_pool": 0.61714,
+      "fingerprint": "a64762a90e6b4465",
+      "fpr_pool": 0.00036,
+      "mean_G": 0.90027,
+      "n": 3000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 5,
+      "n_salient": 0,
+      "n_unique_seq": 39,
+      "novelty_rate": 0.385,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.1178,
+      "recall_pool": 0.44813,
+      "rid": "R8",
+      "secs_cluster": 9.7,
+      "secs_downstream": 1.4,
+      "top_ngrams": {
+        "0": [
+          "llm::draft_rca::-",
+          "agent::agent_run::-->llm::intent_parse::-",
+          "llm::intent_parse::-",
+          "agent::agent_run::-",
+          "llm::intent_parse::-->tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-"
+        ],
+        "1": [
+          "agent::agent_run::-->guard::peer_review::-",
+          "agent::agent_run::-->guard::peer_review::-->tool::query_metrics::tsdb.kpi_query",
+          "guard::peer_review::-->tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "guard::peer_review::-->tool::query_metrics::tsdb.kpi_query",
+          "tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-"
+        ],
+        "2": [
+          "agent::agent_run::-->llm::intent_parse::-->tool::query_metrics::-",
+          "llm::intent_parse::-->tool::query_metrics::-",
+          "llm::intent_parse::-->tool::query_metrics::-->llm::draft_rca::-",
+          "tool::query_metrics::-->llm::draft_rca::-",
+          "tool::query_metrics::-"
+        ],
+        "3": [
+          "retrieval::fetch_topology::-",
+          "retrieval::fetch_topology::-->llm::correlate_events::-",
+          "retrieval::fetch_topology::-->llm::correlate_events::-->llm::draft_rca::-",
+          "llm::correlate_events::-->llm::draft_rca::-",
+          "agent::agent_run::-->llm::intent_parse::-->retrieval::fetch_topology::-"
+        ],
+        "4": [
+          "agent::agent_run::-->tool::query_metrics::tsdb.kpi_query",
+          "agent::agent_run::-->tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "tool::query_metrics::tsdb.kpi_query->llm::draft_rca::-",
+          "tool::query_metrics::tsdb.kpi_query",
+          "llm::draft_rca::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 0.7511756196415288,
+      "ari_pattern_pool": 0.9866173539737775,
+      "arm": "current",
+      "f1_pool": 0.68269,
+      "fpr_pool": 0.00147,
+      "mean_G": 0.91182,
+      "n": 3000,
+      "n_intent_clusters": 6,
+      "n_pattern_clusters": 4,
+      "novelty_rate": 0.2866666666666667,
+      "recall_pool": 0.52593,
+      "rid": "R3",
+      "secs_cluster": 407.4,
+      "secs_cluster_note": "includes ~10x settrace capture overhead; use secs_pattern_only for distance cost",
+      "secs_downstream": 1.3,
+      "secs_pattern_only": 1.5,
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 0.7498731101447897,
+      "ari_pattern_pool": 0.694209301607993,
+      "arm": "tfidf-act",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6992,
+        "dm_max": 0.9905,
+        "dm_p95": 0.9596
+      },
+      "f1_pool": 0.689,
+      "fingerprint": "50c2eccb6ac73f42",
+      "fpr_pool": 0.00147,
+      "mean_G": 0.91102,
+      "n": 3000,
+      "n_intent_clusters": 6,
+      "n_pattern_clusters": 6,
+      "n_salient": 3,
+      "n_unique_seq": 85,
+      "novelty_rate": 0.2906666666666667,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.53333,
+      "rid": "R3",
+      "secs_cluster": 5.6,
+      "secs_downstream": 1.8,
+      "top_ngrams": {
+        "0": [
+          "plan->sql_query->summarize",
+          "agent_run->plan->sql_query",
+          "plan->sql_query",
+          "sql_query",
+          "sql_query->summarize"
+        ],
+        "1": [
+          "plan->retrieve_kb->summarize",
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb",
+          "retrieve_kb",
+          "retrieve_kb->summarize"
+        ],
+        "2": [
+          "agent_run->plan->schema_retrieval",
+          "plan->schema_retrieval",
+          "plan->schema_retrieval->sql_query",
+          "schema_retrieval",
+          "sql_query->summarize"
+        ],
+        "3": [
+          "agent_run->plan->verify",
+          "plan->verify",
+          "verify",
+          "plan->verify->sql_query",
+          "plan->verify->retrieve_kb"
+        ],
+        "4": [
+          "agent_run->plan->approve",
+          "plan->approve",
+          "plan->approve->sql_query",
+          "approve->sql_query",
+          "approve"
+        ],
+        "5": [
+          "agent_run->sql_query",
+          "agent_run->sql_query->summarize",
+          "sql_query->summarize",
+          "sql_query",
+          "summarize"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 0.7521527703556603,
+      "ari_pattern_pool": 0.9865936508465621,
+      "arm": "tfidf-act+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6658,
+        "dm_max": 0.9963,
+        "dm_p95": 0.985
+      },
+      "f1_pool": 0.66667,
+      "fingerprint": "656fa8d2cc02dac4",
+      "fpr_pool": 0.00147,
+      "mean_G": 0.91142,
+      "n": 3000,
+      "n_intent_clusters": 6,
+      "n_pattern_clusters": 5,
+      "n_salient": 3,
+      "n_unique_seq": 85,
+      "novelty_rate": 0.2886666666666667,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.3014,
+      "recall_pool": 0.50741,
+      "rid": "R3",
+      "secs_cluster": 7.4,
+      "secs_downstream": 1.2,
+      "top_ngrams": {
+        "0": [
+          "plan->sql_query",
+          "sql_query",
+          "plan->sql_query->summarize",
+          "agent_run->plan->sql_query",
+          "sql_query->summarize"
+        ],
+        "1": [
+          "retrieve_kb",
+          "retrieve_kb->summarize",
+          "plan->retrieve_kb",
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb->summarize"
+        ],
+        "2": [
+          "sql_query",
+          "schema_retrieval",
+          "schema_retrieval->sql_query",
+          "sql_query->summarize",
+          "schema_retrieval->sql_query->summarize"
+        ],
+        "3": [
+          "agent_run->sql_query",
+          "agent_run->sql_query->summarize",
+          "sql_query",
+          "sql_query->summarize",
+          "summarize"
+        ],
+        "4": [
+          "agent_run->plan",
+          "plan",
+          "agent_run",
+          "agent_run->plan->verify",
+          "plan->verify"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 0.7503079075376996,
+      "ari_pattern_pool": 0.6928323020012105,
+      "arm": "tfidf-kind",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6992,
+        "dm_max": 0.9905,
+        "dm_p95": 0.9596
+      },
+      "f1_pool": 0.689,
+      "fingerprint": "bc6e057b57781724",
+      "fpr_pool": 0.00147,
+      "mean_G": 0.91128,
+      "n": 3000,
+      "n_intent_clusters": 6,
+      "n_pattern_clusters": 6,
+      "n_salient": 3,
+      "n_unique_seq": 85,
+      "novelty_rate": 0.28933333333333333,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.53333,
+      "rid": "R3",
+      "secs_cluster": 5.8,
+      "secs_downstream": 2.0,
+      "top_ngrams": {
+        "0": [
+          "llm::plan->tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query",
+          "tool::sql_query",
+          "tool::sql_query->llm::summarize"
+        ],
+        "1": [
+          "llm::plan->retrieval::retrieve_kb->llm::summarize",
+          "agent::agent_run->llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb",
+          "retrieval::retrieve_kb",
+          "retrieval::retrieve_kb->llm::summarize"
+        ],
+        "2": [
+          "agent::agent_run->llm::plan->retrieval::schema_retrieval",
+          "llm::plan->retrieval::schema_retrieval",
+          "llm::plan->retrieval::schema_retrieval->tool::sql_query",
+          "retrieval::schema_retrieval",
+          "tool::sql_query->llm::summarize"
+        ],
+        "3": [
+          "agent::agent_run->llm::plan->guard::verify",
+          "llm::plan->guard::verify",
+          "guard::verify",
+          "llm::plan->guard::verify->tool::sql_query",
+          "llm::plan->guard::verify->retrieval::retrieve_kb"
+        ],
+        "4": [
+          "agent::agent_run->llm::plan->guard::approve",
+          "llm::plan->guard::approve",
+          "llm::plan->guard::approve->tool::sql_query",
+          "guard::approve->tool::sql_query",
+          "guard::approve"
+        ],
+        "5": [
+          "agent::agent_run->tool::sql_query",
+          "agent::agent_run->tool::sql_query->llm::summarize",
+          "tool::sql_query->llm::summarize",
+          "tool::sql_query",
+          "llm::summarize"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 0.7468447135642453,
+      "ari_pattern_pool": 0.31256634060168476,
+      "arm": "tfidf-kind+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8167,
+        "dm_max": 0.9979,
+        "dm_p95": 0.9935
+      },
+      "f1_pool": 0.68085,
+      "fingerprint": "f7ff53e44423133c",
+      "fpr_pool": 0.0033,
+      "mean_G": 0.90731,
+      "n": 3000,
+      "n_intent_clusters": 6,
+      "n_pattern_clusters": 9,
+      "n_salient": 7,
+      "n_unique_seq": 130,
+      "novelty_rate": 0.30966666666666665,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.53333,
+      "rid": "R3",
+      "secs_cluster": 6.9,
+      "secs_downstream": 1.4,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query"
+        ],
+        "1": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "2": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "3": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "4": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-",
+          "llm::plan::-",
+          "agent::agent_run::-",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-"
+        ],
+        "7": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "8": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::sql_query::alarm_db.query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 0.7488554376733909,
+      "ari_pattern_pool": 0.354242835792952,
+      "arm": "tfidf-full",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8221,
+        "dm_max": 0.9922,
+        "dm_p95": 0.9736
+      },
+      "f1_pool": 0.65403,
+      "fingerprint": "307ec436b69e9e66",
+      "fpr_pool": 0.00513,
+      "mean_G": 0.90847,
+      "n": 3000,
+      "n_intent_clusters": 6,
+      "n_pattern_clusters": 15,
+      "n_salient": 7,
+      "n_unique_seq": 130,
+      "novelty_rate": 0.30366666666666664,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.51111,
+      "rid": "R3",
+      "secs_cluster": 5.4,
+      "secs_downstream": 2.1,
+      "top_ngrams": {
+        "0": [
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "1": [
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "10": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->retrieval::retrieve_kb::kb.history_search"
+        ],
+        "11": [
+          "guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "12": [
+          "agent::agent_run::-->llm::plan::-",
+          "llm::plan::-",
+          "agent::agent_run::-",
+          "guard::verify::-->guard::approve::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->guard::verify::-->guard::approve::-"
+        ],
+        "13": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "14": [
+          "agent::agent_run::-->tool::sql_query::alarm_db.query",
+          "agent::agent_run::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::sql_query::alarm_db.query",
+          "llm::summarize::-"
+        ],
+        "2": [
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema"
+        ],
+        "3": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "guard::verify::-->tool::sql_query::perf_db.query",
+          "guard::verify::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "guard::verify::-"
+        ],
+        "4": [
+          "tool::sql_query::perf_db.query->guard::verify::-->llm::summarize::-",
+          "tool::sql_query::perf_db.query->guard::verify::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::perf_db.query"
+        ],
+        "5": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "7": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-->guard::approve::-",
+          "llm::plan::-->guard::approve::-",
+          "guard::approve::-",
+          "llm::plan::-->guard::approve::-->tool::sql_query::alarm_db.query",
+          "guard::approve::-->tool::sql_query::alarm_db.query"
+        ],
+        "9": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-"
+        ]
+      },
+      "topk15_precision": 0.86667
+    },
+    {
+      "ari_intent_pool": 0.7487622824481519,
+      "ari_pattern_pool": 0.35543023429827586,
+      "arm": "tfidf-full+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8167,
+        "dm_max": 0.9979,
+        "dm_p95": 0.9935
+      },
+      "f1_pool": 0.63882,
+      "fingerprint": "a64762a90e6b4465",
+      "fpr_pool": 0.00256,
+      "mean_G": 0.89494,
+      "n": 3000,
+      "n_intent_clusters": 6,
+      "n_pattern_clusters": 10,
+      "n_salient": 7,
+      "n_unique_seq": 130,
+      "novelty_rate": 0.37333333333333335,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.48148,
+      "rid": "R3",
+      "secs_cluster": 7.0,
+      "secs_downstream": 1.4,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query"
+        ],
+        "1": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "2": [
+          "tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "3": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list",
+          "tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::perf_db.query"
+        ],
+        "4": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "5": [
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "6": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list"
+        ],
+        "7": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-",
+          "llm::plan::-",
+          "agent::agent_run::-",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-"
+        ],
+        "9": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.98035459800369,
+      "arm": "current",
+      "f1_pool": 0.81226,
+      "fpr_pool": 0.00074,
+      "mean_G": 0.96325,
+      "n": 3000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 5,
+      "novelty_rate": 0.007,
+      "recall_pool": 0.68831,
+      "rid": "R5",
+      "secs_cluster": 339.2,
+      "secs_cluster_note": "includes ~10x settrace capture overhead; use secs_pattern_only for distance cost",
+      "secs_downstream": 1.5,
+      "secs_pattern_only": 1.8,
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.5777076431953903,
+      "arm": "tfidf-act",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.7044,
+        "dm_max": 0.9819,
+        "dm_p95": 0.9597
+      },
+      "f1_pool": 0.80925,
+      "fingerprint": "50c2eccb6ac73f42",
+      "fpr_pool": 0.00037,
+      "mean_G": 0.95705,
+      "n": 3000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 6,
+      "n_salient": 3,
+      "n_unique_seq": 80,
+      "novelty_rate": 0.03866666666666667,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.2461,
+      "recall_pool": 0.68182,
+      "rid": "R5",
+      "secs_cluster": 3.6,
+      "secs_downstream": 1.6,
+      "top_ngrams": {
+        "0": [
+          "plan->retrieve_kb->summarize",
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb",
+          "retrieve_kb",
+          "retrieve_kb->summarize"
+        ],
+        "1": [
+          "plan->sql_query->summarize",
+          "agent_run->plan->sql_query",
+          "plan->sql_query",
+          "sql_query",
+          "sql_query->summarize"
+        ],
+        "2": [
+          "agent_run->plan->schema_retrieval",
+          "plan->schema_retrieval",
+          "sql_query->summarize",
+          "plan->schema_retrieval->sql_query",
+          "schema_retrieval"
+        ],
+        "3": [
+          "agent_run->plan->api_call",
+          "plan->api_call",
+          "plan->api_call->sql_query",
+          "api_call->sql_query",
+          "api_call"
+        ],
+        "4": [
+          "agent_run->plan->verify",
+          "plan->verify",
+          "plan->verify->sql_query",
+          "verify->sql_query",
+          "verify"
+        ],
+        "5": [
+          "plan->verify->schema_retrieval",
+          "verify->schema_retrieval",
+          "verify->schema_retrieval->sql_query",
+          "schema_retrieval->sql_query->summarize",
+          "agent_run->plan->verify"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9551329787743648,
+      "arm": "tfidf-act+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6437,
+        "dm_max": 0.9932,
+        "dm_p95": 0.9846
+      },
+      "f1_pool": 0.81836,
+      "fingerprint": "656fa8d2cc02dac4",
+      "fpr_pool": 0.00037,
+      "mean_G": 0.96331,
+      "n": 3000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 4,
+      "n_salient": 3,
+      "n_unique_seq": 80,
+      "novelty_rate": 0.006666666666666667,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.308,
+      "recall_pool": 0.69481,
+      "rid": "R5",
+      "secs_cluster": 7.5,
+      "secs_downstream": 1.4,
+      "top_ngrams": {
+        "0": [
+          "retrieve_kb",
+          "plan->retrieve_kb",
+          "retrieve_kb->summarize",
+          "plan->retrieve_kb->summarize",
+          "agent_run->plan->retrieve_kb"
+        ],
+        "1": [
+          "sql_query",
+          "plan->sql_query",
+          "plan->sql_query->summarize",
+          "agent_run->plan->sql_query",
+          "sql_query->summarize"
+        ],
+        "2": [
+          "schema_retrieval->sql_query",
+          "schema_retrieval",
+          "schema_retrieval->sql_query->summarize",
+          "sql_query",
+          "plan->schema_retrieval->sql_query"
+        ],
+        "3": [
+          "agent_run->plan->verify",
+          "plan->verify",
+          "plan->verify->summarize",
+          "verify",
+          "verify->summarize"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.5789909623678173,
+      "arm": "tfidf-kind",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.7044,
+        "dm_max": 0.9819,
+        "dm_p95": 0.9597
+      },
+      "f1_pool": 0.80769,
+      "fingerprint": "bc6e057b57781724",
+      "fpr_pool": 0.00074,
+      "mean_G": 0.95754,
+      "n": 3000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 6,
+      "n_salient": 3,
+      "n_unique_seq": 80,
+      "novelty_rate": 0.036333333333333336,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.2461,
+      "recall_pool": 0.68182,
+      "rid": "R5",
+      "secs_cluster": 4.1,
+      "secs_downstream": 1.5,
+      "top_ngrams": {
+        "0": [
+          "llm::plan->retrieval::retrieve_kb->llm::summarize",
+          "agent::agent_run->llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb",
+          "retrieval::retrieve_kb",
+          "retrieval::retrieve_kb->llm::summarize"
+        ],
+        "1": [
+          "llm::plan->tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query",
+          "tool::sql_query",
+          "tool::sql_query->llm::summarize"
+        ],
+        "2": [
+          "tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->retrieval::schema_retrieval",
+          "llm::plan->retrieval::schema_retrieval",
+          "llm::plan->retrieval::schema_retrieval->tool::sql_query",
+          "retrieval::schema_retrieval"
+        ],
+        "3": [
+          "agent::agent_run->llm::plan->tool::api_call",
+          "llm::plan->tool::api_call",
+          "llm::plan->tool::api_call->tool::sql_query",
+          "tool::api_call->tool::sql_query",
+          "tool::api_call"
+        ],
+        "4": [
+          "agent::agent_run->llm::plan->guard::verify",
+          "llm::plan->guard::verify",
+          "llm::plan->guard::verify->tool::sql_query",
+          "guard::verify->tool::sql_query",
+          "guard::verify->tool::sql_query->llm::summarize"
+        ],
+        "5": [
+          "llm::plan->guard::verify->retrieval::schema_retrieval",
+          "guard::verify->retrieval::schema_retrieval",
+          "guard::verify->retrieval::schema_retrieval->tool::sql_query",
+          "retrieval::schema_retrieval->tool::sql_query->llm::summarize",
+          "retrieval::schema_retrieval->tool::sql_query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.2702371213673047,
+      "arm": "tfidf-kind+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8507,
+        "dm_max": 0.9977,
+        "dm_p95": 0.994
+      },
+      "f1_pool": 0.81071,
+      "fingerprint": "f7ff53e44423133c",
+      "fpr_pool": 0.00111,
+      "mean_G": 0.95699,
+      "n": 3000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 10,
+      "n_salient": 9,
+      "n_unique_seq": 139,
+      "novelty_rate": 0.03866666666666667,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.68831,
+      "rid": "R5",
+      "secs_cluster": 5.6,
+      "secs_downstream": 2.2,
+      "top_ngrams": {
+        "0": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "2": [
+          "tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query"
+        ],
+        "3": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query"
+        ],
+        "4": [
+          "tool::sql_query::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-"
+        ],
+        "5": [
+          "tool::api_call::nbi.ne_status->tool::sql_query::-",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::-",
+          "tool::api_call::nbi.ne_status->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-",
+          "tool::api_call::nbi.ne_status"
+        ],
+        "6": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "7": [
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->llm::summarize::-"
+        ],
+        "8": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::api_call::nbi.alarm_list",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "9": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-->llm::summarize::-",
+          "guard::verify::-",
+          "guard::verify::-->llm::summarize::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.2413082530763781,
+      "arm": "tfidf-full",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.862,
+        "dm_max": 0.9922,
+        "dm_p95": 0.976
+      },
+      "f1_pool": 0.81648,
+      "fingerprint": "307ec436b69e9e66",
+      "fpr_pool": 0.00297,
+      "mean_G": 0.96213,
+      "n": 3000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 18,
+      "n_salient": 9,
+      "n_unique_seq": 139,
+      "novelty_rate": 0.012333333333333333,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.70779,
+      "rid": "R5",
+      "secs_cluster": 3.5,
+      "secs_downstream": 1.7,
+      "top_ngrams": {
+        "0": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "10": [
+          "guard::approve::-->tool::sql_query::-",
+          "guard::approve::-->tool::sql_query::-->llm::summarize::-",
+          "llm::plan::-->guard::approve::-->tool::sql_query::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "11": [
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "guard::verify::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->retrieval::retrieve_kb::kb.runbook_search"
+        ],
+        "12": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "13": [
+          "guard::approve::-->tool::sql_query::alarm_db.query",
+          "agent::agent_run::-->llm::plan::-->guard::approve::-",
+          "llm::plan::-->guard::approve::-",
+          "guard::approve::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->guard::approve::-->tool::sql_query::alarm_db.query"
+        ],
+        "14": [
+          "guard::verify::-->tool::sql_query::perf_db.query",
+          "guard::verify::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query"
+        ],
+        "15": [
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->llm::summarize::-"
+        ],
+        "16": [
+          "guard::approve::-->tool::sql_query::perf_db.query",
+          "guard::approve::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->guard::approve::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query"
+        ],
+        "17": [
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.history_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->guard::verify::-->retrieval::retrieve_kb::kb.history_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "2": [
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query->llm::summarize::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query"
+        ],
+        "3": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-->guard::verify::-",
+          "retrieval::schema_retrieval::-->guard::verify::-"
+        ],
+        "4": [
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-",
+          "tool::sql_query::-->llm::summarize::-"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status->retrieval::retrieve_kb::kb.runbook_search",
+          "tool::api_call::nbi.ne_status->retrieval::retrieve_kb::kb.runbook_search"
+        ],
+        "7": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "9": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::-",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.33341192370146006,
+      "arm": "tfidf-full+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8507,
+        "dm_max": 0.9977,
+        "dm_p95": 0.994
+      },
+      "f1_pool": 0.80998,
+      "fingerprint": "a64762a90e6b4465",
+      "fpr_pool": 0.00074,
+      "mean_G": 0.96018,
+      "n": 3000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 10,
+      "n_salient": 9,
+      "n_unique_seq": 139,
+      "novelty_rate": 0.02266666666666667,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.68506,
+      "rid": "R5",
+      "secs_cluster": 4.3,
+      "secs_downstream": 1.6,
+      "top_ngrams": {
+        "0": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "1": [
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "2": [
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->tool::api_call::nbi.alarm_list->llm::summarize::-",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::perf_db.query"
+        ],
+        "3": [
+          "tool::sql_query::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->llm::summarize::-"
+        ],
+        "4": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query"
+        ],
+        "5": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query"
+        ],
+        "6": [
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query"
+        ],
+        "7": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "8": [
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->llm::summarize::-"
+        ],
+        "9": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-->llm::summarize::-",
+          "guard::verify::-",
+          "guard::verify::-->llm::summarize::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9976410667248162,
+      "arm": "current",
+      "f1_pool": 0.82785,
+      "fpr_pool": 0.00027,
+      "mean_G": 0.97129,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 5,
+      "novelty_rate": 0.01375,
+      "recall_pool": 0.70861,
+      "rid": "R1",
+      "secs_cluster": 328.0,
+      "secs_cluster_note": "includes ~10x settrace capture overhead; use secs_pattern_only for distance cost",
+      "secs_downstream": 2.7,
+      "secs_pattern_only": 1.6,
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.6568994188272955,
+      "arm": "tfidf-act",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.702,
+        "dm_max": 0.9813,
+        "dm_p95": 0.9601
+      },
+      "f1_pool": 0.8609,
+      "fingerprint": "50c2eccb6ac73f42",
+      "fpr_pool": 0.00027,
+      "mean_G": 0.9706,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 7,
+      "n_salient": 3,
+      "n_unique_seq": 83,
+      "novelty_rate": 0.016,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.75828,
+      "rid": "R1",
+      "secs_cluster": 4.0,
+      "secs_downstream": 1.8,
+      "top_ngrams": {
+        "0": [
+          "sql_query->summarize",
+          "sql_query",
+          "agent_run->plan->schema_retrieval",
+          "plan->schema_retrieval",
+          "schema_retrieval"
+        ],
+        "1": [
+          "plan->sql_query->summarize",
+          "agent_run->plan->sql_query",
+          "plan->sql_query",
+          "sql_query",
+          "sql_query->summarize"
+        ],
+        "2": [
+          "agent_run->plan->approve",
+          "plan->approve",
+          "plan->approve->sql_query",
+          "approve->sql_query",
+          "approve->sql_query->summarize"
+        ],
+        "3": [
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb",
+          "plan->retrieve_kb->summarize",
+          "retrieve_kb",
+          "retrieve_kb->summarize"
+        ],
+        "4": [
+          "retrieve_kb->summarize",
+          "plan->verify->retrieve_kb",
+          "verify->retrieve_kb->summarize",
+          "verify->retrieve_kb",
+          "retrieve_kb"
+        ],
+        "5": [
+          "agent_run->plan->force_delete",
+          "force_delete->sql_query",
+          "force_delete->sql_query->summarize",
+          "plan->force_delete",
+          "plan->force_delete->sql_query"
+        ],
+        "6": [
+          "agent_run->plan->skip_approval_execute",
+          "plan->skip_approval_execute",
+          "plan->skip_approval_execute->sql_query",
+          "skip_approval_execute",
+          "skip_approval_execute->sql_query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9983178233992355,
+      "arm": "tfidf-act+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6441,
+        "dm_max": 0.9944,
+        "dm_p95": 0.9849
+      },
+      "f1_pool": 0.81641,
+      "fingerprint": "656fa8d2cc02dac4",
+      "fpr_pool": 0.00027,
+      "mean_G": 0.95585,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 5,
+      "n_salient": 3,
+      "n_unique_seq": 83,
+      "novelty_rate": 0.09075,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.2993,
+      "recall_pool": 0.69205,
+      "rid": "R1",
+      "secs_cluster": 6.8,
+      "secs_downstream": 2.2,
+      "top_ngrams": {
+        "0": [
+          "sql_query",
+          "schema_retrieval",
+          "schema_retrieval->sql_query",
+          "sql_query->summarize",
+          "plan->schema_retrieval->sql_query"
+        ],
+        "1": [
+          "plan->sql_query",
+          "plan->sql_query->summarize",
+          "agent_run->plan->sql_query",
+          "sql_query",
+          "sql_query->summarize"
+        ],
+        "2": [
+          "retrieve_kb",
+          "plan->retrieve_kb",
+          "retrieve_kb->summarize",
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb->summarize"
+        ],
+        "3": [
+          "plan->verify->summarize",
+          "verify->summarize",
+          "agent_run->plan->verify",
+          "plan->verify",
+          "verify"
+        ],
+        "4": [
+          "force_delete->sql_query",
+          "force_delete->sql_query->summarize",
+          "plan->force_delete->sql_query",
+          "agent_run->plan->force_delete",
+          "plan->force_delete"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.6565376565798781,
+      "arm": "tfidf-kind",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.702,
+        "dm_max": 0.9813,
+        "dm_p95": 0.9601
+      },
+      "f1_pool": 0.8609,
+      "fingerprint": "bc6e057b57781724",
+      "fpr_pool": 0.00027,
+      "mean_G": 0.97065,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 7,
+      "n_salient": 3,
+      "n_unique_seq": 83,
+      "novelty_rate": 0.01575,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.75828,
+      "rid": "R1",
+      "secs_cluster": 4.2,
+      "secs_downstream": 1.8,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query->llm::summarize",
+          "tool::sql_query",
+          "agent::agent_run->llm::plan->retrieval::schema_retrieval",
+          "llm::plan->retrieval::schema_retrieval",
+          "retrieval::schema_retrieval"
+        ],
+        "1": [
+          "llm::plan->tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query",
+          "tool::sql_query",
+          "tool::sql_query->llm::summarize"
+        ],
+        "2": [
+          "agent::agent_run->llm::plan->guard::approve",
+          "llm::plan->guard::approve",
+          "llm::plan->guard::approve->tool::sql_query",
+          "guard::approve->tool::sql_query",
+          "guard::approve->tool::sql_query->llm::summarize"
+        ],
+        "3": [
+          "agent::agent_run->llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb",
+          "retrieval::retrieve_kb->llm::summarize"
+        ],
+        "4": [
+          "retrieval::retrieve_kb->llm::summarize",
+          "llm::plan->guard::verify->retrieval::retrieve_kb",
+          "guard::verify->retrieval::retrieve_kb->llm::summarize",
+          "guard::verify->retrieval::retrieve_kb",
+          "retrieval::retrieve_kb"
+        ],
+        "5": [
+          "agent::agent_run->llm::plan->tool::force_delete",
+          "llm::plan->tool::force_delete",
+          "llm::plan->tool::force_delete->tool::sql_query",
+          "tool::force_delete->tool::sql_query",
+          "tool::force_delete->tool::sql_query->llm::summarize"
+        ],
+        "6": [
+          "agent::agent_run->llm::plan->tool::skip_approval_execute",
+          "llm::plan->tool::skip_approval_execute",
+          "llm::plan->tool::skip_approval_execute->tool::sql_query",
+          "tool::skip_approval_execute",
+          "tool::skip_approval_execute->tool::sql_query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.2946084274061319,
+      "arm": "tfidf-kind+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8142,
+        "dm_max": 0.9972,
+        "dm_p95": 0.9935
+      },
+      "f1_pool": 0.83525,
+      "fingerprint": "f7ff53e44423133c",
+      "fpr_pool": 0.00054,
+      "mean_G": 0.9703,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 10,
+      "n_salient": 7,
+      "n_unique_seq": 129,
+      "novelty_rate": 0.0185,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.72185,
+      "rid": "R1",
+      "secs_cluster": 5.6,
+      "secs_downstream": 2.9,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query"
+        ],
+        "1": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "2": [
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "3": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "4": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query"
+        ],
+        "6": [
+          "llm::plan::-->guard::verify::-->llm::summarize::-",
+          "guard::verify::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "guard::verify::-"
+        ],
+        "7": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "8": [
+          "retrieval::retrieve_kb::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->llm::summarize::-"
+        ],
+        "9": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::-",
+          "llm::plan::-->tool::api_call::-",
+          "tool::api_call::-",
+          "tool::api_call::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::-->tool::sql_query::alarm_db.query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.3254189484160677,
+      "arm": "tfidf-full",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8322,
+        "dm_max": 0.9877,
+        "dm_p95": 0.9762
+      },
+      "f1_pool": 0.84411,
+      "fingerprint": "307ec436b69e9e66",
+      "fpr_pool": 0.00054,
+      "mean_G": 0.95208,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 17,
+      "n_salient": 7,
+      "n_unique_seq": 129,
+      "novelty_rate": 0.1095,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.7351,
+      "rid": "R1",
+      "secs_cluster": 4.1,
+      "secs_downstream": 2.2,
+      "top_ngrams": {
+        "0": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "1": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query"
+        ],
+        "10": [
+          "guard::verify::-->retrieval::retrieve_kb::kb.runbook_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search"
+        ],
+        "11": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->guard::verify::-",
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->guard::verify::-"
+        ],
+        "12": [
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-->llm::summarize::-",
+          "tool::sql_query::-"
+        ],
+        "13": [
+          "llm::plan::-->tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema",
+          "tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema",
+          "tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.alarm_list"
+        ],
+        "14": [
+          "agent::agent_run::-->llm::plan::-->tool::force_delete::nbi.ne_force_delete",
+          "llm::plan::-->tool::force_delete::nbi.ne_force_delete",
+          "llm::plan::-->tool::force_delete::nbi.ne_force_delete->tool::sql_query::alarm_db.query",
+          "tool::force_delete::nbi.ne_force_delete->tool::sql_query::alarm_db.query",
+          "tool::force_delete::nbi.ne_force_delete->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "15": [
+          "retrieval::retrieve_kb::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->llm::summarize::-"
+        ],
+        "16": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::-",
+          "llm::plan::-->tool::api_call::-",
+          "tool::api_call::-",
+          "llm::plan::-->tool::api_call::-->tool::sql_query::alarm_db.query",
+          "tool::api_call::-->tool::sql_query::alarm_db.query"
+        ],
+        "2": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "3": [
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "4": [
+          "agent::agent_run::-->llm::plan::-->guard::approve::-",
+          "llm::plan::-->guard::approve::-",
+          "guard::approve::-",
+          "guard::approve::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->guard::approve::-->tool::sql_query::alarm_db.query"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "7": [
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->guard::verify::-->retrieval::retrieve_kb::kb.history_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.history_search",
+          "guard::verify::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "8": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "9": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.2862440059552181,
+      "arm": "tfidf-full+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8142,
+        "dm_max": 0.9972,
+        "dm_p95": 0.9935
+      },
+      "f1_pool": 0.83525,
+      "fingerprint": "a64762a90e6b4465",
+      "fpr_pool": 0.00054,
+      "mean_G": 0.9703,
+      "n": 4000,
+      "n_intent_clusters": 2,
+      "n_pattern_clusters": 10,
+      "n_salient": 7,
+      "n_unique_seq": 129,
+      "novelty_rate": 0.0185,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.72185,
+      "rid": "R1",
+      "secs_cluster": 5.2,
+      "secs_downstream": 3.1,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query"
+        ],
+        "1": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "2": [
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "3": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "4": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::alarm_db.query"
+        ],
+        "6": [
+          "llm::plan::-->guard::verify::-->llm::summarize::-",
+          "guard::verify::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "guard::verify::-"
+        ],
+        "7": [
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::api_call::nbi.alarm_list",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "8": [
+          "tool::sql_query::alarm_db.query->tool::api_call::nbi.ne_status",
+          "tool::sql_query::alarm_db.query->tool::api_call::nbi.ne_status->llm::summarize::-",
+          "tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::sql_query::alarm_db.query->tool::api_call::nbi.ne_status",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "9": [
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "agent::agent_run::-->llm::plan::-->tool::api_call::-"
+        ]
+      },
+      "topk15_precision": 1.0
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9879227365921172,
+      "arm": "current",
+      "f1_pool": 0.73034,
+      "fpr_pool": 0.00092,
+      "mean_G": 0.93766,
+      "n": 1200,
+      "n_intent_clusters": 4,
+      "n_pattern_clusters": 4,
+      "novelty_rate": 0.14916666666666667,
+      "recall_pool": 0.58036,
+      "rid": "R4",
+      "secs_cluster": 258.8,
+      "secs_cluster_note": "includes ~10x settrace capture overhead; use secs_pattern_only for distance cost",
+      "secs_downstream": 0.6,
+      "secs_pattern_only": 1.9,
+      "topk15_precision": 0.93333
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.8081230672810842,
+      "arm": "tfidf-act",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6997,
+        "dm_max": 0.9855,
+        "dm_p95": 0.9631
+      },
+      "f1_pool": 0.64286,
+      "fingerprint": "50c2eccb6ac73f42",
+      "fpr_pool": 0.00184,
+      "mean_G": 0.92232,
+      "n": 1200,
+      "n_intent_clusters": 4,
+      "n_pattern_clusters": 7,
+      "n_salient": 3,
+      "n_unique_seq": 89,
+      "novelty_rate": 0.23083333333333333,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.48214,
+      "rid": "R4",
+      "secs_cluster": 5.8,
+      "secs_downstream": 0.6,
+      "top_ngrams": {
+        "0": [
+          "agent_run->plan->sql_query",
+          "plan->sql_query",
+          "plan->sql_query->summarize",
+          "sql_query",
+          "sql_query->summarize"
+        ],
+        "1": [
+          "sql_query->summarize",
+          "schema_retrieval->sql_query->summarize",
+          "schema_retrieval->sql_query",
+          "sql_query",
+          "schema_retrieval"
+        ],
+        "2": [
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb",
+          "plan->retrieve_kb->summarize",
+          "retrieve_kb",
+          "retrieve_kb->summarize"
+        ],
+        "3": [
+          "retrieve_kb->summarize",
+          "retrieve_kb",
+          "approve->retrieve_kb",
+          "approve->retrieve_kb->summarize",
+          "plan->api_call->retrieve_kb"
+        ],
+        "4": [
+          "plan->approve->sql_query",
+          "approve->sql_query",
+          "agent_run->plan->approve",
+          "plan->approve",
+          "approve->sql_query->summarize"
+        ],
+        "5": [
+          "agent_run->sql_query",
+          "agent_run->sql_query->verify",
+          "sql_query->verify->summarize",
+          "sql_query->verify",
+          "verify->summarize"
+        ],
+        "6": [
+          "verify->force_delete",
+          "force_delete",
+          "force_delete->retrieve_kb",
+          "force_delete->retrieve_kb->summarize",
+          "force_delete->verify->force_delete"
+        ]
+      },
+      "topk15_precision": 0.93333
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.9796762292832135,
+      "arm": "tfidf-act+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6642,
+        "dm_max": 0.9943,
+        "dm_p95": 0.9857
+      },
+      "f1_pool": 0.70857,
+      "fingerprint": "656fa8d2cc02dac4",
+      "fpr_pool": 0.00092,
+      "mean_G": 0.93002,
+      "n": 1200,
+      "n_intent_clusters": 4,
+      "n_pattern_clusters": 5,
+      "n_salient": 3,
+      "n_unique_seq": 89,
+      "novelty_rate": 0.18833333333333332,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": 0.2793,
+      "recall_pool": 0.55357,
+      "rid": "R4",
+      "secs_cluster": 5.5,
+      "secs_downstream": 0.7,
+      "top_ngrams": {
+        "0": [
+          "sql_query",
+          "plan->sql_query",
+          "agent_run->plan->sql_query",
+          "plan->sql_query->summarize",
+          "sql_query->summarize"
+        ],
+        "1": [
+          "schema_retrieval",
+          "schema_retrieval->sql_query",
+          "sql_query",
+          "schema_retrieval->sql_query->summarize",
+          "sql_query->summarize"
+        ],
+        "2": [
+          "retrieve_kb",
+          "retrieve_kb->summarize",
+          "plan->retrieve_kb",
+          "agent_run->plan->retrieve_kb",
+          "plan->retrieve_kb->summarize"
+        ],
+        "3": [
+          "plan->verify->summarize",
+          "agent_run->plan",
+          "plan",
+          "agent_run",
+          "agent_run->plan->verify"
+        ],
+        "4": [
+          "plan->approve->summarize",
+          "agent_run->plan->approve",
+          "plan->approve",
+          "approve->summarize",
+          "approve"
+        ]
+      },
+      "topk15_precision": 0.93333
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.6235419653816889,
+      "arm": "tfidf-kind",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.6997,
+        "dm_max": 0.9855,
+        "dm_p95": 0.9631
+      },
+      "f1_pool": 0.62275,
+      "fingerprint": "bc6e057b57781724",
+      "fpr_pool": 0.00276,
+      "mean_G": 0.91378,
+      "n": 1200,
+      "n_intent_clusters": 4,
+      "n_pattern_clusters": 8,
+      "n_salient": 3,
+      "n_unique_seq": 89,
+      "novelty_rate": 0.27416666666666667,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.46429,
+      "rid": "R4",
+      "secs_cluster": 4.7,
+      "secs_downstream": 0.9,
+      "top_ngrams": {
+        "0": [
+          "agent::agent_run->llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query",
+          "llm::plan->tool::sql_query->llm::summarize",
+          "tool::sql_query",
+          "tool::sql_query->llm::summarize"
+        ],
+        "1": [
+          "tool::sql_query->llm::summarize",
+          "retrieval::schema_retrieval->tool::sql_query->llm::summarize",
+          "retrieval::schema_retrieval->tool::sql_query",
+          "tool::sql_query",
+          "retrieval::schema_retrieval"
+        ],
+        "2": [
+          "agent::agent_run->llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb",
+          "llm::plan->retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb",
+          "retrieval::retrieve_kb->llm::summarize"
+        ],
+        "3": [
+          "retrieval::retrieve_kb->llm::summarize",
+          "guard::verify->retrieval::retrieve_kb",
+          "llm::plan->guard::verify->retrieval::retrieve_kb",
+          "guard::verify->retrieval::retrieve_kb->llm::summarize",
+          "retrieval::retrieve_kb"
+        ],
+        "4": [
+          "llm::plan->guard::approve->tool::sql_query",
+          "guard::approve->tool::sql_query",
+          "guard::approve->tool::sql_query->llm::summarize",
+          "agent::agent_run->llm::plan->guard::approve",
+          "llm::plan->guard::approve"
+        ],
+        "5": [
+          "agent::agent_run->tool::sql_query",
+          "agent::agent_run->tool::sql_query->guard::verify",
+          "tool::sql_query->guard::verify->llm::summarize",
+          "tool::sql_query->guard::verify",
+          "guard::verify->llm::summarize"
+        ],
+        "6": [
+          "guard::verify->tool::force_delete",
+          "tool::force_delete",
+          "guard::verify->tool::force_delete->guard::verify",
+          "guard::verify->tool::force_delete->retrieval::retrieve_kb",
+          "llm::plan->guard::verify->tool::force_delete"
+        ],
+        "7": [
+          "guard::approve->guard::verify->retrieval::schema_retrieval",
+          "llm::plan->guard::approve->guard::verify",
+          "guard::approve->guard::verify",
+          "guard::verify->retrieval::schema_retrieval",
+          "guard::verify->retrieval::schema_retrieval->tool::sql_query"
+        ]
+      },
+      "topk15_precision": 0.93333
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.41920255430694253,
+      "arm": "tfidf-kind+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8296,
+        "dm_max": 0.9978,
+        "dm_p95": 0.9936
+      },
+      "f1_pool": 0.68539,
+      "fingerprint": "f7ff53e44423133c",
+      "fpr_pool": 0.0046,
+      "mean_G": 0.93499,
+      "n": 1200,
+      "n_intent_clusters": 4,
+      "n_pattern_clusters": 12,
+      "n_salient": 7,
+      "n_unique_seq": 135,
+      "novelty_rate": 0.16416666666666666,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.54464,
+      "rid": "R4",
+      "secs_cluster": 5.1,
+      "secs_downstream": 0.7,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "1": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "10": [
+          "agent::agent_run::-->llm::plan::-",
+          "llm::plan::-",
+          "agent::agent_run::-",
+          "llm::plan::-->guard::approve::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->guard::approve::-"
+        ],
+        "11": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->llm::summarize::-",
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-"
+        ],
+        "2": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "3": [
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "4": [
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->guard::verify::-",
+          "tool::sql_query::-->guard::verify::-"
+        ],
+        "6": [
+          "tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "7": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::-"
+        ],
+        "8": [
+          "tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.alarm_list"
+        ],
+        "9": [
+          "llm::plan::-->guard::verify::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "guard::verify::-->llm::summarize::-",
+          "guard::verify::-"
+        ]
+      },
+      "topk15_precision": 0.93333
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.3565848720075539,
+      "arm": "tfidf-full",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8308,
+        "dm_max": 0.9893,
+        "dm_p95": 0.9759
+      },
+      "f1_pool": 0.67429,
+      "fingerprint": "307ec436b69e9e66",
+      "fpr_pool": 0.00368,
+      "mean_G": 0.93164,
+      "n": 1200,
+      "n_intent_clusters": 4,
+      "n_pattern_clusters": 16,
+      "n_salient": 7,
+      "n_unique_seq": 135,
+      "novelty_rate": 0.1825,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.52679,
+      "rid": "R4",
+      "secs_cluster": 3.1,
+      "secs_downstream": 0.8,
+      "top_ngrams": {
+        "0": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "1": [
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query",
+          "guard::verify::-->retrieval::schema_retrieval::catalog.table_schema"
+        ],
+        "10": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::-",
+          "retrieval::schema_retrieval::-->tool::sql_query::-"
+        ],
+        "11": [
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "llm::plan::-->guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query->llm::summarize::-",
+          "guard::verify::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query"
+        ],
+        "12": [
+          "guard::verify::-->tool::force_delete::nbi.ne_force_delete",
+          "tool::force_delete::nbi.ne_force_delete",
+          "guard::verify::-->tool::force_delete::nbi.ne_force_delete->guard::verify::-",
+          "guard::verify::-->tool::force_delete::nbi.ne_force_delete->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->guard::verify::-->tool::force_delete::nbi.ne_force_delete"
+        ],
+        "13": [
+          "guard::approve::-->retrieval::retrieve_kb::kb.history_search",
+          "guard::approve::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "llm::plan::-->guard::approve::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search"
+        ],
+        "14": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::-",
+          "llm::plan::-->tool::api_call::-",
+          "llm::plan::-->tool::api_call::-->tool::sql_query::alarm_db.query",
+          "tool::api_call::-",
+          "tool::api_call::-->tool::sql_query::alarm_db.query"
+        ],
+        "15": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->llm::summarize::-",
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-"
+        ],
+        "2": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "3": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "4": [
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "guard::approve::-->retrieval::retrieve_kb::kb.runbook_search",
+          "guard::approve::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "guard::verify::-->retrieval::retrieve_kb::kb.runbook_search"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status",
+          "llm::plan::-->tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema",
+          "retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::alarm_db.query"
+        ],
+        "7": [
+          "agent::agent_run::-->llm::plan::-->guard::approve::-",
+          "llm::plan::-->guard::approve::-",
+          "guard::approve::-",
+          "llm::plan::-->guard::approve::-->tool::sql_query::alarm_db.query",
+          "guard::approve::-->tool::sql_query::alarm_db.query"
+        ],
+        "8": [
+          "tool::sql_query::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "tool::sql_query::-->guard::verify::-",
+          "tool::sql_query::-->llm::summarize::-"
+        ],
+        "9": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-",
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-"
+        ]
+      },
+      "topk15_precision": 0.93333
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.35413910192535497,
+      "arm": "tfidf-full+sal",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.8296,
+        "dm_max": 0.9978,
+        "dm_p95": 0.9936
+      },
+      "f1_pool": 0.64835,
+      "fingerprint": "a64762a90e6b4465",
+      "fpr_pool": 0.01011,
+      "mean_G": 0.92509,
+      "n": 1200,
+      "n_intent_clusters": 4,
+      "n_pattern_clusters": 12,
+      "n_salient": 7,
+      "n_unique_seq": 135,
+      "novelty_rate": 0.21583333333333332,
+      "pattern_cut_height": 0.85,
+      "pattern_silhouette": -1.0,
+      "recall_pool": 0.52679,
+      "rid": "R4",
+      "secs_cluster": 4.5,
+      "secs_downstream": 0.8,
+      "top_ngrams": {
+        "0": [
+          "tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "1": [
+          "retrieval::retrieve_kb::kb.runbook_search",
+          "retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.runbook_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.runbook_search->llm::summarize::-"
+        ],
+        "10": [
+          "agent::agent_run::-->llm::plan::-",
+          "llm::plan::-",
+          "agent::agent_run::-",
+          "llm::plan::-->guard::approve::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->guard::approve::-"
+        ],
+        "11": [
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-",
+          "llm::plan::-->retrieval::retrieve_kb::-->llm::summarize::-",
+          "retrieval::retrieve_kb::-",
+          "retrieval::retrieve_kb::-->llm::summarize::-"
+        ],
+        "2": [
+          "retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "retrieval::retrieve_kb::kb.history_search->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->retrieval::retrieve_kb::kb.history_search",
+          "llm::plan::-->retrieval::retrieve_kb::kb.history_search->llm::summarize::-"
+        ],
+        "3": [
+          "tool::sql_query::perf_db.query",
+          "tool::sql_query::perf_db.query->llm::summarize::-",
+          "llm::plan::-->tool::sql_query::perf_db.query",
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->tool::sql_query::perf_db.query->llm::summarize::-"
+        ],
+        "4": [
+          "tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::alarm_db.query",
+          "llm::plan::-->tool::api_call::nbi.ne_status",
+          "agent::agent_run::-->llm::plan::-->tool::api_call::nbi.ne_status",
+          "tool::api_call::nbi.ne_status->tool::sql_query::perf_db.query"
+        ],
+        "5": [
+          "agent::agent_run::-->llm::plan::-->tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-",
+          "tool::sql_query::-",
+          "llm::plan::-->tool::sql_query::-->guard::verify::-",
+          "tool::sql_query::-->guard::verify::-"
+        ],
+        "6": [
+          "agent::agent_run::-->llm::plan::-->retrieval::schema_retrieval::-",
+          "llm::plan::-->retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-",
+          "retrieval::schema_retrieval::-->tool::sql_query::perf_db.query",
+          "llm::plan::-->retrieval::schema_retrieval::-->tool::sql_query::-"
+        ],
+        "7": [
+          "tool::sql_query::alarm_db.query",
+          "tool::sql_query::alarm_db.query->llm::summarize::-",
+          "guard::verify::-->tool::sql_query::alarm_db.query",
+          "llm::plan::-->guard::verify::-->tool::sql_query::alarm_db.query",
+          "guard::verify::-->tool::sql_query::alarm_db.query->llm::summarize::-"
+        ],
+        "8": [
+          "tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema",
+          "llm::plan::-->tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema",
+          "tool::api_call::nbi.alarm_list",
+          "tool::api_call::nbi.alarm_list->retrieval::schema_retrieval::catalog.table_schema->tool::sql_query::perf_db.query",
+          "retrieval::schema_retrieval::catalog.table_schema"
+        ],
+        "9": [
+          "llm::plan::-->guard::verify::-->llm::summarize::-",
+          "agent::agent_run::-->llm::plan::-->guard::verify::-",
+          "llm::plan::-->guard::verify::-",
+          "guard::verify::-->llm::summarize::-",
+          "guard::verify::-"
+        ]
+      },
+      "topk15_precision": 0.93333
+    },
+    {
+      "ari_intent_pool": 1.0,
+      "ari_pattern_pool": 0.8402070796608068,
+      "arm": "tfidf-act+sal+df2",
+      "dm_stats": {
+        "dm_frac_above_grid": 0.369,
+        "dm_max": 0.9614,
+        "dm_p95": 0.9026
+      },
+      "f1_pool": 0.82126,
+      "fingerprint": "c3f1eb0d1bfeaf68",
+      "fpr_pool": 0.00109,
+      "mean_G": 0.9703,
+      "n": 3000,
+      "n_intent_clusters": 3,
+      "n_pattern_clusters": 5,
+      "n_salient": 0,
+      "n_unique_seq": 34,
+      "novelty_rate": 0.025,
+      "pattern_cut_height": 0.75,
+      "pattern_silhouette": 0.36,
+      "recall_pool": 0.70539,
+      "rid": "R8",
+      "secs_cluster": 3.7,
+      "secs_downstream": 1.4,
+      "top_ngrams": {
+        "0": [
+          "intent_parse->query_metrics->draft_rca",
+          "agent_run->intent_parse->query_metrics",
+          "intent_parse->query_metrics",
+          "query_metrics->draft_rca",
+          "query_metrics"
+        ],
+        "1": [
+          "intent_parse->fetch_topology->correlate_events",
+          "agent_run->intent_parse->fetch_topology",
+          "intent_parse->fetch_topology",
+          "fetch_topology->correlate_events->draft_rca",
+          "fetch_topology->correlate_events"
+        ],
+        "2": [
+          "intent_parse->correlate_events->peer_review",
+          "agent_run->intent_parse->correlate_events",
+          "intent_parse->correlate_events",
+          "correlate_events->peer_review->draft_rca",
+          "correlate_events->peer_review"
+        ],
+        "3": [
+          "agent_run->intent_parse->peer_review",
+          "intent_parse->peer_review",
+          "intent_parse->peer_review->query_metrics",
+          "peer_review->query_metrics->draft_rca",
+          "peer_review->query_metrics"
+        ],
+        "4": [
+          "query_metrics->correlate_events",
+          "query_metrics->correlate_events->peer_review",
+          "intent_parse->query_metrics->correlate_events",
+          "correlate_events->peer_review->draft_rca",
+          "correlate_events->peer_review"
+        ]
+      },
+      "topk15_precision": 1.0
+    }
+  ]
+}

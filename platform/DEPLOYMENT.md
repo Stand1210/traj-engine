@@ -496,6 +496,13 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - `cohort_runs`、`trace_scores`、`ontology_versions`、
   `structure_versions` 均按不可变历史记录设计；普通应用升级不回写历史
   分数。若未来迁移发生存储格式变更，必须新增映射表并保留原记录。
+- **E3 内核升级（`code_hash=d229ab802e5a01bf`，2026-11-26）的部署影响**：
+  执行视图向量化切换为 span_key + 1/2/3-gram TF-IDF，冻结结构新增
+  `structural_fingerprint` 与 `_tfidf_ctx`。升级前生成的历史冻结结构
+  **不含指纹，R1 复用会被结构兼容门拒绝**（`EncoderContractError`，
+  不静默复用）。升级后需对每个启用调度的本体**各触发一次 R2** 重建
+  冻结结构，随后 R1 恢复正常；无 DDL 变更、无新增三方件、无新增
+  模型资产，SQLite 库可直接沿用。
 
 ### 4.5 待补充清单
 
@@ -525,7 +532,7 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   240 MB 基准数据集，避免凭据、运行数据与不必要的体积进入内网包。
 - 交付后校验：
   ```powershell
-  python -m platform.app.cli release-verify --package platform/var/releases/traj-engine-0.1.0.zip --expected-kernel-code-hash 2064664e6aa5fb46
+  python -m platform.app.cli release-verify --package platform/var/releases/traj-engine-0.1.0.zip --expected-kernel-code-hash d229ab802e5a01bf
   ```
   校验会检查 zip 完整性、manifest 格式、文件清单、逐文件 size 与 SHA256，
   并可比对内核 `code_hash`。

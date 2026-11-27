@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS cohort_runs (
     error TEXT,
     idempotency_key TEXT,
     code_hash TEXT NOT NULL,
+    model_assets_json TEXT,
     created_at TEXT NOT NULL,
     started_at TEXT,
     ended_at TEXT,

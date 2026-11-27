@@ -19,7 +19,7 @@ from platform.app.config import load_endpoints, load_profile
 from platform.scripts.langfuse_production_smoke import IdRangeTraceSource, _find_project
 
 
-EXPECTED_CODE_HASH = "2064664e6aa5fb46"
+EXPECTED_CODE_HASH = "d229ab802e5a01bf"
 
 
 def main() -> int:

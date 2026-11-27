@@ -3,7 +3,7 @@ from http.client import IncompleteRead
 
 from platform.app.langfuse_source import LangfuseTraceSource
 from platform.app.langfuse_source import LangfuseHttpError
-from platform.app.trace_source import TRACE_KEYS, SPAN_KEYS
+from platform.app.trace_source import TRACE_KEYS, SPAN_KEYS, SPAN_OPTIONAL_KEYS
 
 
 class FakeTransport:
@@ -74,7 +74,7 @@ class LangfuseTraceSourceTest(unittest.TestCase):
 
         self.assertEqual(TRACE_KEYS, set(trace))
         self.assertEqual(2, len(trace["spans"]))
-        self.assertEqual(SPAN_KEYS, set(trace["spans"][1]))
+        self.assertEqual(SPAN_KEYS | SPAN_OPTIONAL_KEYS, set(trace["spans"][1]))
         self.assertEqual("obs-1", trace["spans"][1]["parent_id"])
         self.assertEqual("tool", trace["spans"][1]["kind"])
         self.assertEqual({"ne_id": "NE-1"}, trace["spans"][1]["tool_params"])
@@ -87,6 +87,17 @@ class LangfuseTraceSourceTest(unittest.TestCase):
         self.assertIsNone(trace["golden_answer"])
         self.assertIsNone(trace["embedding"])
         self.assertIsNone(trace["spans"][0]["tokens_system_prompt"])
+        self.assertIsNone(trace["spans"][0]["agent"])
+        self.assertIsNone(trace["spans"][0]["operation"])
+
+    def test_agent_operation_map_from_metadata_when_present(self):
+        pages = [{"data": [observation("obs-1", metadata={"agent": "router", "operation": "dispatch"})],
+                  "meta": {"cursor": None}}]
+        source = LangfuseTraceSource("https://langfuse.example", "pk", "sk", transport=FakeTransport(pages))
+        trace = next(source.list_traces({"start": "2026-01-01T00:00:00Z", "end": "2026-01-03T00:00:00Z"}, {}))
+
+        self.assertEqual("router", trace["spans"][0]["agent"])
+        self.assertEqual("dispatch", trace["spans"][0]["operation"])
 
     def test_empty_page_without_cursor_is_terminal(self):
         pages = [{"data": [], "meta": {}}]
