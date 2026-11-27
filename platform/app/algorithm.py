@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Iterable
 from typing import Callable
 
+import yaml
+
 from bench.runner import code_hash
 from platform.app.encoder import (
     EncoderContractError,
@@ -106,6 +108,74 @@ def build_dynamic_ontology(traces: list[dict], ontology_id: str) -> dict:
     }
 
 
+# Governance keys an ontology YAML may pin. Anything absent falls back to the
+# dynamic discovery in build_dynamic_ontology and is reported in `missing`, so
+# a production run never silently operates on assumed constraints or prices.
+ONTOLOGY_GOVERNANCE_KEYS = (
+    "actions",
+    "forbidden_actions",
+    "required_steps",
+    "optional_steps",
+    "root_action",
+    "kind_map",
+    "unit_price",
+    "context_window",
+    "system_prompt_tokens",
+    "models",
+    "prompt_versions",
+    "query_langs",
+    "lang_token_factor",
+    "time_windows",
+    "slo_anchors",
+    "validators",
+    "tool_catalog",
+)
+
+
+def ontology_from_yaml(
+    yaml_text: str,
+    ontology_id: str,
+    traces: list[dict],
+) -> tuple[dict, list[str]]:
+    """Build the kernel ontology dict from the active ontology YAML.
+
+    The dynamic discovery over `traces` is the base layer (it reflects the
+    observed span vocabulary); every governance key present in the YAML
+    overrides the discovered value. Returns (ontology, missing) where
+    `missing` lists the governance keys the YAML does not pin.
+    """
+    try:
+        parsed = yaml.safe_load(yaml_text)
+    except yaml.YAMLError as error:
+        raise ValueError("ontology yaml is not valid YAML") from error
+    if not isinstance(parsed, dict):
+        raise ValueError("ontology yaml must be a mapping")
+    if parsed.get("id") not in (None, ontology_id):
+        raise ValueError("ontology yaml id must match the ontology")
+    ontology = build_dynamic_ontology(traces, ontology_id)
+    for key in ONTOLOGY_GOVERNANCE_KEYS:
+        if key not in parsed or parsed[key] is None:
+            continue
+        value = parsed[key]
+        if key in {"models", "prompt_versions", "query_langs"}:
+            try:
+                value = [tuple(item) for item in value]
+            except TypeError as error:
+                raise ValueError(f"ontology yaml {key} must be a list of lists") from error
+        if key == "unit_price":
+            if not isinstance(value, dict):
+                raise ValueError("ontology yaml unit_price must be a mapping")
+            # The kernel cost model requires every price channel (tool_call,
+            # cache_read, cache_write); channels the YAML does not pin inherit
+            # the dynamic zero defaults instead of crashing ingest.
+            merged = dict(ontology["unit_price"])
+            merged.update(value)
+            value = merged
+        ontology[key] = value
+    missing = [key for key in ONTOLOGY_GOVERNANCE_KEYS if parsed.get(key) is None]
+    return ontology, missing
+
+
 def run_production(
     traces: Iterable[dict],
     ontology_id: str,
@@ -115,6 +185,7 @@ def run_production(
     score_batch_size: int = 1000,
     intent_encoder=None,
     pattern_recipe: str | None = None,
+    ontology_override: dict | None = None,
 ) -> tuple[dict, list[dict]]:
     traces = list(traces)
     if not traces:
@@ -139,7 +210,12 @@ def run_production(
         anchor_version = frozen_state["anchor_version"]
         cold_start = False
     else:
-        ontology = build_dynamic_ontology(traces, ontology_id)
+        if ontology_override is not None:
+            if ontology_override.get("id") != ontology_id:
+                raise ValueError("ontology override belongs to a different ontology")
+            ontology = ontology_override
+        else:
+            ontology = build_dynamic_ontology(traces, ontology_id)
         anchor_version = f"anchor-{ontology_id}-{spec_hash}"
         cold_start = len(traces) < RG.COLD_START_MIN_TRACES
 

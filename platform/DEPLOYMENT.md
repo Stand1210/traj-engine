@@ -12,7 +12,7 @@
 | Langfuse | Cloud v4 或自托管 v4 | 已定；自托管 v3 延后 |
 | 平后端 | FastAPI `0.115.6` + Uvicorn `0.34.0` | M1 最小闭环已实现 |
 | 前端 | Node.js `24.x` + Vite `6.0.7` + React `18.3.1` + ECharts `5.6.0` | M1 最小闭环已实现 |
-| 数据库 | SQLite（内置于 Python 3.11） | 当前契约：23 张表，schema v10 |
+| 数据库 | SQLite（内置于 Python 3.11） | 当前契约：23 张表，schema v12 |
 | Embedding | 待定 | 选型后记录模型名、版本、维度、输入截断规则与哈希 |
 
 ## 2. 持续记录规则
@@ -126,7 +126,7 @@
 - M2 新增 REST 能力：
   - `POST /api/v1/tenants`：注册 Langfuse org/project 与项目 API key。
   - `POST /api/v1/ontologies`：创建 Tier 0/Tier 1 本体占位。
-  - `POST /api/v1/ontologies/{id}/prechecks`：拉取近 7 天样本并执行 8 项适配度预检。
+  - `POST /api/v1/ontologies/{id}/prechecks`：拉取近 7 天样本并执行适配度预检（E4 起 15 项）。
   - `GET /api/v1/ontologies/{id}/versions/current`：查看当前不可变本体版本。
   - `POST /api/v1/runs` 支持 `source=langfuse`，按时间窗发起真实数据 Run。
 
@@ -531,6 +531,19 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   不静默复用）。升级后需对每个启用调度的本体**各触发一次 R2** 重建
   冻结结构，随后 R1 恢复正常；无 DDL 变更、无新增三方件、无新增
   模型资产，SQLite 库可直接沿用。
+- **E4 生产链路修复（2026-11-27）的部署影响**：schema v11 → v12，
+  幂等 ALTER 三处——`structure_versions` 增 `embedding_dim` /
+  `structural_fingerprint`（存量行从 `state_json` 自动回填，解析失败的
+  行保持 NULL，R1 兼容门本就拒绝这些结构）、`cohort_runs` 增
+  `degraded_json`。升级后生产 R2 开始消费 `ontology_versions` 的
+  active YAML（价格/禁止动作/SLO 锚点等治理键）；未发布或未激活
+  本体版本的本体，其 Run 会带 `degraded` 标记（见 Run API 与
+  metrics.json）而非静默零约束运行——上线后应检查首批 Run 的
+  `degraded` 字段并按需补全 YAML。R1 对损坏的 active 结构现在返回
+  409 并置 Run failed（此前会静默全量重训），调度方需按错误信息
+  触发新 R2。预检扩到 15 项（新增 intent 文本/embedding 可用性与
+  维度/span key 富身份/action 命名稳定性/cost 覆盖/价格有效性）。
+  无新增三方件、无新增模型资产。
 
 ### 4.5 待补充清单
 

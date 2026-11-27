@@ -9,7 +9,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "platform" / "contracts" / "schema.sql"
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 
 def resolve_db_path() -> Path:
@@ -30,6 +30,38 @@ def utcnow() -> str:
 
 def new_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:16]}"
+
+
+def _backfill_structure_fingerprints(connection: sqlite3.Connection) -> None:
+    """Fill structure_versions fingerprint columns from the stored state_json.
+
+    Best-effort: rows whose state cannot be parsed keep NULL fingerprints; the
+    R1 compatibility gates in algorithm.py already reject such structures.
+    """
+    import json
+
+    rows = connection.execute(
+        "SELECT id, state_json FROM structure_versions"
+    ).fetchall()
+    for row in rows:
+        embedding_dim = None
+        fingerprint = None
+        try:
+            wrapper = json.loads(row["state_json"])
+            state = wrapper.get("state") if isinstance(wrapper, dict) else None
+            if isinstance(state, dict):
+                embedding_dim = state.get("embedding_dim")
+                ctx = state.get("_tfidf_ctx") or {}
+                if isinstance(ctx, dict):
+                    fingerprint = ctx.get("fingerprint")
+        except (ValueError, TypeError):
+            continue
+        connection.execute(
+            """UPDATE structure_versions
+               SET embedding_dim = ?, structural_fingerprint = ?
+               WHERE id = ?""",
+            (embedding_dim, fingerprint, row["id"]),
+        )
 
 
 def _ensure_schema_migrations(connection: sqlite3.Connection) -> None:
@@ -72,6 +104,20 @@ def _ensure_schema_migrations(connection: sqlite3.Connection) -> None:
     }
     if "model_assets_json" not in run_columns:
         connection.execute("ALTER TABLE cohort_runs ADD COLUMN model_assets_json TEXT")
+    if "degraded_json" not in run_columns:
+        connection.execute("ALTER TABLE cohort_runs ADD COLUMN degraded_json TEXT")
+    structure_columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(structure_versions)").fetchall()
+    }
+    if "embedding_dim" not in structure_columns:
+        connection.execute("ALTER TABLE structure_versions ADD COLUMN embedding_dim INTEGER")
+    if "structural_fingerprint" not in structure_columns:
+        connection.execute(
+            "ALTER TABLE structure_versions ADD COLUMN structural_fingerprint TEXT"
+        )
+    if "embedding_dim" not in structure_columns or "structural_fingerprint" not in structure_columns:
+        _backfill_structure_fingerprints(connection)
     connection.execute(
         """CREATE INDEX IF NOT EXISTS idx_score_evidence_score
            ON score_evidence (trace_score_id, dimension)"""
@@ -211,6 +257,17 @@ def create_run(
     )
     connection.commit()
     return run_id
+
+
+def get_active_ontology_yaml(connection: sqlite3.Connection, ontology_id: str) -> str | None:
+    """YAML text of the ontology's current (active) version, or None."""
+    row = connection.execute(
+        """SELECT v.yaml FROM ontology_versions v
+           JOIN ontologies o ON o.id = v.ontology_id AND o.current_version = v.version
+           WHERE o.id = ?""",
+        (ontology_id,),
+    ).fetchone()
+    return row["yaml"] if row is not None else None
 
 
 def get_active_structure(connection: sqlite3.Connection, ontology_id: str) -> dict | None:

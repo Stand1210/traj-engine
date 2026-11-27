@@ -562,7 +562,13 @@ def run_precheck(
         store.finish_precheck(connection, precheck_id, "failed", report)
         raise HTTPException(status_code=502, detail={"code": "langfuse_precheck_failed"})
 
-    report = build_precheck_report(traces, input_data.sampleSize)
+    report = build_precheck_report(
+        traces,
+        input_data.sampleSize,
+        ontology_id=ontology_id,
+        connection=connection,
+        encoder_available=ENGINE.intent_encoder is not None,
+    )
     report["sourceTraversal"] = source.traversal
     status = "failed" if any(item["status"] == "failed" for item in report["checks"]) else (
         "warning" if any(item["status"] == "warning" for item in report["checks"]) else "passed"
@@ -814,8 +820,26 @@ def create_run(input_data: RunInput, connection=Depends(get_connection)) -> dict
             try:
                 frozen_state = load_frozen_state(active_structure["state_json"])
                 frozen_state["structure_id"] = active_structure["id"]
-            except ValueError:
-                frozen_state = None
+            except ValueError as error:
+                message = (
+                    "active structure state cannot be parsed; R1 reuse is refused. "
+                    "Trigger a new R2 run to rebuild the structure"
+                )
+                store.set_run_status(
+                    connection, run_id, "failed", error=f"{message}: {error}", ended=True
+                )
+                store.upsert_run_step(
+                    connection,
+                    run_id,
+                    "failure",
+                    "failed",
+                    {"error": "frozen_structure_unusable", "message": str(error)},
+                    ended=True,
+                )
+                raise HTTPException(
+                    status_code=409,
+                    detail={"code": "frozen_structure_unusable", "message": message},
+                )
     trace_source = None
     window = None
     score_writer = None
@@ -1724,7 +1748,13 @@ def page(data: list[dict], limit: int, offset: int, total: int) -> dict:
     }
 
 
-def build_precheck_report(traces: list[dict], requested_sample_size: int) -> dict:
+def build_precheck_report(
+    traces: list[dict],
+    requested_sample_size: int,
+    ontology_id: str | None = None,
+    connection=None,
+    encoder_available: bool = False,
+) -> dict:
     spans = [span for trace in traces for span in trace["spans"]]
     trace_ids = [trace["trace_id"] for trace in traces]
     duplicate_trace_ids = len(trace_ids) - len(set(trace_ids))
@@ -1753,8 +1783,22 @@ def build_precheck_report(traces: list[dict], requested_sample_size: int) -> dic
             "tokens_prompt", "tokens_completion", "tokens_cache_read", "tokens_cache_write"
         ))
     )
+    cost_present = sum(1 for span in spans if span.get("cost") is not None)
     ontology_present = sum(1 for trace in traces if trace["ontology_id"] is not None)
     action_present = sum(1 for span in spans if span["action"] is not None)
+    intent_present = sum(
+        1 for trace in traces if str(trace.get("intent_text") or "").strip()
+    )
+    with_embedding = sum(1 for trace in traces if trace.get("embedding"))
+    embedding_dims = sorted(
+        {len(trace["embedding"]) for trace in traces if trace.get("embedding")}
+    )
+    rich_identity = sum(
+        1 for span in spans if span.get("agent") and span.get("operation")
+    )
+    named_actions = [span["action"] for span in spans if span["action"] is not None]
+    distinct_actions = len(set(named_actions))
+    action_uniqueness = distinct_actions / len(named_actions) if named_actions else 0.0
 
     checks = [
         _check("sample_available", "failed" if not traces else ("warning" if len(traces) < requested_sample_size else "passed"),
@@ -1766,10 +1810,48 @@ def build_precheck_report(traces: list[dict], requested_sample_size: int) -> dic
                {"disordered": timestamp_disordered, "missing": timestamp_missing}),
         _check("usage_coverage", "warning" if spans and usage_present == 0 else "passed",
                {"present": usage_present, "total": len(spans)}),
+        _check("cost_coverage", "warning" if spans and cost_present == 0 else "passed",
+               {"present": cost_present, "total": len(spans)}),
         _check("ontology_metadata_coverage", "warning" if traces and ontology_present == 0 else "passed",
                {"present": ontology_present, "total": len(traces)}),
         _check("action_name_coverage", "failed" if spans and action_present == 0 else "passed",
                {"present": action_present, "total": len(spans)}),
+        _check(
+            "action_naming_stability",
+            "failed" if len(named_actions) > 20 and distinct_actions == len(named_actions)
+            else (
+                "warning"
+                if len(named_actions) >= 10 and action_uniqueness > 0.5
+                else "passed"
+            ),
+            {"distinct": distinct_actions, "total": len(named_actions),
+             "uniquenessRatio": round(action_uniqueness, 6)},
+        ),
+        _check(
+            "intent_text_coverage",
+            "failed" if traces and intent_present == 0
+            else ("warning" if intent_present < len(traces) else "passed"),
+            {"present": intent_present, "total": len(traces)},
+        ),
+        _check(
+            "embedding_model_availability",
+            "passed" if (encoder_available or (traces and with_embedding == len(traces)))
+            else "failed",
+            {"encoderConfigured": encoder_available,
+             "tracesWithEmbedding": with_embedding, "total": len(traces)},
+        ),
+        _check(
+            "embedding_dimension_consistency",
+            "failed" if len(embedding_dims) > 1
+            else ("warning" if not embedding_dims else "passed"),
+            {"dimensions": embedding_dims, "tracesWithEmbedding": with_embedding},
+        ),
+        _check(
+            "span_key_quality",
+            "warning" if spans and rich_identity < len(spans) else "passed",
+            {"richIdentity": rich_identity, "total": len(spans)},
+        ),
+        _ontology_price_check(ontology_id, connection),
     ]
     return {
         "requestedSampleSize": requested_sample_size,
@@ -1777,6 +1859,36 @@ def build_precheck_report(traces: list[dict], requested_sample_size: int) -> dic
         "actualSpans": len(spans),
         "checks": checks,
     }
+
+
+def _ontology_price_check(ontology_id: str | None, connection) -> dict:
+    if connection is None or ontology_id is None:
+        return _check("ontology_price_validity", "warning", {"reason": "not_evaluated"})
+    yaml_text = store.get_active_ontology_yaml(connection, ontology_id)
+    if yaml_text is None:
+        return _check(
+            "ontology_price_validity", "warning",
+            {"hasActiveVersion": False, "reason": "no_active_ontology_version"},
+        )
+    try:
+        parsed = yaml.safe_load(yaml_text)
+    except yaml.YAMLError:
+        return _check(
+            "ontology_price_validity", "failed",
+            {"hasActiveVersion": True, "reason": "active_yaml_not_parseable"},
+        )
+    unit_price = (parsed or {}).get("unit_price") or {}
+    prompt = unit_price.get("prompt")
+    completion = unit_price.get("completion")
+    priced = all(
+        isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
+        for value in (prompt, completion)
+    )
+    return _check(
+        "ontology_price_validity",
+        "passed" if priced else "warning",
+        {"hasActiveVersion": True, "prompt": prompt, "completion": completion},
+    )
 
 
 def _check(name: str, status: str, metrics: dict) -> dict:
@@ -1875,6 +1987,7 @@ def serialize_run(row) -> dict:
         "structureVersion": row["structure_version_id"], "anchorVersion": None,
         "codeHash": row["code_hash"], "error": row["error"], "createdAt": row["created_at"],
         "startedAt": row["started_at"], "endedAt": row["ended_at"],
+        "degraded": json.loads(row["degraded_json"]) if row["degraded_json"] else None,
     }
 
 

@@ -14,6 +14,7 @@ from bench.runner import run_regime
 import bench.regime as regime_config
 from platform.app.algorithm import (
     dump_frozen_state,
+    ontology_from_yaml,
     run_production,
     write_production_metrics,
 )
@@ -215,9 +216,38 @@ class RunEngine:
                 run_type = connection.execute(
                     "SELECT run_type FROM cohort_runs WHERE id = ?", (run_id,)
                 ).fetchone()["run_type"]
+            ontology_override = None
+            degraded = None
             if is_benchmark:
                 result = run_regime(source_ref, data_root=data_root, out_root=out_root)
             else:
+                if frozen_state is None:
+                    with closing(store.connect(self.db_path)) as connection:
+                        active_yaml = store.get_active_ontology_yaml(
+                            connection, ontology_id or source_ref
+                        )
+                    if active_yaml is None:
+                        degraded = {
+                            "reason": "no active ontology yaml; run uses the dynamic "
+                            "zero-constraint ontology fallback",
+                            "missing": ["active_ontology_yaml"],
+                        }
+                    else:
+                        try:
+                            ontology_override, missing = ontology_from_yaml(
+                                active_yaml, ontology_id or source_ref, traces
+                            )
+                        except ValueError as error:
+                            raise RuntimeError(
+                                "active ontology yaml cannot drive production runs: "
+                                f"{error}"
+                            ) from error
+                        if missing:
+                            degraded = {
+                                "reason": "active ontology yaml is incomplete; dynamic "
+                                "discovery fills the listed gaps",
+                                "missing": missing,
+                            }
                 training = None
                 training_plan = None
                 if frozen_state is None and run_type == "R2":
@@ -237,6 +267,7 @@ class RunEngine:
                         training,
                         ontology_id or source_ref,
                         intent_encoder=self.intent_encoder,
+                        ontology_override=ontology_override,
                     )
                     frozen_state = training_result["frozen_state"]
                 report_dir = out_root / source_ref
@@ -248,6 +279,7 @@ class RunEngine:
                         ontology_id or source_ref,
                         frozen_state=frozen_state,
                         intent_encoder=self.intent_encoder,
+                        ontology_override=ontology_override,
                         run_mode="R2" if training is not None else None,
                         score_sink=lambda row: handle.write(
                             json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n"
@@ -262,6 +294,8 @@ class RunEngine:
                         "trainingTraceCount": len(training),
                         "fullTraceCount": trace_count,
                     }
+                if degraded is not None:
+                    result["degraded"] = degraded
                 write_production_metrics(report_dir, result)
             if self._is_canceled(run_id):
                 return
@@ -271,7 +305,8 @@ class RunEngine:
                     {"code_hash": result["code_hash"], "spec_hash": result["spec_hash"],
                      "n": result["n"], "cold_start": result.get("cold_start"),
                      "training": result.get("training"),
-                     "model_assets": result.get("model_assets")},
+                     "model_assets": result.get("model_assets"),
+                     "degraded": degraded},
                     ended=True,
                 )
 
@@ -385,12 +420,15 @@ class RunEngine:
             )
             persisted_state = dict(frozen_state or {})
             persisted_state["structure_id"] = structure_id
+            tfidf_ctx = persisted_state.get("_tfidf_ctx") or {}
             connection.execute(
                 """INSERT INTO structure_versions
-                   (id, ontology_id, version, code_hash, state_json, created_at, active)
-                   VALUES (?, ?, ?, ?, ?, ?, 1)""",
+                   (id, ontology_id, version, code_hash, state_json,
+                    embedding_dim, structural_fingerprint, created_at, active)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)""",
                 (structure_id, run["ontology_id"], next_structure_version, result["code_hash"],
-                 dump_frozen_state(persisted_state), store.utcnow()),
+                 dump_frozen_state(persisted_state), persisted_state.get("embedding_dim"),
+                 tfidf_ctx.get("fingerprint"), store.utcnow()),
             )
         connection.execute(
             "UPDATE cohort_runs SET structure_version_id = ? WHERE id = ?",
@@ -401,6 +439,12 @@ class RunEngine:
             connection.execute(
                 "UPDATE cohort_runs SET model_assets_json = ? WHERE id = ?",
                 (json.dumps(model_assets, ensure_ascii=False, sort_keys=True), run_id),
+            )
+        degraded = result.get("degraded")
+        if degraded is not None:
+            connection.execute(
+                "UPDATE cohort_runs SET degraded_json = ? WHERE id = ?",
+                (json.dumps(degraded, ensure_ascii=False, sort_keys=True), run_id),
             )
 
         cell_sizes: dict[str, int] = {}

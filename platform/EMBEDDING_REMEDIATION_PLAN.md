@@ -210,6 +210,8 @@ kind::action::tool} × saliency {off, on} + 现方案基线，结果 `platform/t
 
 ### 阶段 E4：生产链路修复
 
+状态：✅ 已完成（2026-11-27）。
+
 交付：
 
 - 生产 Run 加载 active ontology YAML。
@@ -222,12 +224,31 @@ kind::action::tool} × saliency {off, on} + 现方案基线，结果 `platform/t
   - action 命名稳定性；
   - usage 与 cost 覆盖率；
   - ontology 价格有效性。
-- 旧空 embedding R2 结构标记为不可复用。
+- 旧空 embedding R2 结构标记为不可复用（E1 已落地，R1 兼容性门禁直接拒绝）。
 
 验收：
 
-- 一个真实 Cloud Run 完成模型、本体、embedding、结构指纹全链路检查。
+- 一个真实 Cloud Run 完成模型、本体、embedding、结构指纹全链路检查（待内网真实数据，见 E5）。
 - 不满足质量门禁的 Run 不产生“看似成功”的结果。
+
+### 阶段 E4 实施记录（2026-11-27）
+
+代码与数据契约变更：
+
+- **YAML→内核本体转换器**：`algorithm.py` 新增 `ontology_from_yaml(yaml_text, ontology_id, traces)`，动态发现打底 + YAML 治理键覆盖，返回 `(ontology, missing)`；`missing` 列出 YAML 未钉住的治理键（`ONTOLOGY_GOVERNANCE_KEYS` 共 17 项）。`unit_price` 与动态零值默认**按通道合并**——YAML 未提供的价格通道（如 `tool_call`）继承零值而不是让 `ingest.normalize` KeyError；这是发布校验（只查 prompt/completion 非负）与内核契约（要求全价格通道）之间缺口的显式决策。
+- **生产 Run 本体接线**：`RunEngine._execute` 在非 bench 且无冻结结构时（即 R2 训练与无结构运行）经 `store.get_active_ontology_yaml` 读取 active YAML 并转为内核本体传入 `run_production(ontology_override=...)`。无 active YAML → Run 显式标记 `degraded`（missing 含 `active_ontology_yaml`）；YAML 无法解析或 id 不匹配 → Run 直接失败（配置错误不降级）。R1 复用路径不受影响（本体来自冻结结构）。
+- **degraded 落地三处**：`cohort_runs.degraded_json`（schema v12 新列）、运行步骤 `algorithm` 的 payload、`reports/<run>/metrics.json` 的 `degraded` 键 + `GET /api/v1/runs/{id}` 输出的 `degraded` 字段。bench 分支永不写入该键，bench 指标字节不变（reprocheck 验证）。
+- **R1 静默重建修复**：`service.py` 中 active 结构 `state_json` 解析失败（`load_frozen_state` ValueError）不再静默降级为全量重训；Run 置为 failed 并返回 409 `frozen_structure_unusable`，错误信息指引触发新 R2。
+- **预检查 8 → 15 项**：新增 `intent_text_coverage`（intent 文本非空率，零覆盖 failed）、`embedding_model_availability`（encoder 已配置或全部 trace 自带 embedding → passed，否则 failed）、`embedding_dimension_consistency`（多维度 failed、零 embedding warning）、`span_key_quality`（agent+operation 富身份覆盖率，不满员 warning；对应内核 `span_key:v1` 配方的启用前提）、`action_naming_stability`（≥10 个命名动作且去重率 >0.5 warning、>20 且全唯一 failed）、`cost_coverage`（span cost 字段覆盖率，零覆盖 warning）、`ontology_price_validity`（active YAML 的 prompt/completion 单价 >0 → passed，零价/无价 warning，YAML 不可解析 failed）。
+- **schema v11 → v12**：`structure_versions` 新增 `embedding_dim`、`structural_fingerprint` 两列（新 R2 结构直接写入；存量行从 `state_json` 回填，解析失败的行保持 NULL——R1 门禁本就会拒绝这些结构）；`cohort_runs` 新增 `degraded_json` 列。迁移为幂等 ALTER，PostgreSQL 兼容；`platform/contracts/schema.sql` 同步。
+
+验证记录：
+
+- `python -m compileall -q platform` 无错误。
+- `python -m unittest discover -s platform/tests -t .`：152 个测试（新增 `test_e4_production_link.py` 10 个：YAML 覆盖/合并/无效输入、`run_production` override、schema v12 列与回填、active YAML 读取、预检查新项三态、R1 拒绝复用 409+failed 落库）。其中 `test_release_acceptance` 在本机高负载下出现一次健康检查超时，单独重跑 3 项 6.2s 全过，确认为负载偶发而非回归。
+- `python -m bench.reprocheck --sample`：8/8 严格字节一致（60.0s）；`python -m bench.scorecard --check`：IN SYNC——bench 产物不受平台侧改动影响。
+
+交接说明：E4 验收项"真实 Cloud Run 全链路检查"依赖内网真实 Langfuse 数据，与 E5 真实数据验证合并执行。
 
 ### 阶段 E5：真实数据验证与对比
 

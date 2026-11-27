@@ -1386,6 +1386,32 @@ Langfuse metadata 透传），E2 把平台侧编码器落地为可生产的离�
   权重入库或进发布包（2.27GB，且 §9.3 要求独立模型包治理）；
   缓存放进主库 schema（可弃置数据不该触发 DDL 迁移评审）。
 
+### 7.10 ★决策：生产运行加载 active 本体 YAML + 显式降级（2026-11-27，E4）
+
+**问题**：生产 R2 历史上永远走 `build_dynamic_ontology`（零价格、零约束），
+`ontology_versions` 里发布的 YAML 只被校验、从不被消费；R1 的 active 结构
+`state_json` 解析失败时静默降级为全量重训（`except ValueError: frozen_state=None`）——
+两处都是"看似成功"的静默退化。
+
+- **覆盖而非替换**：`ontology_from_yaml` 以动态发现为底层（反映真实 span 词汇），
+  YAML 治理键（`ONTOLOGY_GOVERNANCE_KEYS`，17 项）逐项覆盖；未钉住的键进
+  `missing` 清单并标记 Run `degraded`。**理由**：本体 YAML 是治理声明（价格、
+  禁止动作、SLO），动作词汇必须跟随真实数据，纯 YAML 替换会把未声明动作挡在门外。
+- **`unit_price` 通道级合并（显式决策）**：发布校验只要求 prompt/completion
+  非负，内核 `ingest.normalize` 却要求全价格通道（`tool_call` 等）。YAML 未钉的
+  通道继承动态零值默认——不把发布校验与内核契约的缺口转嫁成运行时 KeyError。
+- **无效 YAML = 失败，不是降级**：YAML 不可解析或 id 不匹配 → Run 直接失败
+  （配置错误，可行动）；只有"没有 active YAML"或"YAML 不完整"才标 `degraded`。
+  配置错误降级会制造"看似成功"。
+- **R1 解析失败 = 409 + Run failed**：拒绝复用坏结构并指引触发新 R2；
+  静默重训会伪造一个结构版本（原问题的真正危害不是浪费算力，是污染结构谱系）。
+- **`degraded` 三处落地**：`cohort_runs.degraded_json`（schema v12）、运行步骤
+  payload、`metrics.json` + Run API。bench 分支永不写该键——bench 字节不受
+  平台侧降级语义影响（reprocheck 8/8 验证）。
+- **被拒方案**：YAML 全量替换动态发现（见上）；`unit_price` 严格校验拒绝缺通道
+  YAML（会把存量 tier0 种子 YAML 全部打成非法，迁移成本高于合并语义收益）；
+  预检查新项独立成端点（扩大 API 面，放进既有 `/precheck` 即可）。
+
 ---
 
 ## 8. 待决清单

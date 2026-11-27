@@ -78,19 +78,17 @@
 > 契约中，保持 `intent-text:v1`，待 E4 预检查验证可得性后引入（须 bump
 > `INTENT_INPUT_VERSION` + 新 R2）。
 
-### 阶段 E4：生产链路修复
+### 阶段 E4：生产链路修复 —— ✅ 已完成（2026-11-27）
 
-- [ ] 生产 Run 加载 active ontology YAML（替代 `algorithm.py:48-98` 无提示 fallback）；
-      确需 fallback 时 Run 显式标记 `degraded` 并输出缺失项
-- [ ] 预检查（`service.py:1723-1775`）新增 7 项：
-      intent 文本覆盖率 / embedding 模型可用性 / embedding 维度与完整性 /
-      span key 质量 / action 命名稳定性 / usage 与 cost 覆盖率 / ontology 价格有效性
-- [ ] 旧空 embedding R2 结构标记不可复用；**fingerprint 不匹配直接拒绝 R1、触发新 R2**；
-      修复 `service.py:806-814` 解析失败静默重建的问题
-- [ ] schema 演进（v10 → v11）：structure/run 增加 encoder fingerprint 与
-      structural fingerprint 字段
-- [ ] 验收：真实 Cloud Run 通过模型/本体/embedding/结构指纹全链路检查；
-      不满足门禁的 Run 不产生"看似成功"的结果
+> 实施与验证记录见修复计划「阶段 E4 实施记录」。要点：生产 Run 经
+> `ontology_from_yaml` 加载 active YAML（动态发现打底 + 治理键覆盖 + `unit_price`
+> 通道级合并）；无 YAML → Run 显式 `degraded`，YAML 无效 → 直接失败；
+> 预检查 8 → 15 项；R1 冻结结构解析失败不再静默重训（409
+> `frozen_structure_unusable` + Run 置 failed）；schema v12 增
+> `structure_versions.embedding_dim/structural_fingerprint`（存量回填）与
+> `cohort_runs.degraded_json`（同步进运行步骤、metrics.json 与 Run API）。
+- [ ] 验收：真实 Cloud Run 通过模型/本体/embedding/结构指纹全链路检查——
+      依赖内网真实 Langfuse 数据，随 E5 执行
 
 ### 阶段 E5：真实数据验证与对比
 

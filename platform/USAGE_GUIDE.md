@@ -79,10 +79,14 @@ M3.4 calibration usage: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 
 - 通过 `POST /api/v1/tenants` 注册 Langfuse Organization/Project 与项目 API key。
 - 通过 `POST /api/v1/ontologies` 创建业务本体记录。
-- 通过 `POST /api/v1/ontologies/{id}/prechecks` 拉取近 7 天样本，检查样本量、
-  trace 唯一性、根节点、父子闭合、时间戳、usage、本体 metadata 与 action 覆盖。
+- 通过 `POST /api/v1/ontologies/{id}/prechecks` 拉取近 7 天样本，执行 15 项
+  适配度预检：样本量、trace 唯一性、根节点、父子闭合、时间戳、usage 与 cost
+  覆盖率、本体 metadata 覆盖、action 覆盖率与命名稳定性、intent 文本覆盖率、
+  embedding 模型可用性、embedding 维度一致性、span key 富身份（agent/operation）
+  质量、ontology 价格有效性。
 - 预检结果会给出 `passed` / `warning` / `failed` 与逐项指标，用于判断数据是否足够
-  启动首跑；本阶段尚未开放真实 Langfuse 数据的分析 Run。
+  启动首跑；`failed` 项意味着按当前数据发起的 Run 必然失败或产出无意义结构，
+  应先修复数据源再启动。
 - 平台开发自检可通过 `platform/scripts/langfuse_v4_smoke.py` 验证当前
   Langfuse v4 项目的写入、异步落库、读回与内核契约映射；该脚本面向平台开发，
   不是业务方日常操作入口。
@@ -91,8 +95,16 @@ M3.4 calibration usage: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   Run 结果包含轨迹分数、聚类 cell、异常/弃权标记与扣分证据。
 - 样本量低于 `COLD_START_MIN_TRACES=1000` 时，Run 会明确标记冷启动降级：
   可以查看分数与排序，但不会产出正式告警。
+- 生产 Run 现在会消费本体当前激活版本的 YAML（动作单价、禁止动作、SLO 锚点等
+  治理约束）。若本体没有激活的 YAML 版本，或 YAML 未钉住全部治理键，Run 会带
+  `degraded` 标记（Run 详情、Run Steps 与 metrics.json 可见），其中 `missing`
+  列出缺失的治理键；这不阻断 Run，但相应维度（如成本）按零约束口径计算。
+  YAML 本身无法解析或与本体 id 不匹配时 Run 直接失败，不会降级运行。
 - 每个本体的第一次正式 Run 会学习并冻结聚类结构；后续 R1 Run 会复用该
   结构，只给新轨迹贴标签并刷新簇内基线，保证跨 Run 的 cell 口径可比。
+  若激活结构已损坏（状态不可解析），R1 Run 会返回 409
+  `frozen_structure_unusable` 并置为失败，按提示触发一次新 R2 即可重建结构；
+  平台不会静默改用全量重训来"看似成功"地完成该 Run。
 - 结果维度评估依赖 trace 级 `answer_facts`、`answer_numbers`、
   `golden_answer`、`golden_facts` 等可选元数据；业务侧上报时应尽量携带。
   缺失时平台不会伪造数据，但结果符合度相关证据会降级，部分可判定问题

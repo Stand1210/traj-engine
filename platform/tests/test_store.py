@@ -93,7 +93,7 @@ class StoreTest(unittest.TestCase):
                 ).fetchone()
 
                 self.assertEqual("passed", row["status"])
-                self.assertEqual(8, len(report["checks"]))
+                self.assertEqual(15, len(report["checks"]))
             finally:
                 connection.close()
 
