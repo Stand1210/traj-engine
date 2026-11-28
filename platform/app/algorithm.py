@@ -162,6 +162,16 @@ def ontology_from_yaml(
                 value = [tuple(item) for item in value]
             except TypeError as error:
                 raise ValueError(f"ontology yaml {key} must be a list of lists") from error
+            # The kernel consumes entries positionally (models carry a cost
+            # multiplier at index 2); wrong arity must fail here with an
+            # actionable message instead of an IndexError inside a run.
+            arity = 3 if key == "models" else 2
+            for entry in value:
+                if len(entry) != arity:
+                    raise ValueError(
+                        f"ontology yaml {key} entries must have {arity} elements "
+                        f"(name, weight{', multiplier' if arity == 3 else ''}); got {entry!r}"
+                    )
         if key == "unit_price":
             if not isinstance(value, dict):
                 raise ValueError("ontology yaml unit_price must be a mapping")

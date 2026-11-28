@@ -1931,8 +1931,38 @@ def _validate_ontology_yaml(
     if forbidden_actions is not None:
         if not isinstance(forbidden_actions, list) or not all(isinstance(item, str) and item for item in forbidden_actions):
             raise ValueError("ontology yaml forbidden_actions must be a list of non-empty strings")
+    _validate_weighted_lists(parsed)
     if tier == "tier1" and "forbidden_actions" not in parsed:
         raise ValueError("tier1 ontology yaml requires forbidden_actions")
+
+
+# Weighted-list governance keys and their required entry arity. The kernel
+# consumes entries positionally (models carry a cost multiplier at index 2),
+# so a short entry must fail at upload with an actionable message instead of
+# surfacing as an IndexError deep inside a run.
+_WEIGHTED_LIST_ARITY = {"models": 3, "query_langs": 2, "prompt_versions": 2}
+
+
+def _validate_weighted_lists(parsed: dict) -> None:
+    for key, arity in _WEIGHTED_LIST_ARITY.items():
+        value = parsed.get(key)
+        if value is None:
+            continue
+        if not isinstance(value, list):
+            raise ValueError(f"ontology yaml {key} must be a list of lists")
+        for entry in value:
+            if not isinstance(entry, (list, tuple)) or len(entry) != arity:
+                raise ValueError(
+                    f"ontology yaml {key} entries must be lists of {arity} elements "
+                    f"(name, weight{', multiplier' if arity == 3 else ''}); got {entry!r}"
+                )
+            if not isinstance(entry[0], str) or not entry[0]:
+                raise ValueError(f"ontology yaml {key} entry name must be a non-empty string")
+            for component in entry[1:]:
+                if not isinstance(component, (int, float)) or isinstance(component, bool) or component < 0:
+                    raise ValueError(
+                        f"ontology yaml {key} entry weights must be non-negative numbers; got {entry!r}"
+                    )
 
 
 def serialize_startup(row) -> dict:

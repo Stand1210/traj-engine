@@ -87,16 +87,20 @@
 > `frozen_structure_unusable` + Run 置 failed）；schema v12 增
 > `structure_versions.embedding_dim/structural_fingerprint`（存量回填）与
 > `cohort_runs.degraded_json`（同步进运行步骤、metrics.json 与 Run API）。
-- [ ] 验收：真实 Cloud Run 通过模型/本体/embedding/结构指纹全链路检查——
-      依赖内网真实 Langfuse 数据，随 E5 执行
+- [x] 验收：真实 Cloud Run 通过模型/本体/embedding/结构指纹全链路检查——
+      已随 E5 完成（2026-11-28，见 E5 报告 §2）
 
-### 阶段 E5：真实数据验证与对比
+### 阶段 E5：真实数据验证与对比 —— ✅ 已完成（2026-11-28）
 
-- [ ] 旧结构 vs 新结构对比报告（新旧 cell 仅生成 lineage，不合并历史基线）
-- [ ] 真实 Cloud 数据诊断：文本覆盖率、embedding 参与率、聚类可分性、novelty 与弃权率、
+> 详细报告见 `platform/E5_VALIDATION_REPORT.md`；实施记录见修复计划「阶段 E5 实施记录」。
+> 要点：新旧对照（同窗口同 200 trace）意图簇 1→6、cell 意图纯度 0.74→1.00、
+> ARI 0.10→0.29；告警抽样 5/5 根因与 trace 证据一致；附带修复 YAML 加权列表元数校验。
+> 遗留量化代价：弃权率 53%（novelty 阈值偏保守 + 训练样本不足）、R2 训练耗时 5.9×。
+- [x] 旧结构 vs 新结构对比报告（新旧 cell 仅生成 lineage，不合并历史基线）
+- [x] 真实 Cloud 数据诊断：文本覆盖率、embedding 参与率、聚类可分性、novelty 与弃权率、
       告警可解释性、耗时与内存
-- [ ] 人工抽样复核新告警（结合 M7 试点复核包流程）
-- [ ] 验收：意图簇解释质量明显改善或给出量化失败原因；告警根因与 trace 证据一致；
+- [x] 人工抽样复核新告警（结合 M7 试点复核包流程）
+- [x] 验收：意图簇解释质量明显改善或给出量化失败原因；告警根因与 trace 证据一致；
       不再以合成标签为唯一质量证明
 
 ### 阶段 E6：内网部署治理

@@ -107,6 +107,30 @@ class OntologyFromYamlTest(unittest.TestCase):
                 traces,
             )
 
+    def test_weighted_list_arity_is_actionable(self):
+        traces = [make_trace("t1")]
+        # models entries are (name, weight, multiplier); a 2-element entry
+        # must fail with ValueError, not an IndexError inside the kernel.
+        with self.assertRaisesRegex(ValueError, "models entries must have 3 elements"):
+            ontology_from_yaml(
+                "id: ontology-x\nmodels: [[m1, 1.0]]\n",
+                "ontology-x",
+                traces,
+            )
+        with self.assertRaisesRegex(ValueError, "query_langs entries must have 2 elements"):
+            ontology_from_yaml(
+                "id: ontology-x\nquery_langs: [[en, 1.0, 1.0]]\n",
+                "ontology-x",
+                traces,
+            )
+        ontology, _ = ontology_from_yaml(
+            "id: ontology-x\nmodels: [[m1, 1.0, 1.25]]\nquery_langs: [[en, 1.0]]\n",
+            "ontology-x",
+            traces,
+        )
+        self.assertEqual([("m1", 1.0, 1.25)], ontology["models"])
+        self.assertEqual([("en", 1.0)], ontology["query_langs"])
+
     def test_run_production_uses_override(self):
         traces = bench_traces()
         override, missing = ontology_from_yaml(

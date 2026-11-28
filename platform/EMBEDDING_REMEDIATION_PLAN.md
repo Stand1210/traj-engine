@@ -1,6 +1,6 @@
 # Embedding 与执行视图修复计划
 
-> 状态：E1、E3 已完成（2026-11-26），E2 已完成（2026-11-27），E4–E6 待实施。
+> 状态：E1、E3 已完成（2026-11-26），E2、E4 已完成（2026-11-27），E5 已完成（2026-11-28），E6 待实施。
 > 背景：当前工程尚未达到生产算法验收标准。Cloud/Lifecycle 轨迹没有经过平台 encoder，intent embedding 为空时算法会静默降级；执行视图也尚未严格实现方法论 §5.3 的默认路线。本计划用于指导后续修复和内网工具接管。
 
 ## 1. 问题结论
@@ -249,6 +249,34 @@ kind::action::tool} × saliency {off, on} + 现方案基线，结果 `platform/t
 - `python -m bench.reprocheck --sample`：8/8 严格字节一致（60.0s）；`python -m bench.scorecard --check`：IN SYNC——bench 产物不受平台侧改动影响。
 
 交接说明：E4 验收项"真实 Cloud Run 全链路检查"依赖内网真实 Langfuse 数据，与 E5 真实数据验证合并执行。
+
+### 阶段 E5 实施记录（2026-11-28）
+
+详细报告见 `platform/E5_VALIDATION_REPORT.md`。摘要：
+
+- **环境与数据**：Langfuse Cloud `development_env`（us 区）5,421 trace / 30,263 observation
+  （2026-11-12 → 11-24），v3 API 已于 2026-11-16 下线，平台 v2 Observations 链路直接可用。
+  本体 YAML v3 上传激活（unit_price 五通道、forbidden_actions、models/query_langs 先验），
+  `TRAJ_INTENT_ENCODER=bge-m3` 经服务启动注入（`configure_engine_from_env`）。
+- **E4 遗留验收完成**：预检查 15 项真实 Cloud 执行（13 passed / 1 warning / 1 failed——
+  failed 为数据质量发现，见下）；R2 生产 Run 全链路成功，新结构 v15
+  （embedding_dim=1024、structural_fingerprint=`ceb73fb8cb8bdf56`）激活，旧结构正确停用。
+- **对照设计**：新旧 R2（训练窗 11-19→11-20）与新旧 R1（评分窗 11-22→11-23）各 200 条
+  trace，trace id 集合逐一相等（仅 v2 API 新增空值 `agent` 字段导致 spec_hash 差异，
+  已逐字段 diff 确认语义一致）。
+- **核心结论**：意图簇 1→6，cell 意图纯度 0.74→1.00，ARI 0.10→0.29（gt 仅辅助证据）；
+  新 cell 均为旧 cell 的意图纯子集（lineage 仅新旧对照）；告警抽样 5/5 根因与 trace
+  证据一致，且 `rule:forbidden_action` 类告警仅新链路可产生。代价：弃权率 53%
+  （novelty 阈值对 1024 维偏保守 + 200 条训练样本不足）、R2 训练耗时 5.9×（CPU 编码）。
+- **数据质量发现**：Langfuse 项目存在同 observation id 双份写入（同一 bench 子集两次
+  OTLP 导入），跨双批窗口使全部 trace 双根判 incomplete——由 15 项预检查首次暴露；
+  单批窗口不受影响，摄取去重语义留待路线决策。
+- **附带修复**：本体 YAML 加权列表元数校验（`models` 三元组、`query_langs`/
+  `prompt_versions` 二元组），上传校验（`service.py::_validate_weighted_lists`）与
+  运行时解析（`algorithm.py::ontology_from_yaml`）双层拒绝，错误信息可操作；
+  此前二元组 `models` 在内核深处抛 `IndexError`。
+- **验证**：平台测试 153/153（新增 1 项元数测试）；reprocheck 8/8 字节一致（49.3s）；
+  scorecard IN SYNC。
 
 ### 阶段 E5：真实数据验证与对比
 
