@@ -438,6 +438,69 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   provenance 新增 `cache_fingerprint` 字段（JSON 内嵌，无需迁移）。
   旧空 embedding 冻结结构仍按 E1 门禁拒绝 R1 复用，需触发新 R2。
 
+### 3.13 E6 内网部署治理记录（2026-11-28）
+
+**离线模型包组成与分发**：
+
+- 包内容：10 个文件共 2.14 GiB（`pytorch_model.bin` 2.27GB + 9 个配置/分词文件），
+  目录布局与 `platform/config/model_assets.json` 的 `weights` 键一一对应；
+  稀疏/ColBERT/ONNX 线性层有意不含（dense-only，见注册表 `notes`）。
+- 分发方式：整体拷贝 `platform/var/models/bge-m3/`（U 盘/内网共享/对象存储均可），
+  目标机放置路径任意，以 `TRAJ_MODEL_ROOT` 指向；默认路径为注册表 `cache_dir`。
+- 入库纪律：权重永不入 Git / 发布包 / 本体 YAML；SHA-256 清单入库于注册表。
+
+**hash 校验（两道，均已实测）**：
+
+1. 部署前人工校验（运维脚本，E6 新增）：
+   ```powershell
+   python -m platform.scripts.verify_model_assets --root <模型包目录>
+   ```
+   逐文件比对 SHA-256，输出资产指纹（当前 `e06d2e2362d5bb75`），
+   缺失/不符退出码 1 并列出文件；全部通过退出码 0。
+2. 服务启动门禁（E2 已有，E6 实测两种失败）：权重缺失 →
+   `model weight file is missing: <path>; restore the offline model package...`；
+   hash 不符（伪造 `pytorch_model.bin` 实测）→
+   `model weight hash mismatch: <path> expected=... actual=...; refusing to load,
+   re-install the approved offline model package`。两者均 `Application startup failed`，
+   服务不进入服务状态。
+
+**版本清单（内网交付基线）**：
+
+| 组件 | 版本/标识 |
+|---|---|
+| Python | 3.11.x（开发机实测 3.11.0） |
+| 平台三方件 | `requirements.txt` 钉版（FastAPI 0.115.6、uvicorn 0.34.0、PyYAML 6.0.3、torch 2.14.0、sentence-transformers 6.3.0、transformers 5.24.1、tokenizers 0.23.3、safetensors 0.8.0、huggingface-hub 2.5.0、numpy 2.4.6、scipy 1.17.1、scikit-learn 1.9.1） |
+| 数据库 schema | v12（`schema_migrations` 表；`platform/contracts/schema.sql` 同步） |
+| 内核 | `code_hash=d229ab802e5a01bf`（E3）；encoder 契约 `intent-encoder-contract-v1` |
+| 模型资产 | `BAAI/bge-m3` revision `5617a9f61b028005a4858fdac845db406aefb181`，指纹 `e06d2e2362d5bb75`，1024 维 |
+| 前端 | `frontend/package.json` 0.1.0；Node.js 24（实测 v24.19.0）+ npm 11 构建，`frontend/dist` 7.3MB |
+| Langfuse | v4（Cloud us 区或自托管）；v3 API 已于 2026-11-16 下线，平台走 v2 Observations |
+
+**资源实测（开发机 CPU，2026-11-28；E2 值见 §3.12）**：
+
+- 冷启动至 `/api/v1/health` 可用：**44.5s**（含 torch 导入、权重 hash 校验与加载、
+  schema 迁移检查；无 encoder 时约 5s）。
+- 编码吞吐：真实意图文本 4.9 texts/s（batch 32，200 条）；E2 短文本 9.1 texts/s。
+  规划容量时按 5 texts/s/实例保守估算。
+- 内存：服务常驻 RSS 1.35GB，Run 期间峰值 2.0GB（单实例单编码器；
+  不要同进程加载第二实例）。
+- 磁盘：模型包 2.2GiB；SQLite 68MB（5.5 万行级历史）；embedding 缓存 5.5MB/232 条
+  （约 24KB/条，万条约 240MB，可设上限或定期清理，删除仅代价重算）。
+
+**冷启动端到端验收记录（本机按文档执行）**：`cli run` 冷启动 44.5s 健康 →
+`cli smoke` passed → 真实 Cloud R1（50 trace）succeeded、非 degraded。
+失败门禁两项（上文）同次实测。
+
+**回滚矩阵**：
+
+| 场景 | 路径 | 结果保障 |
+|---|---|---|
+| 应用整体回滚 | §4.4 通用流程（发布标签 + DB 备份） | 历史 Run/结构不可变，直接可用 |
+| 停用 encoder（保留新代码） | `TRAJ_INTENT_ENCODER` 置空重启 | 已实测：无 encoder 的 R1 对 v15 结构显式失败并报修复指引（不静默降级）；需各本体触发一次无 encoder R2 重建结构；trace 自带 embedding 的项目不受限 |
+| 结构版本回退 | 不支持手工 reactivate 旧结构（旧结构无指纹/维度不符，门禁拒绝） | 正确路径是目标配置下触发新 R2；旧结构记录保留只读 |
+| 本体 YAML 回退 | `POST /api/v1/ontologies/{id}/versions/{version}/activate` 重新激活旧版本 | 已实测 v3→v2→v3；只影响后续 R2，R1 本体来自冻结结构不受影响 |
+| 模型包回退/更换 | 替换目录 + `verify_model_assets` + 重启；换模型必须更新注册表并触发新 R2 | 缓存 key 绑定指纹，不会误命中旧模型结果 |
+
 ## 4. M6.0 生产交付与验收闭环
 
 ### 4.1 一键初始化、升级与启动
@@ -445,7 +508,8 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - 数据库版本记录新增 `schema_migrations` 表：
   - `version INTEGER PRIMARY KEY`
   - `applied_at TEXT NOT NULL`
-- 当前版本为 `9`；`init` 与 `upgrade` 都会执行幂等建表和补列迁移。
+- 当前版本为 `12`（E4 起；`schema_migrations` 逐版本记录）；`init` 与 `upgrade`
+  都会执行幂等建表和补列迁移。
 - DB 路径统一由 `TRAJ_DB_PATH` 或 CLI `--db` 控制；未配置时仍为
   `platform/var/traj-engine.db`，兼容既有部署。
 - 首次部署：
@@ -544,6 +608,12 @@ M3.4 calibration deployment: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
   触发新 R2。预检扩到 15 项（新增 intent 文本/embedding 可用性与
   维度/span key 富身份/action 命名稳定性/cost 覆盖/价格有效性）。
   无新增三方件、无新增模型资产。
+- **E2/E6 编码器与结构回滚（2026-11-28 实测成文）**：encoder 是配置层组件，
+  停用（置空 `TRAJ_INTENT_ENCODER` 重启）不破坏数据——无 encoder 的 Run 对
+  encoder 时代结构会显式失败并输出修复指引（不静默降级），各本体触发一次
+  无 encoder R2 即可恢复；结构版本不支持手工 reactivate 旧版（门禁拒绝无指纹/
+  维度不符结构），正确路径一律是新 R2；本体 YAML 可经 activate 端点回退版本，
+  仅影响后续 R2。完整矩阵见 §3.13。
 
 ### 4.5 待补充清单
 

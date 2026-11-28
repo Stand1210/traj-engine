@@ -1,6 +1,6 @@
 # Embedding 与执行视图修复计划
 
-> 状态：E1、E3 已完成（2026-11-26），E2、E4 已完成（2026-11-27），E5 已完成（2026-11-28），E6 待实施。
+> 状态：E1、E3 已完成（2026-11-26），E2、E4 已完成（2026-11-27），E5、E6 已完成（2026-11-28）。
 > 背景：当前工程尚未达到生产算法验收标准。Cloud/Lifecycle 轨迹没有经过平台 encoder，intent embedding 为空时算法会静默降级；执行视图也尚未严格实现方法论 §5.3 的默认路线。本计划用于指导后续修复和内网工具接管。
 
 ## 1. 问题结论
@@ -277,6 +277,33 @@ kind::action::tool} × saliency {off, on} + 现方案基线，结果 `platform/t
   此前二元组 `models` 在内核深处抛 `IndexError`。
 - **验证**：平台测试 153/153（新增 1 项元数测试）；reprocheck 8/8 字节一致（49.3s）；
   scorecard IN SYNC。
+
+### 阶段 E6 实施记录（2026-11-28）
+
+- **离线模型包与 hash 校验**：新增运维脚本 `platform/scripts/verify_model_assets.py`
+  （逐文件 SHA-256 + 资产指纹 + 退出码分级：0 通过 / 1 包不符 / 2 注册表错误），
+  真实包 10/10 通过（指纹 `e06d2e2362d5bb75` 与 E5 Run 溯源一致）；
+  包组成/分发/入库纪律写入 `DEPLOYMENT.md` §3.13，`INTRANET_HANDOFF.md` §5。
+- **失败门禁（验收项，服务启动级实测）**：权重缺失与 `pytorch_model.bin` 篡改两种
+  场景均 `Application startup failed`，错误信息含完整 expected/actual hash 与修复指引
+  （E2 单元测试之外补齐启动级证据）。
+- **版本清单**：Python 3.11 / 12 项钉版三方件 / schema v12 / `code_hash=d229ab802e5a01bf` /
+  bge-m3 revision+指纹 / 前端 0.1.0（Node 24）汇总进 §3.13；修正 §4.1 滞留的
+  "当前版本为 9" → 12。
+- **资源实测**：冷启动至健康 44.5s（含权重校验加载）；真实意图文本吞吐 4.9 texts/s
+  （容量规划按 5 texts/s/实例）；服务 RSS 1.35GB / 峰值 2.0GB；磁盘：模型包 2.14GiB、
+  SQLite 68MB、embedding 缓存约 24KB/条。
+- **回滚矩阵（§3.13，逐项实测）**：应用整体回滚（§4.4）；停用 encoder → 无 encoder
+  R1 对 v15 结构显式失败并报修复指引（实测 run-cd44971226d048d1）；结构版本不支持
+  手工 reactivate（门禁拒绝，正确路径新 R2）；YAML activate 回退 v3→v2→v3 实测；
+  模型包更换须过 verify + 重启 + 新 R2。
+- **冷启动端到端验收（验收项）**：按文档 `cli run` 冷启动 44.5s 健康 → `cli smoke`
+  passed → 真实 Cloud R1（50 trace，run-448b0a67d6a343da）succeeded、非 degraded。
+- **文档同步**：`DEPLOYMENT.md`（§3.13 新增、§4.1 版本修正、§4.4 编码器回滚段）、
+  `INTRANET_HANDOFF.md`（§5 依赖表+模型包校验、§7 验收第 6 项）、
+  `USAGE_GUIDE.md`（§3.4.4 运维要点）。
+- **验证**：新增 `VerifyModelAssetsScriptTest` 2 项；平台测试 155/155；
+  reprocheck 8/8 字节一致；scorecard IN SYNC。
 
 ### 阶段 E5：真实数据验证与对比
 

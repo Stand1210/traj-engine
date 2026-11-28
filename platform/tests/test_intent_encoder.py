@@ -7,6 +7,7 @@ absent (e.g. bench-only checkouts); every contract that does not need the
 
 import hashlib
 import json
+import sys
 import tempfile
 import types
 import unittest
@@ -273,6 +274,64 @@ class RealModelIntegrationTest(unittest.TestCase):
         after = fresh.encode([text])
         self.assertEqual(before, after)
         type(self).encoder = fresh
+
+
+class VerifyModelAssetsScriptTest(unittest.TestCase):
+    """E6 ops verifier: exit codes must distinguish pass / package / registry errors."""
+
+    def _write_registry(self, tmp: str, weights: dict[str, str]) -> Path:
+        path = Path(tmp) / "reg.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "registry_version": ie.REGISTRY_VERSION,
+                    "models": {
+                        "m": {
+                            "provider": "test",
+                            "model_name": "m",
+                            "revision": "r",
+                            "dimension": 4,
+                            "weights": weights,
+                            "max_tokens": 8,
+                            "truncation": "t",
+                            "normalization": "l2",
+                            "backend": "b",
+                            "cache_dir": "pkg",
+                        }
+                    },
+                }
+            )
+        )
+        return path
+
+    def _run(self, argv: list[str]) -> int:
+        from platform.scripts import verify_model_assets
+
+        old_argv = sys.argv
+        sys.argv = ["verify_model_assets", *argv]
+        try:
+            return verify_model_assets.main()
+        finally:
+            sys.argv = old_argv
+
+    def test_pass_hash_mismatch_and_missing_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            payload = b"tiny-weights"
+            digest = hashlib.sha256(payload).hexdigest()
+            registry = self._write_registry(tmp, {"w.bin": digest})
+            root = Path(tmp) / "pkg"
+            root.mkdir()
+            (root / "w.bin").write_bytes(payload)
+            base = ["--model", "m", "--root", str(root), "--registry", str(registry)]
+            self.assertEqual(0, self._run(base))
+            (root / "w.bin").write_bytes(b"tampered")
+            self.assertEqual(1, self._run(base))
+            (root / "w.bin").unlink()
+            self.assertEqual(1, self._run(base))
+
+    def test_registry_error_exit_code(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(2, self._run(["--registry", str(Path(tmp) / "absent.json")]))
 
 
 if __name__ == "__main__":

@@ -241,6 +241,16 @@ M3.4 calibration usage: [`M3_4_CALIBRATION.md`](M3_4_CALIBRATION.md).
 - embedding 缓存可安全删除（`platform/var/embedding-cache.db`），
   代价仅是重算；换模型或改输入构造不会误命中旧缓存（key 绑定指纹）。
 - bench 基准 Run 不经过编码器（基准轨迹自带合成 embedding，属契约行为）。
+- **运维要点（E5/E6 实测）**：
+  - 启动前可用 `python -m platform.scripts.verify_model_assets --root <模型包目录>`
+    人工校验离线模型包（退出码 0 才算通过）；冷启动至健康约 45s 属正常。
+  - 训练样本较小时（如 200 条）弃权率可能较高（E5 实测约 50%）——这是
+    显式弃权而非错误，扩大 R2 训练窗或积累样本后会下降；弃权 trace 不进入
+    cell，但低分/规则类告警不受影响。
+  - Run 的 `degraded` 字段列出本体 YAML 未钉住的治理键；出现时应补全并
+    重新激活 YAML（E4 起 YAML 缺项不再静默零约束）。
+  - 停用编码器后必须触发新 R2 重建结构，否则 R1 会显式失败（防止静默降级，
+    属预期行为）；回滚矩阵见 `DEPLOYMENT.md` §3.13。
 
 ## 4. 结果解读
 

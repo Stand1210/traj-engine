@@ -105,6 +105,9 @@ python -m platform.app.cli release-verify --package platform/var/releases/traj-e
 | FastAPI | `0.115.6` | `requirements.txt` 固定 |
 | Uvicorn | `0.34.0` | `requirements.txt` 固定 |
 | PyYAML | `6.0.3` | `requirements.txt` 固定 |
+| torch | `2.14.0` | 仅启用意图编码器时需要；CPU wheel |
+| sentence-transformers | `6.3.0` | 同上；配套 `transformers 5.24.1`、`tokenizers 0.23.3`、`safetensors 0.8.0`、`huggingface-hub 2.5.0`、`numpy 2.4.6`、`scipy 1.17.1`、`scikit-learn 1.9.1`（均钉版） |
+| bge-m3 离线模型包 | revision `5617a9f6…`，2.14 GiB | 独立分发，不入库；SHA-256 清单在 `platform/config/model_assets.json` |
 | Node.js | `>=24 <25` | 用于构建前端 |
 | npm | 随 Node.js | 需能访问内网 npm 镜像 |
 | SQLite | Python 内置 | 不单独引入数据库服务 |
@@ -116,6 +119,22 @@ python -m platform.app.cli release-verify --package platform/var/releases/traj-e
 python -m pip install -r requirements.txt
 npm --prefix frontend ci
 ```
+
+离线模型包准备与校验（启用意图编码器时必做）：
+
+```powershell
+# 1) 将模型包整体拷贝到部署机（路径任意，10 个文件，2.14 GiB）
+# 2) 启动前逐文件校验 SHA-256（退出码 0 才允许启动）
+python -m platform.scripts.verify_model_assets --root <模型包目录>
+# 3) 启动时经环境变量启用并指向包目录
+$env:TRAJ_INTENT_ENCODER = "bge-m3"
+$env:TRAJ_MODEL_ROOT = "<模型包目录>"   # 缺省为 platform/var/models/bge-m3
+```
+
+校验器输出资产指纹（当前 `e06d2e2362d5bb75`），与 Run 溯源记录一致即为正确包；
+缺失或 hash 不符退出码 1 并列出问题文件。即使跳过人工校验，服务启动门禁也会
+拦截（启动失败并输出修复指引），不会带病运行。完整资源与回滚矩阵见
+`DEPLOYMENT.md` §3.13。
 
 如果内网不能访问公网 PyPI/npm，需要提前准备内部镜像或离线包，并把实际镜像地址记录到
 `platform/DEPLOYMENT.md`，不要写入凭据。
@@ -180,6 +199,9 @@ npm --prefix frontend run build
 3. Langfuse 连通性、版本和 profile 显示为内网 v4，而不是 Cloud。
 4. 新建/导入租户后，轨迹读取、Run、Scores 写回、复核队列同步均可走通。
 5. 注册生命周期后，调度器进程保持运行，R1/R2 历史能持久化。
+6. 启用意图编码器时：启动前 `verify_model_assets` 退出码 0；冷启动至健康
+   约 45s（含权重校验与加载，实测 44.5s）；故意移除任一权重文件后启动必须
+   失败且错误信息含修复指引（验收红线，不得跳过）。
 
 ## 8. 数据迁移
 
